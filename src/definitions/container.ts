@@ -1,8 +1,8 @@
-import {StringOrSymbol as ComponentID} from "./types";
+import {Try} from "../framework";
 
 export type IocComponentGetter<T> = (ctx?: T) => any
 
-export type lifecycleCallback<CTX> = (c: IfIocContainer<CTX>) => Promise<IfIocContainer<CTX>>
+export type lifecycleCallback<T> = (c: IfIocContainer<T>) => Promise<IfIocContainer<T>>
 
 /**
  * SINGLETON component created only the first time they requested
@@ -29,24 +29,36 @@ export enum IocComponentLifecycle {
  */
 export interface IfComponentPropDependency {
   propName: string
-  componentName: ComponentID
+  componentName: string
+  componentType: Symbol
 }
 
 /**
  * Interface of a Component stored in container
  */
-export interface IfIocComponent<CTX> {
+export interface IfIocComponent<T> {
 
   /**
    * Component Unique Identifier
    */
-  id: ComponentID
+  id: string
+
+  /**
+   * Unique identifier of component type
+   * The value for symbol will be set by
+   * consumer of this IOC framework
+   * This IOC by default only aware of 2 types of components:
+   * component and component_factory
+   *
+   * WEB frameworks usually add many other types like controller, middleware, etc.
+   */
+  componentType: Symbol
 
   /**
    * Main function to call to get
    * instance of requested component
    */
-  get: IocComponentGetter<CTX>
+  get: IocComponentGetter<T>
 
   /**
    * Component lifecycle
@@ -61,7 +73,7 @@ export interface IfIocComponent<CTX> {
   /**
    * Constructor dependencies
    */
-  ctorDeps: Array<ComponentID>
+  ctorDeps: Array<string>
 
   /**
    * Array of componentIDs that this
@@ -69,19 +81,20 @@ export interface IfIocComponent<CTX> {
    * I Component Factory may provide
    * multiple components
    */
-  provides: Array<ComponentID>
+  provides: Array<string>
 
   /**
    * Optional function to call after
    * constructing component
    */
-  postConstruct?: lifecycleCallback<CTX>
+  postConstruct?: lifecycleCallback<T>
 
   /**
    * Optional function to call
    * on component when container is shutting down
    */
-  preDestroy?: lifecycleCallback<CTX>
+  preDestroy?: lifecycleCallback<T>
+
 }
 
 
@@ -90,10 +103,20 @@ export interface Newable <T> {
   name?: string
 }
 
+/**
+ * Inversion of control container interface
+ * Container is generic for a type T which represents a type of Context Object
+ * Context object is an optional parameter when getting a component from container
+ *
+ */
+export interface IfIocContainer<T> {
 
-export interface IfIocContainer<CTX> {
-
-  hasComponent(name: ComponentID): boolean
+  /**
+   * Check to see if container contains component by specific name
+   * @param name
+   * @returns boolean
+   */
+  has(name: string): boolean
 
   /**
    * Container knows when to return same instance, when to return new instance
@@ -103,31 +126,33 @@ export interface IfIocContainer<CTX> {
    * @param name
    * @returns any
    */
-  getComponent(name: ComponentID, ctx?: CTX): any
+  get(name: string, ctx?: T): Try<any, Error>
 
   /**
    * Add missing properties to an object
    * when object is passed here it will get
    * the dependsOn meta and will add missing dependencies
    *
+   * This is a helper method and only used for setting prop dependencies
+   * constructor dependencies are not set with this method
+   *
    * @param obj
    * @returns same object that was passed in with added properties
    */
-  setDependencies<T>(obj: T, ctx?: CTX, aDeps?: Array<IfComponentPropDependency>): T
+  addDependencies<T>(obj: T, ctx?: T, aDeps?: Array<IfComponentPropDependency>): Try<T>
 
   /**
    * Adds component to container
    * @param cClass component class
    * @returns string name of added component
-   * @throws Error if component with same name was already added
    */
-  addComponent(cClass: Newable<any>): ComponentID
+  addComponent(cClass: Newable<any>): Try<string, Error>
 
-  readonly componentsList: string
+  readonly components: string
 
   readonly ready: boolean
 
-  initialize(): Promise<IfIocContainer<CTX>>
+  initialize(): Promise<IfIocContainer<T>>
 
   cleanup(): Promise<boolean>
 
