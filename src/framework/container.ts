@@ -2,6 +2,9 @@ import {IfIocComponent, IfIocContainer} from "../definitions/container";
 import {Try, TryCatch} from "./try";
 const debug = require('debug')('bind:ioc');
 
+
+export const DEFAULT_COMPONENT_META = Symbol("ioc:component:meta:default");
+
 export class Container<T> implements IfIocContainer<T> {
 
   private readonly store_: Map<string, IfIocComponent<T>>;

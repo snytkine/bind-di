@@ -26,16 +26,3 @@ export function TryCatch<T>(f: Function): Try<T, Error> {
   }
 
 }
-
-
-let done = TryCatch(function(){
-  const g = 2 -2
-  if(g === 0){
-    throw new Error("Division by zero")
-  } else {
-    return 17/g
-  }
-})
-
-const {Success, Failure} = done;
-console.log("DONE=", Success, "Failure=", Failure);

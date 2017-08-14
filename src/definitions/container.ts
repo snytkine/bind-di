@@ -4,12 +4,13 @@ export type IocComponentGetter<T> = (ctx?: T) => any
 
 export type lifecycleCallback<T> = (c: IfIocContainer<T>) => Promise<IfIocContainer<T>>
 
+
 /**
- * SINGLETON component created only the first time they requested
+ * APPLICATION (aka singleton) component created only the first time they requested
  * INSTANCE component is created using new keyword every time its requested
+ * REQUEST one per request
+ * SESSION one per http session
  *
- * @todo may add 2 new lifecycles: Request - one per request (per req object)
- * and Session one per session.
  *
  * @important value must be in ORDER from smallest to largest lifecycle
  * This will be used in validation of dependency injection where
@@ -18,8 +19,22 @@ export type lifecycleCallback<T> = (c: IfIocContainer<T>) => Promise<IfIocContai
  *
  */
 export enum IocComponentLifecycle {
-  SINGLETON,
-  INSTANCE
+  INSTANCE,
+  REQUEST,
+  SESSION,
+  SINGLETON
+}
+
+
+export enum IocComponentType {
+  COMPONENT,
+  COMPONENT_FACTORY
+}
+
+
+export interface IfComponentFactoryMethod {
+  propName: string
+  provides: string
 }
 
 /**
@@ -30,7 +45,6 @@ export enum IocComponentLifecycle {
 export interface IfComponentPropDependency {
   propName: string
   componentName: string
-  componentType: Symbol
 }
 
 /**
@@ -39,20 +53,26 @@ export interface IfComponentPropDependency {
 export interface IfIocComponent<T> {
 
   /**
-   * Component Unique Identifier
+   * Component Unique Identifier (component name)
    */
   id: string
 
   /**
    * Unique identifier of component type
-   * The value for symbol will be set by
-   * consumer of this IOC framework
-   * This IOC by default only aware of 2 types of components:
-   * component and component_factory
-   *
-   * WEB frameworks usually add many other types like controller, middleware, etc.
    */
-  componentType: Symbol
+  componentType: IocComponentType
+
+
+  /**
+   * Optional field may be used by consumer of this framework
+   * to add extra info to component.
+   * Example is to add a hint that component is a Middleware or Controller, or RequestFilter
+   * or any other info that consuming framework may need to set
+   *
+   * Default value is DEFAULT_COMPONENT_META
+   *
+   */
+  componentMeta: Symbol
 
   /**
    * Main function to call to get

@@ -1,6 +1,6 @@
 .idea/
 /build/
-/sandbox/
+/src/sandbox/
 /logs/*
 /node_modules/
 /src/lib/**/*.js
