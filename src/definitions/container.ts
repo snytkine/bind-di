@@ -1,4 +1,4 @@
-import {Try} from "../framework";
+import {Try, StringOrSymbol} from "../";
 
 export type IocComponentGetter<T> = (ctx?: T) => any
 
@@ -18,8 +18,8 @@ export type lifecycleCallback<T> = (c: IfIocContainer<T>) => Promise<IfIocContai
  * into component with larger lifecycle.
  *
  */
-export enum IocComponentLifecycle {
-  INSTANCE,
+export enum IocComponentScope {
+  PROTOTYPE = 1,
   REQUEST,
   SESSION,
   SINGLETON
@@ -27,14 +27,14 @@ export enum IocComponentLifecycle {
 
 
 export enum IocComponentType {
-  COMPONENT,
-  COMPONENT_FACTORY
+  COMPONENT = 1,
+  FACTORY
 }
 
 
 export interface IfComponentFactoryMethod {
-  propName: string
-  provides: string
+  methodName: string
+  providesComponent: StringOrSymbol
 }
 
 /**
@@ -43,8 +43,17 @@ export interface IfComponentFactoryMethod {
  * This is for property based dependency injection
  */
 export interface IfComponentPropDependency {
-  propName: string
-  componentName: string
+    propertyName: StringOrSymbol
+    dependencyComponentID: StringOrSymbol
+    dependencyComponentType?: IocComponentType
+}
+
+
+
+export interface IfConstructorDependency {
+    dependencyComponentID: StringOrSymbol
+    positionID: number
+    dependencyComponentType?: IocComponentType
 }
 
 /**
@@ -55,7 +64,7 @@ export interface IfIocComponent<T> {
   /**
    * Component Unique Identifier (component name)
    */
-  id: string
+  id: StringOrSymbol
 
   /**
    * Unique identifier of component type
@@ -72,7 +81,7 @@ export interface IfIocComponent<T> {
    * Default value is DEFAULT_COMPONENT_META
    *
    */
-  componentMeta: Symbol
+  componentMetaType: Symbol
 
   /**
    * Main function to call to get
@@ -83,17 +92,17 @@ export interface IfIocComponent<T> {
   /**
    * Component lifecycle
    */
-  lifecycle: IocComponentLifecycle
+  scope: IocComponentScope
 
   /**
    * Property dependencies
    */
-  propDeps: Array<IfComponentPropDependency>
+  propeps: Array<IfComponentPropDependency>
 
   /**
    * Constructor dependencies
    */
-  ctorDeps: Array<string>
+  constructorDependenciesDeps: Array<IfConstructorDependency>
 
   /**
    * Array of componentIDs that this

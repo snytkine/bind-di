@@ -1,83 +1,118 @@
 import "reflect-metadata";
 import {
-  _PROP_DEPENDENCIES_,
-  _CTOR_DEPENDENCIES_,
-  _COMPONENT_NAME_,
-  _FACTORY_METHODS_,
-  _COMPONENT_TYPE_,
-  IfComponentFactoryMethod,
-  IfComponentPropDependency,
-  IocComponentType,
-  IocComponentLifecycle
-} from '../definitions'
+    _PROP_DEPENDENCIES_,
+    _CTOR_DEPENDENCIES_,
+    _COMPONENT_NAME_,
+    _FACTORY_METHODS_,
+    _COMPONENT_TYPE_,
+    _DEFAULT_SCOPE_,
+    IfComponentFactoryMethod,
+    IfComponentPropDependency,
+    IocComponentType,
+    IocComponentScope,
+    defineMetadataUnique
+} from '../'
+import {RETURN_TYPE} from "../definitions/consts";
 
+
+
+/**
+ * When @Component or @Factory is added to class
+ * Component name is added to class as a hidden non-enumerable property (with Symbol as name)
+ * Component scope is added to class as hidden non-enumerable property (with Symbol as name)
+ * Component type (Component or ComponentFactory is added to class as hidden non-enumerable hidded property (with Symbol as name)
+ * A Scope property must NOT be added ONLY if explicitly set with @Scope or @Singleton decorator, cannot be set
+ * to initial default value.
+ * But what about decorating controller? Controller in not Singleton by default but generic component IS singleton!
+ * A component must also have _DEFAULT_SCOPE_
+ * This way when a new component type needs to add component meta data (like controller) it must call
+ * the addComponentDecoration with own _DEFAULT_SCOPE_ value.
+ *
+ *
+ * When @Component is added to method or get accessor:
+ *
+ *
+ * @type {debug.IDebugger | any}
+ */
 
 const debug = require('debug')('bind:decorator:component');
 const TAG = '@Component';
 
 
 export type Target = {
-  new (...args: any[]): any,
-  name: string
+    new? (...args: any[]): any
+    name?: string
+    constructor: any
+    prototype?: any
 }
 
+export interface IfPropertyWithDescriptor {
+    propertyKey: string
+    descriptor: TypedPropertyDescriptor<Object>
+}
 
 export interface IfComponentDecoration {
-  componentName: string
-  componentType: IocComponentType
-  target: Target
-  componentMeta?: Symbol
-  propertyKey?: string
-  descriptor?: PropertyDescriptor
+    componentName: string
+    componentType: IocComponentType
+    /**
+     * Target should always be a Constructor function (newable) T extends {new(...args:any[]):{}}
+     * @todo create separate interface for this property like ClassConstructor
+     * it will have .name
+     */
+    target: object
+    defaultScope: IocComponentScope
+    componentMeta?: Symbol
+    property?: IfPropertyWithDescriptor
+
 }
 
 
 export interface IfComponentDetails {
 
-  /**
-   * Component name
-   */
-  id?: string
+    /**
+     * Component name
+     */
+    id?: string
 
-  /**
-   * Unique identifier of component type
-   */
-  componentType?: IocComponentType
+    /**
+     * Unique identifier of component type
+     */
+    componentType?: IocComponentType
 
 
-  /**
-   * Optional field may be used by consumer of this framework
-   * to add extra info to component.
-   * Example is to add a hint that component is a Middleware or Controller, or RequestFilter
-   * or any other info that consuming framework may need to set
-   *
-   * Default value is DEFAULT_COMPONENT_META
-   *
-   */
-  componentMeta?: Symbol
+    /**
+     * Optional field may be used by consumer of this framework
+     * to add extra info to component.
+     * Example is to add a hint that component is a Middleware or Controller, or RequestFilter
+     * or any other info that consuming framework may need to set
+     *
+     * Default value is DEFAULT_COMPONENT_META
+     *
+     */
+    componentMeta?: Symbol
 
-  /**
-   * Component lifecycle
-   */
-  lifecycle?: IocComponentLifecycle
+    /**
+     * Component lifecycle
+     */
+    scope: IocComponentScope
 
-  /**
-   * Property dependencies
-   */
-  propDeps: Array<IfComponentPropDependency>
+    /**
+     * Property dependencies
+     */
+    propDeps: Array<IfComponentPropDependency>
 
-  /**
-   * Constructor dependencies
-   */
-  ctorDeps: Array<string>
+    /**
+     * Constructor dependencies
+     */
+    ctorDeps: Array<string>
 
-  /**
-   * Array of componentIDs that this
-   * component provides
-   * I Component Factory may provide
-   * multiple components
-   */
-  provides: Array<string>
+    /**
+     * Array of componentIDs that this
+     * component provides
+     * I Component Factory may provide
+     * multiple components
+     */
+    provides: Array<string>
 
 }
 
@@ -91,99 +126,184 @@ export interface IfComponentDetails {
 
 export const addComponentDecoration = (data: IfComponentDecoration): void => {
 
-  if (typeof data.target === "function" && !data.propertyKey) {
 
-    debug(`Defining @Component '${data.componentName}' for class ${data.target.name}`);
+    debug(`Entered addComponentDecoration with data:`, data);
 
-    Reflect.defineMetadata(_COMPONENT_NAME_, data.componentName, data.target);
-    Reflect.defineMetadata(_COMPONENT_TYPE_, data.componentType, data.target);
-
-
-  } else {
-
-
-    /**
-     * Component can also be added to function in case of ComponentFactory
-     * where a function returns a component
-     */
-    if (typeof data.descriptor.value !== 'function') {
-      throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${data.target.constructor.name}.${data.propertyKey} decorated with ${TAG}('${data.componentName}') is NOT a class or method`);
-    }
-
-    let components: Array<IfComponentFactoryMethod> = Reflect.getMetadata(_FACTORY_METHODS_, data.target);
-    components = components || [];
-
-    components.push({propName: data.propertyKey, provides: data.componentName});
-
-    debug(`Adding _FACTORY_METHODS_ ${JSON.stringify(components)} of target ${data.target.constructor.name}`);
-
-    Reflect.defineMetadata(_FACTORY_METHODS_, components, data.target);
-
-  }
-
-};
-
-
-export function Component(target: Target, propertyKey?: string, descriptor?: PropertyDescriptor): void
-
-export function Component(name: string): (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => void
-
-export function Component(nameOrTarget: string | Target) {
-  let name: string;
-  if (typeof nameOrTarget !== 'string') {
-    debug(`${TAG} Component decorator Called without params`);
-    name = nameOrTarget.name;
-    debug(`${TAG} Name from target= ${name}`);
-
-    const ctorDeps: Array<string> = Reflect.getMetadata(_CTOR_DEPENDENCIES_, nameOrTarget.prototype) || [];
-    const propDeps: Array<IfComponentPropDependency> = Reflect.getMetadata(_PROP_DEPENDENCIES_, nameOrTarget.prototype) || [];
-
-    propDeps.forEach(d => {
-      if (d.componentName === name) {
-        throw new ReferenceError(`${TAG} Circular dependency in component '${name}'.  Property '${d.propName}' depends on component with the same name`);
-      }
-    });
-
-    //Reflect.defineMetadata(_COMPONENT_NAME_, name, nameOrTarget);
-
-  } else {
-    debug(`Component decorator Called with name ${nameOrTarget}`);
-    name = nameOrTarget;
-    return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-      let name = nameOrTarget;
-      if (typeof target === "function" && !propertyKey) {
-
-        debug(`Defining @Component '${name}' for class ${target.name}`);
-        let type = Reflect.getMetadata(_COMPONENT_TYPE_, target);
-        if (type) {
-          throw new SyntaxError(`Cannot add ${TAG} annotation to Class ${target.name} because it is already annotated as ${IocComponentType[type]}`)
-        }
+    if (!data.property) {
 
         /**
-         * None of dependencies can have same name as the component itself
+         * Add extra fields to class prototype: name, type, defaultScope
          */
-        let deps: Array<IfComponentPropDependency> = Reflect.getMetadata(_PROP_DEPENDENCIES_, target.prototype) || [];
-        const ctorDeps: Array<string> = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target.prototype) || [];
-        deps.forEach(d => {
-          if (d.componentName === name) {
+        Object.defineProperty(data.target, _COMPONENT_NAME_, {value: data.componentName});
+        Object.defineProperty(data.target, _COMPONENT_TYPE_, {value: data.componentType});
+        Object.defineProperty(data.target, _DEFAULT_SCOPE_, {value: data.defaultScope});
+    } else {
+        /**
+         * Defining component of accessor method. In this case we need to add metadata to class
+         * Can a component that comes from a getter method be non-singleton?
+         * I think it can be, here is the example:
+         *
+         * getWidget(): Widget {
+         *
+         *  return new Widget(this.logger)
+         * }
+         *
+         * This way a new instance can be obtained by calling accessor method every time
+         *
+         */
+    }
+};
 
-            throw new ReferenceError(`${TAG} Circular dependency in component '${name}'.  Property '${d.propName}' depends on component with the same name`);
+/**
+ * Component decorator can be a factory - like @Component("my_stuff")
+ * or Decorator function - simply a @Component
+ * It can be applied to class or class method
+ *
+ * @param {Target} target
+ * @constructor
+ */
+export function Component(target: Target): void
 
-          }
-        });
+export function Component(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
 
-        if (ctorDeps.includes(name)) {
-          throw new ReferenceError(`${TAG} Circular dependency in component '${name}'.  Constructor depends on component with the same name`);
+export function Component(name: string): (target: any, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) => void
+
+export function Component(nameOrTarget: string | Target, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) {
+    let name: string;
+    if (typeof nameOrTarget !== 'string') {
+        name = nameOrTarget['name'];
+        debug(`${TAG} Component decorator Called without params`);
+
+        if (typeof nameOrTarget === "function" && !propertyKey && name && nameOrTarget['prototype']) {
+            /**
+             * Applying decorator to class
+             */
+
+            debug(`Defining unnamed ${TAG} for class ${name}`);
+
+            defineMetadataUnique(_COMPONENT_NAME_, name, nameOrTarget);
+            defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget);
+            defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget);
+            /*return addComponentDecoration({
+                componentName: nameOrTarget['name'],
+                componentType: IocComponentType.COMPONENT,
+                target: nameOrTarget['prototype'],
+                defaultScope: IocComponentScope.SINGLETON
+            })*/
+
+
+        } else {
+
+            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget['name']}`);
+
+            /**
+             * Applying decorator to method of the class
+             * In this case the target is a prototype of the class for instance member
+             * or constructor function for a static member.
+             *
+             * We should not allow Component decorator on a static member.
+             */
+            if (!descriptor || typeof descriptor.value !== 'function') {
+                throw new TypeError(`Only class or class method can have a '${TAG}'decorator. ${nameOrTarget.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`);
+            }
+
+            /**
+             * Decorating method with @Component but now need to extract component name based on return type.
+             * If return type is not declared in typescript then we cannot proceed.
+             *
+             * If @Component is applied to class method that class method must declared return type like this:
+             * Here the @Component was applied to accessor method without providing component name
+             * so we must extract component name from return type.
+             *
+             * getCollection(): Collection {
+             *  //return a collection instance.
+             * }
+             *
+             */
+            const rettype = Reflect.getMetadata(RETURN_TYPE, nameOrTarget, propertyKey);
+            const RT = typeof rettype;
+
+            if (RT != "function" || !rettype.name) {
+                throw new TypeError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and rettype is not an object: ${RT}`);
+            }
+
+            defineMetadataUnique(_COMPONENT_NAME_, rettype.name, nameOrTarget, propertyKey);
+            defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey);
+            defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget, propertyKey);
+
+            // return addComponentDecoration({
+            //     componentName: rettype.name,
+            //     componentType: IocComponentType.COMPONENT,
+            //     target: nameOrTarget,
+            //     defaultScope: IocComponentScope.SINGLETON,
+            //     property: {
+            //         propertyKey: propertyKey,
+            //         descriptor: descriptor
+            //     }
+            //
+            // })
 
         }
 
-        Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target);
-        Reflect.defineMetadata(_COMPONENT_NAME_, name, target);
 
-      } else {
-        throw new TypeError(`@Component can be applied only to a class. Cannot apply '${name}' Component annotation`);
-      }
+    } else {
+        debug(`${TAG} decorator Called with component name="${nameOrTarget}"`);
+        name = nameOrTarget;
+        return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
 
+            if (typeof target === "function" && !propertyKey) {
+
+                debug(`Defining named ${TAG} '${name}' for class ${target.name}`);
+
+                // return addComponentDecoration({
+                //     componentName: name,
+                //     componentType: IocComponentType.COMPONENT,
+                //     target: target.prototype,
+                //     defaultScope: IocComponentScope.SINGLETON
+                // })
+
+                // Applying to target (without .prototype fails to get meta for the instance)
+                defineMetadataUnique(_COMPONENT_NAME_, name, target);
+                defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target);
+                defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target)
+
+            } else {
+                /**
+                 * This is a named component applied to method.
+                 */
+
+                if (typeof descriptor.value !== 'function') {
+                    throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${name}') is NOT a class or method`);
+                }
+
+                debug(`Defining named ${TAG} '${name}' for class method ${propertyKey}`);
+                defineMetadataUnique(_COMPONENT_NAME_, name, target, propertyKey);
+                defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey);
+                defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target, propertyKey);
+
+             /*   return addComponentDecoration({
+                    componentName: name,
+                    componentType: IocComponentType.COMPONENT,
+                    target: target.prototype,
+                    defaultScope: IocComponentScope.SINGLETON,
+                    property: {
+                        propertyKey: propertyKey,
+                        descriptor: descriptor
+                    }
+
+                })*/
+            }
+
+        }
     }
-  }
+}
+
+
+// TEMP FOR TEST
+export const requiredMetadataKey = Symbol("required");
+
+export function required(target: Object, propertyKey: string | symbol, parameterIndex: number) {
+    let existingRequiredParameters: number[] = Reflect.getOwnMetadata(requiredMetadataKey, target, propertyKey) || [];
+    existingRequiredParameters.push(parameterIndex);
+    Reflect.defineMetadata(requiredMetadataKey, existingRequiredParameters, target, propertyKey);
 }

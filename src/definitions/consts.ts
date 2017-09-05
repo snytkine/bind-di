@@ -13,8 +13,9 @@ export const _COMPONENT_ENV_ = Symbol("component_environment");
 export const _INIT_METHOD_ = Symbol("component_init");
 export const _INITIALIZER_ = Symbol("component_init_order");
 export const _DESTRUCTOR_ = Symbol("component_destruct");
-export const _SCHEMA_ = Symbol("json_schema");
 export const _COMPONENT_TYPE_ = Symbol("component_type");
+export const _COMPONENT_SCOPE_ = Symbol("component_scope");
+export const _DEFAULT_SCOPE_ = Symbol("component_default_scope");
 
 //export const CONTROLLER_MIDDLEWARE_METHOD = "doFilter";
 //export const CONTEXT_SERVICE_METHOD = "runService";
