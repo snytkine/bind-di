@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import {Component, _COMPONENT_NAME_, _COMPONENT_TYPE_, _DEFAULT_SCOPE_, required} from '../'
 import {Person} from './person'
+import {Inject} from "../decorators/inject";
 
 
 export interface IfPerson {
@@ -29,6 +30,9 @@ export class MyComponent2 {
 
     description: Person;
 
+    @Inject
+    comp1: MyComponent;
+
     //@Component("my_constructor")
     /**
      * param decorators and design:paramtypes for paramtypes of constructor
@@ -39,12 +43,13 @@ export class MyComponent2 {
      * @param {Person} settings
      * @param {string} bla
      */
-    constructor(@required settings: Person, @required bla:string) {
+
+    constructor(@Inject settings: Person, @required bla:string) {
         this.description = {first: "John", last: "Smith"}
     }
 
     @Component
-    MyComponent2_getUsername(@required gsx:any): Person {
+    MyComponent2_getUsername(@Inject @required gsx:any): Person {
         return new Person("John", "Smith")
     }
 

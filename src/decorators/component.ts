@@ -15,7 +15,6 @@ import {
 import {RETURN_TYPE} from "../definitions/consts";
 
 
-
 /**
  * When @Component or @Factory is added to class
  * Component name is added to class as a hidden non-enumerable property (with Symbol as name)
@@ -124,36 +123,6 @@ export interface IfComponentDetails {
 //
 //}
 
-export const addComponentDecoration = (data: IfComponentDecoration): void => {
-
-
-    debug(`Entered addComponentDecoration with data:`, data);
-
-    if (!data.property) {
-
-        /**
-         * Add extra fields to class prototype: name, type, defaultScope
-         */
-        Object.defineProperty(data.target, _COMPONENT_NAME_, {value: data.componentName});
-        Object.defineProperty(data.target, _COMPONENT_TYPE_, {value: data.componentType});
-        Object.defineProperty(data.target, _DEFAULT_SCOPE_, {value: data.defaultScope});
-    } else {
-        /**
-         * Defining component of accessor method. In this case we need to add metadata to class
-         * Can a component that comes from a getter method be non-singleton?
-         * I think it can be, here is the example:
-         *
-         * getWidget(): Widget {
-         *
-         *  return new Widget(this.logger)
-         * }
-         *
-         * This way a new instance can be obtained by calling accessor method every time
-         *
-         */
-    }
-};
-
 /**
  * Component decorator can be a factory - like @Component("my_stuff")
  * or Decorator function - simply a @Component
@@ -184,13 +153,6 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
             defineMetadataUnique(_COMPONENT_NAME_, name, nameOrTarget);
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget);
-            /*return addComponentDecoration({
-                componentName: nameOrTarget['name'],
-                componentType: IocComponentType.COMPONENT,
-                target: nameOrTarget['prototype'],
-                defaultScope: IocComponentScope.SINGLETON
-            })*/
-
 
         } else {
 
@@ -231,18 +193,6 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget, propertyKey);
 
-            // return addComponentDecoration({
-            //     componentName: rettype.name,
-            //     componentType: IocComponentType.COMPONENT,
-            //     target: nameOrTarget,
-            //     defaultScope: IocComponentScope.SINGLETON,
-            //     property: {
-            //         propertyKey: propertyKey,
-            //         descriptor: descriptor
-            //     }
-            //
-            // })
-
         }
 
 
@@ -254,13 +204,6 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
             if (typeof target === "function" && !propertyKey) {
 
                 debug(`Defining named ${TAG} '${name}' for class ${target.name}`);
-
-                // return addComponentDecoration({
-                //     componentName: name,
-                //     componentType: IocComponentType.COMPONENT,
-                //     target: target.prototype,
-                //     defaultScope: IocComponentScope.SINGLETON
-                // })
 
                 // Applying to target (without .prototype fails to get meta for the instance)
                 defineMetadataUnique(_COMPONENT_NAME_, name, target);
@@ -281,17 +224,6 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target, propertyKey);
 
-             /*   return addComponentDecoration({
-                    componentName: name,
-                    componentType: IocComponentType.COMPONENT,
-                    target: target.prototype,
-                    defaultScope: IocComponentScope.SINGLETON,
-                    property: {
-                        propertyKey: propertyKey,
-                        descriptor: descriptor
-                    }
-
-                })*/
             }
 
         }
