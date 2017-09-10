@@ -1,6 +1,16 @@
 import "reflect-metadata";
-import {IfComponentPropDependency} from "../"
-import {IfConstructorDependency} from "../definitions/container";
+import {
+    IfComponentPropDependency,
+    IfConstructorDependency,
+    IfComponentIdentity,
+    _COMPONENT_IDENTITY_
+} from "../"
+
+export const INVALID_COMPONENT_NAMES = ["Object", "String", "Number", "Boolean"];
+
+export function Identity(componentName:string, className:string):IfComponentIdentity {
+    return {componentName, className}
+}
 
 export function defineMetadataUnique(metadataKey: any, metadataValue: any, target: Object, propertyKey?: string | symbol): void {
     // Need for prototype decorating class and for properties on class instances
@@ -15,25 +25,10 @@ export function defineMetadataUnique(metadataKey: any, metadataValue: any, targe
     }
 }
 
-/**
- * For constructor inject we don't care about instance prototype
- * we only need to add decorator to a class (only to Constructor)
- * Once instance has been created we don't care what constructor dependencies it had
- *
- * @param {Object} target
- * @param {IfConstructorDependency} injectMeta
- */
-export function defineConstructorDependency(target: Object, injectMeta: IfConstructorDependency): void {
 
+export function setComponentIdentity(identity: IfComponentIdentity, target: Object, propertyKey?: string): void {
+    return defineMetadataUnique(_COMPONENT_IDENTITY_, identity, target, propertyKey)
 }
 
-/**
- * Property dependency
- * We need to add this meta to a class prototype
- *
- * @param {Object} target
- * @param {IfComponentPropDependency} injectMeta
- */
-export function definePropertyDependency(target: Object, injectMeta: IfComponentPropDependency): void {
 
-}
+

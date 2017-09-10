@@ -5,9 +5,9 @@
 export const DESIGN_TYPE = "design:type";
 export const RETURN_TYPE = "design:returntype";
 export const PARAM_TYPES = "design:paramtypes";
-export const _PROP_DEPENDENCIES_ = Symbol("prop_dependencies");
+export const _PROP_DEPENDENCY_ = Symbol("prop_dependency");
 export const _CTOR_DEPENDENCIES_ = Symbol("ctor_dependencies");
-export const _COMPONENT_NAME_ = Symbol("component_name");
+export const _COMPONENT_IDENTITY_ = Symbol("component_name");
 export const _FACTORY_METHODS_ = Symbol("componentfactory_methods");
 export const _COMPONENT_ENV_ = Symbol("component_environment");
 export const _INIT_METHOD_ = Symbol("component_init");

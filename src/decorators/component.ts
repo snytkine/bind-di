@@ -1,18 +1,20 @@
 import "reflect-metadata";
 import {
-    _PROP_DEPENDENCIES_,
+    _PROP_DEPENDENCY_,
     _CTOR_DEPENDENCIES_,
-    _COMPONENT_NAME_,
+    _COMPONENT_IDENTITY_,
+    INVALID_COMPONENT_NAMES,
     _FACTORY_METHODS_,
     _COMPONENT_TYPE_,
     _DEFAULT_SCOPE_,
+    RETURN_TYPE,
     IfComponentFactoryMethod,
     IfComponentPropDependency,
     IocComponentType,
     IocComponentScope,
     defineMetadataUnique
 } from '../'
-import {RETURN_TYPE} from "../definitions/consts";
+import {setComponentIdentity} from "../metadata/index";
 
 
 /**
@@ -45,6 +47,23 @@ export type Target = {
     prototype?: any
 }
 
+/**
+ * A Component may be a named component or
+ * the name may be inferred from className
+ *
+ * In case of a named component a
+ * componentName is (usually) different from a class name
+ * In case of inferred name the componentName is the same as className
+ *
+ * In case of generic class the name of type T is not used, only the className
+ * is used for value of className
+ */
+export interface IfComponentIdentity {
+    componentName: string
+    className: string
+}
+
+
 export interface IfPropertyWithDescriptor {
     propertyKey: string
     descriptor: TypedPropertyDescriptor<Object>
@@ -71,7 +90,7 @@ export interface IfComponentDetails {
     /**
      * Component name
      */
-    id?: string
+    id?: IfComponentIdentity
 
     /**
      * Unique identifier of component type
@@ -138,19 +157,20 @@ export function Component(target: Target, propertyKey: string, descriptor: Typed
 export function Component(name: string): (target: any, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) => void
 
 export function Component(nameOrTarget: string | Target, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) {
-    let name: string;
-    if (typeof nameOrTarget !== 'string') {
-        name = nameOrTarget['name'];
-        debug(`${TAG} Component decorator Called without params`);
 
-        if (typeof nameOrTarget === "function" && !propertyKey && name && nameOrTarget['prototype']) {
+    let componentName: string;
+    let className: string;
+
+    if (typeof nameOrTarget !== 'string') {
+
+        if (typeof nameOrTarget === "function" && !propertyKey && componentName && nameOrTarget['prototype']) {
             /**
              * Applying decorator to class
              */
+            componentName = className = nameOrTarget['name'];
+            debug(`Defining unnamed ${TAG} for class ${componentName}`);
 
-            debug(`Defining unnamed ${TAG} for class ${name}`);
-
-            defineMetadataUnique(_COMPONENT_NAME_, name, nameOrTarget);
+            setComponentIdentity({componentName, className}, nameOrTarget);
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget);
 
@@ -189,7 +209,19 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
                 throw new TypeError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and rettype is not an object: ${RT}`);
             }
 
-            defineMetadataUnique(_COMPONENT_NAME_, rettype.name, nameOrTarget, propertyKey);
+            /**
+             * @todo
+             * Make sure that returntype is user-defined class and not a build-in like String, Object, etc.
+             */
+            if (INVALID_COMPONENT_NAMES.includes(rettype.name)) {
+                throw new TypeError(`${TAG} Return type of method "${nameOrTarget.constructor.name}.${propertyKey}" 
+                is not a valid name for a component: "${rettype.name}". 
+                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`)
+            }
+
+            componentName = className = rettype.name;
+
+            setComponentIdentity({componentName, className}, nameOrTarget, propertyKey);
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget, propertyKey);
 
@@ -198,15 +230,17 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
 
     } else {
         debug(`${TAG} decorator Called with component name="${nameOrTarget}"`);
-        name = nameOrTarget;
+        componentName = nameOrTarget;
         return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
 
             if (typeof target === "function" && !propertyKey) {
+                className = target.name;
 
-                debug(`Defining named ${TAG} '${name}' for class ${target.name}`);
+                debug(`Defining named ${TAG} '${componentName}' for class ${target.name}`);
 
                 // Applying to target (without .prototype fails to get meta for the instance)
-                defineMetadataUnique(_COMPONENT_NAME_, name, target);
+                //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
+                setComponentIdentity({componentName, className}, target);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target)
 
@@ -214,13 +248,23 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
                 /**
                  * This is a named component applied to method.
                  */
+                const factoryClassName = target.constructor && target.constructor.name;
 
                 if (typeof descriptor.value !== 'function') {
-                    throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${name}') is NOT a class or method`);
+                    throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${componentName}') is NOT a class or method`);
                 }
 
-                debug(`Defining named ${TAG} '${name}' for class method ${propertyKey}`);
-                defineMetadataUnique(_COMPONENT_NAME_, name, target, propertyKey);
+                debug(`Defining named ${TAG} "${componentName}" for class method "${factoryClassName}.${propertyKey}"`);
+
+                /**
+                 * Get return type of component getter method
+                 */
+
+                const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
+
+                className = rettype && rettype.name;
+
+                setComponentIdentity({componentName, className}, target, propertyKey);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target, propertyKey);
 
@@ -230,6 +274,28 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
     }
 }
 
+/**
+ * Get the name of component from class or instance
+ * use metadata value if available, otherwise use the .name of class or .name of constructor.prototype
+ * @param {Object} component
+ * @returns {string}
+ */
+export function getComponentName(target: Object): string {
+    let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
+    if (ret) {
+        debug(`Found component name from metadata "${ret.componentName}"`);
+        return ret.componentName;
+    } else if (target['name']) {
+        debug(`Found component name in .name property "${target['name']}"`);
+
+        return target['name'];
+
+    } else if (target.constructor && target.constructor.name) {
+        debug(`Found component name in constructor.name "${target.constructor.name}"`);
+
+        return target.constructor.name;
+    }
+}
 
 // TEMP FOR TEST
 export const requiredMetadataKey = Symbol("required");
