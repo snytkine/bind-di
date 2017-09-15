@@ -1,4 +1,4 @@
-import {Try, StringOrSymbol} from "../";
+import {Try, StringOrSymbol,IfComponentIdentity} from "../";
 
 export type IocComponentGetter<T> = (ctx?: T) => any
 
@@ -34,7 +34,14 @@ export enum IocComponentType {
 
 export interface IfComponentFactoryMethod {
   methodName: string
-  providesComponent: StringOrSymbol
+  providesComponent: IfComponentIdentity
+}
+
+
+
+export interface IfCtorInject {
+    parameterIndex: number
+    inject: IfComponentIdentity
 }
 
 /**
@@ -44,17 +51,9 @@ export interface IfComponentFactoryMethod {
  */
 export interface IfComponentPropDependency {
     propertyName: StringOrSymbol
-    dependencyComponentID: StringOrSymbol
-    dependencyComponentType?: IocComponentType
+    dependency: IfComponentIdentity
 }
 
-
-
-export interface IfConstructorDependency {
-    dependencyComponentID: StringOrSymbol
-    positionID: number
-    dependencyComponentType?: IocComponentType
-}
 
 /**
  * Interface of a Component stored in container
@@ -64,7 +63,7 @@ export interface IfIocComponent<T> {
   /**
    * Component Unique Identifier (component name)
    */
-  id: StringOrSymbol
+  identity: IfComponentIdentity
 
   /**
    * Unique identifier of component type
@@ -97,20 +96,20 @@ export interface IfIocComponent<T> {
   /**
    * Property dependencies
    */
-  propeps: Array<IfComponentPropDependency>
+  propDependencies: Array<IfComponentPropDependency>
 
   /**
    * Constructor dependencies
    */
-  constructorDependenciesDeps: Array<IfConstructorDependency>
+  constructorDependencies: Array<IfCtorInject>
 
   /**
    * Array of componentIDs that this
    * component provides
-   * I Component Factory may provide
+   * Factory may provide
    * multiple components
    */
-  provides: Array<string>
+  provides: Array<IfComponentIdentity>
 
   /**
    * Optional function to call after

@@ -6,15 +6,17 @@ import {
     _PROP_DEPENDENCY_,
     INVALID_COMPONENT_NAMES,
     getComponentName,
-    defineMetadataUnique
+    IfComponentPropDependency,
+    getClassName,
+    Identity,
+    defineMetadataUnique,
+    IfCtorInject,
+    IfComponentIdentity
 
 } from "../"
-import {Identity} from "../metadata/index";
-import {IfComponentIdentity} from "./component";
 
 const debug = require('debug')('bind:decorator:inject');
 const TAG = "@Inject";
-
 
 
 /**
@@ -25,10 +27,6 @@ const TAG = "@Inject";
  * injected
  */
 
-export interface IfCtorInject {
-    parameterIndex: number
-    inject: string
-}
 
 export function Inject(target: Target): void
 
@@ -74,7 +72,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
              *
              */
             let injectName = getComponentName(rt);
-            let injectClassName = injectName;
+            let injectClassName = getClassName(rt);
             debug(`${TAG} DESIGN_TYPE of property "${name}.${propertyKey}" is ${injectName}`);
 
             if (INVALID_COMPONENT_NAMES.includes(injectName)) {
@@ -89,7 +87,14 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
              */
             debug(`Adding ${TAG} metadata for propertyKey="${propertyKey}" dependencyName="${injectName}" for target="${name}"`);
             defineMetadataUnique(_PROP_DEPENDENCY_, Identity(injectName, injectClassName), nameOrTarget, propertyKey);
-
+            /**
+             * The actual target object may not have this property defined because typesceipt compiler will not
+             * add a property if it does not have a value.
+             */
+            if(!nameOrTarget.hasOwnProperty(propertyKey)){
+                Object.defineProperty(nameOrTarget, propertyKey, {value: void 0});
+                debug(`${TAG} added property ${propertyKey} to prototype of ${name}`);
+            }
         } else {
             // No propertyKey. In this case must have parameterIndex
             if (parameterIndex !== 0 && !parameterIndex) {
@@ -169,7 +174,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                let className = getComponentName(rt);
+                let className = getClassName(rt);
                 debug(`${TAG} className of injected property "${targetName}.${propertyKey}" is "${className}"`);
 
                 /**
@@ -181,6 +186,14 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  *
                  */
                 defineMetadataUnique(_PROP_DEPENDENCY_, Identity(injectName, className), target, propertyKey);
+                /**
+                 * The actual target object may not have this property defined because typesceipt compiler will not
+                 * add a property if it does not have a value.
+                 */
+                if(!target.hasOwnProperty(propertyKey)){
+                    Object.defineProperty(target, propertyKey, {value: void 0});
+                    debug(`${TAG} added property ${propertyKey} to prototype of ${targetName}`);
+                }
             } else {
                 // No propertyKey
 
@@ -194,8 +207,8 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                     throw new TypeError(`Error adding ${TAG} to "${getComponentName(nameOrTarget)}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`)
                 }
 
-                let compName = getComponentName(pt[parameterIndex]);
-                debug(`${TAG} inferred className for constructor dependency name "${injectName}" at index "${parameterIndex}" is="${compName}"`);
+                let className = getClassName(pt[parameterIndex]);
+                debug(`${TAG} inferred className="${className}" for constructor dependency name "${injectName}" at index "${parameterIndex}"`);
 
                 /**
                  *
@@ -204,7 +217,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  * propertyKey is undefined
                  * has parameterIndex
                  */
-                addConstructorDependency(target, Identity(injectName, compName), parameterIndex)
+                addConstructorDependency(target, Identity(injectName, className), parameterIndex)
             }
         }
     }
@@ -233,7 +246,7 @@ export function addConstructorDependency(target: Target, inject: IfComponentIden
 export function getConstructorDependencies(target: Target): Array<IfCtorInject> {
     let ret = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
     if (ret) {
-        debug(`Found component _CTOR_DEPENDENCIES_ from metadata "${ret}"`);
+        debug("Found component _CTOR_DEPENDENCIES_ from metadata: ", ret);
         return ret;
     } else {
         debug(`NOT FOUND constructor dependencies for component ${getComponentName(target)}`);
@@ -241,6 +254,19 @@ export function getConstructorDependencies(target: Target): Array<IfCtorInject> 
     }
 }
 
-export function getPropDependencies(target: any) {
 
+export function getPropDependencies(target: Target): Array<IfComponentPropDependency> {
+
+    //let x = Reflect.Metadata.get(target);
+    let methods = Object.getOwnPropertyNames(target.prototype);
+    const cName = getComponentName(target);
+    debug(`${TAG} property names of target "${cName}"`, methods);
+
+    let dependencies = methods.filter(p => Reflect.hasMetadata(_PROP_DEPENDENCY_, target, p)).map(p => {
+        return {propertyName: p, dependency: Reflect.getMetadata(_PROP_DEPENDENCY_, target, p)}
+    })
+
+    debug(`${TAG} returning prop dependencies for "${cName}"=`, dependencies);
+
+    return dependencies
 }

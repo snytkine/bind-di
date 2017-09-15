@@ -1,14 +1,10 @@
 import "reflect-metadata";
 import {
-    _PROP_DEPENDENCY_,
-    _CTOR_DEPENDENCIES_,
     _COMPONENT_IDENTITY_,
     INVALID_COMPONENT_NAMES,
-    _FACTORY_METHODS_,
     _COMPONENT_TYPE_,
     _DEFAULT_SCOPE_,
     RETURN_TYPE,
-    IfComponentFactoryMethod,
     IfComponentPropDependency,
     IocComponentType,
     IocComponentScope,
@@ -259,7 +255,6 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
                 /**
                  * Get return type of component getter method
                  */
-
                 const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
 
                 className = rettype && rettype.name;
@@ -272,36 +267,4 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
 
         }
     }
-}
-
-/**
- * Get the name of component from class or instance
- * use metadata value if available, otherwise use the .name of class or .name of constructor.prototype
- * @param {Object} component
- * @returns {string}
- */
-export function getComponentName(target: Object): string {
-    let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
-    if (ret) {
-        debug(`Found component name from metadata "${ret.componentName}"`);
-        return ret.componentName;
-    } else if (target['name']) {
-        debug(`Found component name in .name property "${target['name']}"`);
-
-        return target['name'];
-
-    } else if (target.constructor && target.constructor.name) {
-        debug(`Found component name in constructor.name "${target.constructor.name}"`);
-
-        return target.constructor.name;
-    }
-}
-
-// TEMP FOR TEST
-export const requiredMetadataKey = Symbol("required");
-
-export function required(target: Object, propertyKey: string | symbol, parameterIndex: number) {
-    let existingRequiredParameters: number[] = Reflect.getOwnMetadata(requiredMetadataKey, target, propertyKey) || [];
-    existingRequiredParameters.push(parameterIndex);
-    Reflect.defineMetadata(requiredMetadataKey, existingRequiredParameters, target, propertyKey);
 }

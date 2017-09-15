@@ -1,11 +1,25 @@
 import 'reflect-metadata'
-import {Component, _COMPONENT_IDENTITY_, _COMPONENT_TYPE_, _DEFAULT_SCOPE_, required} from '../'
+import {
+    Component,
+    _COMPONENT_IDENTITY_,
+    _COMPONENT_TYPE_,
+    _DEFAULT_SCOPE_,
+    Singleton,
+    Scope,
+    getComponentIdentity,
+    Factory,
+    getConstructorDependencies,
+    Inject,
+    getScope,
+    IocComponentScope
+} from '../'
 import {Person as ThePerson, IfPerson} from './person'
-import {getConstructorDependencies, Inject} from "../decorators/inject";
-
+import {getFactoryMethods} from "../decorators/factory";
+import {getPropDependencies} from "../decorators/inject";
 
 
 @Component("YAY")
+//@Scope(IocComponentScope.PROTOTYPE)
 export class MyComponent {
 
     constructor(private settings: any) {
@@ -18,7 +32,9 @@ export class MyComponent {
 }
 
 
-@Component("CHEEZE")
+//@Component("CHEEZE")
+//@Singleton
+@Factory
 export class MyComponent2 {
 
     //@Component
@@ -30,7 +46,6 @@ export class MyComponent2 {
     @Inject
     comp1: MyComponent;
 
-    //@Component("my_constructor")
     /**
      * param decorators and design:paramtypes for paramtypes of constructor
      * are applied to Constructor function!
@@ -40,12 +55,12 @@ export class MyComponent2 {
      * @param {Person} settings
      * @param {string} bla
      */
-    constructor(@Inject("LOL") settings: MyComponent, @Inject person: ThePerson, @required bla:string, age:number = 1, update:boolean = true) {
+    constructor(@Inject("LOL") settings: MyComponent, @Inject person: ThePerson, bla: string, age: number = 1, update: boolean = true) {
         //this.description = {first: "John", last: "Smith"}
     }
 
     @Component
-    MyComponent2_getUsername(@required gsx:any): ThePerson {
+    MyComponent2_getUsername(gsx: any): ThePerson {
         return new ThePerson("John", "Smith")
     }
 
@@ -64,9 +79,8 @@ export class MyComponent2 {
 //let o = new MyComponent("HELLO");
 //let n = o.getUsername();
 
-let o2 = new MyComponent2(new ThePerson("HELLO", "SMITY"), "Smith", "Hi");
+let o2 = new MyComponent2(new MyComponent("OK"), new ThePerson("HELLO", "SMITY"), "Smith");
 let n2 = o2.MyComponent2_getUsername("YES");
-let o2name = Reflect.getMetadata(_COMPONENT_IDENTITY_, o2); //o2[_COMPONENT_IDENTITY_];
 let o2type = Reflect.getMetadata(_COMPONENT_TYPE_, o2);//o2[_COMPONENT_TYPE_];
 let o2defaultScope = Reflect.getMetadata(_DEFAULT_SCOPE_, o2);//o2[_DEFAULT_SCOPE_];
 
@@ -77,28 +91,32 @@ let COMP_LN = Reflect.getMetadata(_COMPONENT_IDENTITY_, o2, "MyComponent2_getLas
 let CLASS_COMP_P = Reflect.getMetadata(_COMPONENT_IDENTITY_, MyComponent2, "MyComponent2_getUsername");
 let CLASS_COMP_LN = Reflect.getMetadata(_COMPONENT_IDENTITY_, MyComponent2, "MyComponent2_getLastName");
 
-let COMP_NAME_PROTO_NAMED = Reflect.getMetadata(_COMPONENT_IDENTITY_, MyComponent2);
-let COMP_NAME_PROTO = Reflect.getMetadata(_COMPONENT_IDENTITY_, MyComponent);
 
 let CTOR_DEPS = getConstructorDependencies(MyComponent2);
 
+let o2Identity = getComponentIdentity(o2);
+let o2classIdentity = getComponentIdentity(MyComponent2);
 
-console.log(`MyComponent2.CTOR_DEPS ${JSON.stringify(CTOR_DEPS)}`)
-
-
-//console.log("username=", n);
-//console.log("username2=", n2.first);
-console.log(`MyComponent2.instance._COMPONENT_IDENTITY_=${o2name} MyComponent2.instance._COMPONENT_TYPE_=${o2type} defaultScope=${o2defaultScope}`);
-
-console.log();
-console.log(`MyComponent2.instance.getUsername.unnamed._COMPONENT_IDENTITY_=${COMP_P}`);
-console.log(`MyComponent2.instance.getLastName.named._COMPONENT_IDENTITY_=${COMP_LN}`);
+let factoryMethods = getFactoryMethods(MyComponent2);
+let comp2deps = getPropDependencies(MyComponent2);
+let MyComponentScope = getScope(MyComponent);
+let MyComponent2Scope = getScope(MyComponent2);
 
 
-console.log()
-console.log(`MyComponent2.prototype.getUsername.unnamed=${CLASS_COMP_P}`);
-console.log(`MyComponent2.prototype.getLastName.named=${CLASS_COMP_LN}`);
+console.log(`MyComponent2.CTOR_DEPS ${JSON.stringify(CTOR_DEPS)}`);
+console.log(`MyComponent.Scope ${IocComponentScope[MyComponentScope]}`);
+console.log(`MyComponent2.Scope ${IocComponentScope[MyComponent2Scope]}`);
 
 console.log();
-console.log(`MyComponent2.prototype.named.name=${COMP_NAME_PROTO_NAMED}`);
-console.log(`MyComponent.prototype.unnamed.name=${COMP_NAME_PROTO}`);
+console.log(`MyComponent2.instance.getUsername.unnamed._COMPONENT_IDENTITY_=${JSON.stringify(COMP_P)}`);
+console.log(`MyComponent2.instance.getLastName.named._COMPONENT_IDENTITY_=${JSON.stringify(COMP_LN)}`);
+
+
+console.log();
+console.log(`MyComponent2.prototype.getUsername.unnamed=${JSON.stringify(CLASS_COMP_P)}`);
+console.log(`MyComponent2.prototype.getLastName.named=${JSON.stringify(CLASS_COMP_LN)}`);
+
+console.log();
+console.log(`o2.instance identity=${JSON.stringify(o2Identity)}`);
+console.log(`o2.class identity=${JSON.stringify(o2classIdentity)}`);
+console.log(`comp2 deps=${JSON.stringify(comp2deps)}`);
