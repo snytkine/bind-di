@@ -37,13 +37,18 @@ import {setComponentIdentity} from "../metadata/index";
 const debug = require('debug')('bind:decorator:component');
 const TAG = '@Component';
 
-
-export type Target = {
+/**
+export type _Target = {
     new? (...args: any[]): any
+    constructor: (...args: any[]) => any
     name?: string
-    constructor: any
+    //constructor: any
     prototype?: any
 }
+ **/
+
+
+export type Target = ObjectConstructor;
 
 /**
  * A Component may be a named component or
