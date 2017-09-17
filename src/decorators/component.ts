@@ -8,7 +8,9 @@ import {
     IfComponentPropDependency,
     IocComponentType,
     IocComponentScope,
-    defineMetadataUnique
+    defineMetadataUnique,
+    IfCtorInject,
+    IfComponentFactoryMethod
 } from '../'
 import {setComponentIdentity} from "../metadata/index";
 
@@ -86,7 +88,7 @@ export interface IfComponentDetails {
     /**
      * Component name
      */
-    id?: IfComponentIdentity
+    id: IfComponentIdentity
 
     /**
      * Unique identifier of component type
@@ -118,7 +120,7 @@ export interface IfComponentDetails {
     /**
      * Constructor dependencies
      */
-    ctorDeps: Array<string>
+    ctorDeps: Array<IfCtorInject>
 
     /**
      * Array of componentIDs that this
@@ -126,7 +128,7 @@ export interface IfComponentDetails {
      * I Component Factory may provide
      * multiple components
      */
-    provides: Array<string>
+    provides: Array<IfComponentFactoryMethod>
 
 }
 

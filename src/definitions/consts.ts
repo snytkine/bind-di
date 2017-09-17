@@ -11,9 +11,9 @@ export const _COMPONENT_IDENTITY_ = Symbol("component_name");
 export const _FACTORY_METHODS_ = Symbol("componentfactory_methods");
 export const _COMPONENT_ENV_ = Symbol("component_environment");
 export const _INIT_METHOD_ = Symbol("component_init");
-export const _INITIALIZER_ = Symbol("component_init_order");
 export const _DESTRUCTOR_ = Symbol("component_destruct");
 export const _COMPONENT_TYPE_ = Symbol("component_type");
+export const _COMPONENT_META_TYPE_ = Symbol("component_meta_type");
 export const _COMPONENT_SCOPE_ = Symbol("component_scope");
 export const _DEFAULT_SCOPE_ = Symbol("component_default_scope");
 
