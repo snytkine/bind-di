@@ -7,10 +7,36 @@ import {
     IfIocContainer,
 
 } from "../../";
+import {IfCtorInject} from "../../definitions/container";
 
 const debug = require('debug')('bind:container');
 
 export const TAG = "Container";
+
+/**
+ * Check that all components have a correcsponding component available
+ * for all its' dependencies
+ *
+ * @param {Array<IfIocComponent<T>>} components
+ */
+const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
+    components.forEach((component, i, arr) => {
+
+        /**
+         *
+         */
+        component.constructorDependencies.forEach( (dep: IfCtorInject) => {
+            const found = arr.find(_ => _.identity.componentName === dep.dependency.componentName);
+            if(!found) {
+                throw new TypeError(`Component ${component.identity.componentName} has unsatisfied constructor dependency ${dep.dependency.componentName}`)
+            }
+
+            if(found.identity.className !== dep.dependency.className){
+                throw new TypeError(`Component ${component.identity.componentName} has constructor dependency ${dep.dependency.componentName}:${dep.dependency.className} but dependant component has className="${found.identity.className}`)
+            }
+        })
+    })
+};
 
 
 export class Container<T> implements IfIocContainer<T> {

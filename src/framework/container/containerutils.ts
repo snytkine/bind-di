@@ -6,6 +6,7 @@ import {
     Target
 } from "../../";
 import {getComponentMeta} from "./getcomponentmeta";
+import {IfComponentFactoryMethod} from "../../definitions/container";
 
 
 const TAG = "CONTAINER::UTIL";
@@ -33,7 +34,7 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, clazz: Ta
             }
 
             debug(TAG, "Creating new instance of component' ", name, "' with constructor args", componentMeta.constructorDependencies);
-            const constructorArgs = componentMeta.constructorDependencies.map(_ => container.getComponent(_.inject.componentName));
+            const constructorArgs = componentMeta.constructorDependencies.map(_ => container.getComponent(_.dependency.componentName));
             //instance = new clazz(...constructorArgs);
             instance = Reflect.construct(<ObjectConstructor>clazz, constructorArgs);
 
@@ -71,7 +72,7 @@ export function addPrototypeComponent<T>(container: IfIocContainer<T>, clazz: Ta
             debug(TAG, "Getter called for Prototype component=", name, " with ctx=", !!ctx);
 
             debug(TAG, "Creating new instance of component' ", name, "' with constructor args", componentMeta.constructorDependencies);
-            const constructorArgs = componentMeta.constructorDependencies.map(_ => container.getComponent(_.inject.componentName));
+            const constructorArgs = componentMeta.constructorDependencies.map(_ => container.getComponent(_.dependency.componentName));
             const instance = Reflect.construct(<ObjectConstructor>clazz, constructorArgs);//new clazz(...constructorArgs);
             //const instance = new (<ObjectConstructor>clazz)(...constructorArgs);
 
@@ -117,7 +118,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
         throw new TypeError(`Factory component ${componentMeta.identity.componentName} is not providing any components`);
     }
 
-    componentMeta.provides.reduce((prev, curr) => {
+    componentMeta.provides.reduce((prev:IfIocContainer<T>, curr: IfComponentFactoryMethod) => {
 
         const providedComponent: IfComponentDetails<T> = {
             identity: curr.providesComponent,
@@ -135,7 +136,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
             return function (ctx?: T) {
                 debug(TAG, "Getter called on Factory-Provided component=", componentName, " of factory=", factoryName);
                 if (instance) {
-                    debug(TAG, "Provided component=", componentName, " already created. Returning same instance");
+                    debug(TAG, "Factory-Provided component=", componentName, " already created. Returning same instance");
 
                     return instance;
                 }
@@ -177,3 +178,6 @@ export function addComponent<T>(container: IfIocContainer<T>, clazz: Target): vo
         throw new TypeError(`Unable to add component. ${JSON.stringify(meta)}`)
     }
 }
+
+
+

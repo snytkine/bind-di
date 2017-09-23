@@ -48,7 +48,7 @@ export interface IfComponentFactoryMethod {
 
 export interface IfCtorInject {
     parameterIndex: number
-    inject: IfComponentIdentity
+    dependency: IfComponentIdentity
 }
 
 /**

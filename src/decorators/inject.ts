@@ -228,14 +228,14 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
 }
 
 
-export function addConstructorDependency(target: Target, inject: IfComponentIdentity, parameterIndex: number) {
+export function addConstructorDependency(target: Target, dependency: IfComponentIdentity, parameterIndex: number) {
     let deps = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target) || [];
     const name = getComponentName(target);
-    debug(`Adding Constructor dependency  "${inject}" for component="${name}". Existing dependencies=${JSON.stringify(deps)}`);
+    debug(`Adding Constructor dependency  "${dependency}" for component="${name}". Existing dependencies=${JSON.stringify(deps)}`);
 
     deps.push({
         parameterIndex,
-        inject
+        dependency
     });
 
     Reflect.defineMetadata(_CTOR_DEPENDENCIES_, deps, target);
