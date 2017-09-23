@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import {
+    Target,
     _COMPONENT_IDENTITY_,
     INVALID_COMPONENT_NAMES,
     _COMPONENT_TYPE_,
@@ -12,6 +13,7 @@ import {
     IfCtorInject,
     IfComponentFactoryMethod
 } from '../'
+
 import {setComponentIdentity} from "../metadata/index";
 
 
@@ -47,96 +49,6 @@ export type _Target = {
 }
  **/
 
-
-export type Target = ObjectConstructor;
-
-/**
- * A Component may be a named component or
- * the name may be inferred from className
- *
- * In case of a named component a
- * componentName is (usually) different from a class name
- * In case of inferred name the componentName is the same as className
- *
- * In case of generic class the name of type T is not used, only the className
- * is used for value of className
- */
-export interface IfComponentIdentity {
-    componentName: string
-    className: string
-}
-
-
-export interface IfPropertyWithDescriptor {
-    propertyKey: string
-    descriptor: TypedPropertyDescriptor<Object>
-}
-
-export interface IfComponentDecoration {
-    componentName: string
-    componentType: IocComponentType
-    /**
-     * Target should always be a Constructor function (newable) T extends {new(...args:any[]):{}}
-     * @todo create separate interface for this property like ClassConstructor
-     * it will have .name
-     */
-    target: object
-    defaultScope: IocComponentScope
-    componentMeta?: Symbol
-    property?: IfPropertyWithDescriptor
-
-}
-
-
-export interface IfComponentDetails {
-
-    /**
-     * Component name
-     */
-    id: IfComponentIdentity
-
-    /**
-     * Unique identifier of component type
-     */
-    componentType?: IocComponentType
-
-
-    /**
-     * Optional field may be used by consumer of this framework
-     * to add extra info to component.
-     * Example is to add a hint that component is a Middleware or Controller, or RequestFilter
-     * or any other info that consuming framework may need to set
-     *
-     * Default value is DEFAULT_COMPONENT_META
-     *
-     */
-    componentMeta?: Symbol
-
-    /**
-     * Component lifecycle
-     */
-    scope: IocComponentScope
-
-    /**
-     * Property dependencies
-     */
-    propDeps: Array<IfComponentPropDependency>
-
-    /**
-     * Constructor dependencies
-     */
-    ctorDeps: Array<IfCtorInject>
-
-    /**
-     * Array of componentIDs that this
-     * component provides
-     * I Component Factory may provide
-     * multiple components
-     */
-    provides: Array<IfComponentFactoryMethod>
-
-}
-
 /**
  * Get component metadata from class or object instance
  * @param target
@@ -164,13 +76,18 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
     let componentName: string;
     let className: string;
 
+
+
     if (typeof nameOrTarget !== 'string') {
+        componentName = className = nameOrTarget['name'];
+
+        debug(`Entered @Component for unnamed component propertyKey="${propertyKey}"`);
 
         if (typeof nameOrTarget === "function" && !propertyKey && componentName && nameOrTarget['prototype']) {
             /**
              * Applying decorator to class
              */
-            componentName = className = nameOrTarget['name'];
+
             debug(`Defining unnamed ${TAG} for class ${componentName}`);
 
             setComponentIdentity({componentName, className}, nameOrTarget);

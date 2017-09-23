@@ -11,14 +11,16 @@ import {
     getConstructorDependencies,
     Inject,
     getScope,
-    IocComponentScope
+    IocComponentScope,
+    PostConstruct,
+    PreDestroy
 } from '../'
 import {Person as ThePerson, IfPerson} from './person'
 import {getFactoryMethods} from "../decorators/factory";
 import {getPropDependencies} from "../decorators/inject";
 
 
-@Component("YAY")
+@Component
 //@Scope(IocComponentScope.PROTOTYPE)
 export class MyComponent {
 
@@ -28,6 +30,16 @@ export class MyComponent {
 
     getUsername() {
         return "John"
+    }
+
+    @PostConstruct
+    initialize() {
+        return Promise.resolve(true)
+    }
+
+    @PreDestroy
+    cleanup() {
+        return Promise.resolve(true)
     }
 }
 
@@ -40,21 +52,13 @@ export class MyComponent2 {
     //@Component
     lastName: String = "Smith";
 
-    @Inject
+    //@Inject
     description: ThePerson;
 
     @Inject
     comp1: MyComponent;
 
-    /**
-     * param decorators and design:paramtypes for paramtypes of constructor
-     * are applied to Constructor function!
-     * the constructor() is NOT a separate function in JS it's a Constructor function
-     * It is treated the same way as adding decorator directly on a class
-     *
-     * @param {Person} settings
-     * @param {string} bla
-     */
+
     constructor(@Inject("LOL") settings: MyComponent, @Inject person: ThePerson, bla: string, age: number = 1, update: boolean = true) {
         //this.description = {first: "John", last: "Smith"}
     }

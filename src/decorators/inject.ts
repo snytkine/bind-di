@@ -28,11 +28,11 @@ const TAG = "@Inject";
  */
 
 
-export function Inject(target: Target): void
+export function Inject(target: ObjectConstructor): void
 
 export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
 
-export function Inject(name: string): (target: any, propertyKey?: string, parameterIndex?: number) => void
+export function Inject(name: string): (target: Target, propertyKey?: string, parameterIndex?: number) => void
 
 export function Inject(nameOrTarget: string | Target, propertyKey?: string, parameterIndex?: number) {
     let name: string;
@@ -91,7 +91,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
              * The actual target object may not have this property defined because typesceipt compiler will not
              * add a property if it does not have a value.
              */
-            if(!nameOrTarget.hasOwnProperty(propertyKey)){
+            if (!nameOrTarget.hasOwnProperty(propertyKey)) {
                 Object.defineProperty(nameOrTarget, propertyKey, {value: void 0});
                 debug(`${TAG} added property ${propertyKey} to prototype of ${name}`);
             }
@@ -189,9 +189,13 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                 /**
                  * The actual target object may not have this property defined because typesceipt compiler will not
                  * add a property if it does not have a value.
+                 * So we must add property to prototype manually, setting the undefined as a value
+                 *
+                 * MUST must make this property writable explicitly otherwise the default readonly type is used
+                 * and then injector will not be able to set the injected value
                  */
-                if(!target.hasOwnProperty(propertyKey)){
-                    Object.defineProperty(target, propertyKey, {value: void 0});
+                if (!target.hasOwnProperty(propertyKey)) {
+                    Object.defineProperty(target, propertyKey, {value: void 0, writable:true});
                     debug(`${TAG} added property ${propertyKey} to prototype of ${targetName}`);
                 }
             } else {
@@ -244,10 +248,30 @@ export function addConstructorDependency(target: Target, inject: IfComponentIden
 
 
 export function getConstructorDependencies(target: Target): Array<IfCtorInject> {
-    let ret = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
+
+    let ret: Array<IfCtorInject> = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
     if (ret) {
         debug("Found component _CTOR_DEPENDENCIES_ from metadata: ", ret);
-        return ret;
+        const sorted = [];
+        /**
+         * Need to perform a check to make sure that
+         * there are no gaps in dependencies.
+         * ret is an array like this:
+         * [ { parameterIndex: 1,
+         *  inject: { componentName: 'Person', className: 'Person' } },
+         *{ parameterIndex: 0,
+         * inject: { componentName: 'LOL', className: 'MyComponent' } } ]
+         *
+         * Need to turn it into  array of ordered dependency components
+         */
+        for (let i = 0; i < ret.length; i += 1) {
+            sorted.push(ret.find(_ => _.parameterIndex === i));
+            if (!sorted[i]) {
+                throw new TypeError(`Constructor is missing @Inject decorator for parameter ${i} for component ${target.name}`);
+            }
+        }
+
+        return sorted;
     } else {
         debug(`NOT FOUND constructor dependencies for component ${getComponentName(target)}`);
         return [];

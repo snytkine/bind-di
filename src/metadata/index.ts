@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import {
     IfComponentIdentity,
+    Target,
     _COMPONENT_IDENTITY_
 } from "../"
 
@@ -36,7 +37,7 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
 }
 
 
-export function getComponentIdentity(target: Object): IfComponentIdentity| undefined {
+export function getComponentIdentity(target: Target): IfComponentIdentity| undefined {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
     if (ret) {
         debug("Found className from _COMPONENT_IDENTITY_ metadata ", ret);
@@ -53,7 +54,7 @@ export function getComponentIdentity(target: Object): IfComponentIdentity| undef
  * @param {Object} component
  * @returns {string}
  */
-export function getComponentName(target: Object): string {
+export function getComponentName(target: Target): string {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
     if (ret) {
         debug("Found component name from _COMPONENT_IDENTITY_ metadata ", ret);
@@ -71,7 +72,7 @@ export function getComponentName(target: Object): string {
 }
 
 
-export function getClassName(target: Object): string {
+export function getClassName(target: Target): string {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
     if (ret) {
         debug("Found className from _COMPONENT_IDENTITY_ metadata ", ret);

@@ -5,79 +5,83 @@ import {
     IfComponentDetails,
     IfIocComponent,
     IfIocContainer,
-    getScope,
-    getComponentIdentity,
-    getPropDependencies,
-    getConstructorDependencies,
-    getFactoryMethods,
-    _COMPONENT_TYPE_,
-    _COMPONENT_META_TYPE_
+
 } from "../../";
 
-const debug = require('debug')('bind:ioc');
+const debug = require('debug')('bind:container');
 
 export const TAG = "Container";
-//export const DEFAULT_COMPONENT_META = Symbol("ioc:component:meta:default");
 
-const getComponentMetaData = (clazz: Target): IfComponentDetails => {
-
-    return {
-        id: getComponentIdentity(clazz),
-        componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz),
-        componentMeta: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz),
-        scope: getScope(clazz),
-        propDeps: getPropDependencies(clazz),
-        ctorDeps: getConstructorDependencies(clazz),
-        provides: getFactoryMethods(clazz)
-    }
-};
 
 export class Container<T> implements IfIocContainer<T> {
 
     private readonly store_: Map<string, IfIocComponent<T>>;
-    private initialized = false;
 
 
     constructor() {
         this.store_ = new Map<string, IfIocComponent<T>>();
     }
 
+    get components(): Array<IfIocComponent<T>> {
+        return Array.from(this.store_.values());
+    }
+
+    getComponentDetails(name: string): IfIocComponent<T> {
+        debug(TAG, "Entered Container.getComponentDetails Requesting component=", name);
+
+        const ret = this.store_.get(name);
+
+        if (!ret) {
+            throw new TypeError(`Container Component Not found by name="${name}"`);
+        }
+
+        return ret;
+    }
+
+    getComponent(name: string, ctx?: T): any {
+
+        debug(TAG, "Entered Container.getComponent Requesting component=", name, " With ctx=", !!ctx);
+
+        return this.getComponentDetails(name).get(ctx);
+    }
+
+
+    addComponent(component: IfIocComponent<T>): boolean {
+
+        const name = component.identity.componentName;
+
+        debug(TAG, "Entered Container.addComponent with component name=", name);
+        if (this.store_.has(component.identity.componentName)) {
+            throw new TypeError(`Container already has component with name="${name}"`)
+        }
+
+        this.store_.set(name, component);
+
+        return true;
+    }
+
+    initialize(): Promise<IfIocContainer<T>> {
+        return undefined;
+    }
+
+
+    cleanup(): Promise<boolean> {
+
+        const a: Array<Promise<Boolean>> = this.components
+            .filter(_ => !!_.preDestroy)
+            .map(_ => {
+                const obj = _.get();
+                const methodName = _.preDestroy;
+
+                return obj[methodName]()
+            });
+
+        return Promise.all(a).then(_ => true)
+    }
+
 
     has(name: string) {
         return this.store_.has(name);
-    }
-
-    get (name: string, ctx ?: T): Try<any, Error> {
-
-        debug(TAG, "Entered Container.get Requesting ", name, " with context=", !!(ctx)
-        )
-        ;
-
-        const o = this.store_.get(name);
-
-        if (!o) {
-
-            return {
-                Success: null,
-                Failure: new ReferenceError(`Component '${name}' not found in container`)
-            }
-
-        }
-
-
-        return TryCatch(() => {
-
-            debug(TAG, "Calling get() on Component '{name}'", " with context=", !!ctx);
-
-            return o.get(ctx);
-
-        })
-
-    }
-
-
-    addComponent(component: Target){
-
     }
 
 }

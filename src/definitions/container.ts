@@ -1,4 +1,5 @@
 import {Try, StringOrSymbol, IfComponentIdentity} from "../";
+import {IfComponentDetails} from "./component";
 
 export type IocComponentGetter<T> = (ctx?: T) => any
 
@@ -64,69 +65,13 @@ export interface IfComponentPropDependency {
 /**
  * Interface of a Component stored in container
  */
-export interface IfIocComponent<T> {
-
-    /**
-     * Component Unique Identifier (component name)
-     */
-    identity: IfComponentIdentity
-
-    /**
-     * Unique identifier of component type
-     */
-    componentType: IocComponentType
-
-    /**
-     * Optional field may be used by consumer of this framework
-     * to add extra info to component.
-     * Example is to add a hint that component is a Middleware or Controller, or RequestFilter
-     * or any other info that consuming framework may need to set
-     *
-     * Default value is DEFAULT_COMPONENT_META
-     *
-     */
-    componentMetaType?: Symbol
+export interface IfIocComponent<T> extends IfComponentDetails<T> {
 
     /**
      * Main function to call to get
      * instance of requested component
      */
     get: IocComponentGetter<T>
-
-    /**
-     * Component lifecycle
-     */
-    scope: IocComponentScope
-
-    /**
-     * Property dependencies
-     */
-    propDependencies: Array<IfComponentPropDependency>
-
-    /**
-     * Constructor dependencies
-     */
-    constructorDependencies: Array<IfCtorInject>
-
-    /**
-     * Array of componentIDs that this
-     * component provides
-     * Factory may provide
-     * multiple components
-     */
-    provides: Array<IfComponentIdentity>
-
-    /**
-     * Optional function to call after
-     * constructing component
-     */
-    postConstruct?: LifecycleCallback
-
-    /**
-     * Optional function to call
-     * on component when container is shutting down
-     */
-    preDestroy?: LifecycleCallback
 
 }
 
@@ -153,38 +98,37 @@ export interface IfIocContainer<T> {
     has(name: string): boolean
 
     /**
-     * Container knows when to return same instance, when to return new instance
-     * and when to return result of calling service (in case of Service returns Promise)
+     * Get a record for the component by name
+     * The result is NOT a component, but a component details like scope,
+     * constructorDependencies, provides, as well as component getter function
      *
      * @param ctx
      * @param name
      * @returns any
      */
-    get(name: string, ctx?: T): Try<any, Error>
+    getComponentDetails(name: string): IfIocComponent<T>
 
     /**
-     * Add missing properties to an object
-     * when object is passed here it will get
-     * the dependsOn meta and will add missing dependencies
+     * Result of finding component and calling component getter
      *
-     * This is a helper method and only used for setting prop dependencies
-     * constructor dependencies are not set with this method
-     *
-     * @param obj
-     * @returns same object that was passed in with added properties
+     * @param ctx
+     * @param name
+     * @returns any
      */
-    addDependencies<T>(obj: T, ctx?: T, aDeps?: Array<IfComponentPropDependency>): Try<T>
+    getComponent(name:string, ctx?:T):any
 
     /**
      * Adds component to container
      * @param cClass component class
      * @returns string name of added component
      */
-    addComponent(cClass: Newable<any>): Try<string, Error>
+    addComponent(component: IfIocComponent<T>): boolean
 
-    readonly components: string
+    /**
+     * Get array of all components in this container
+     */
+    readonly components: Array<IfIocComponent<T>>
 
-    readonly ready: boolean
 
     initialize(): Promise<IfIocContainer<T>>
 

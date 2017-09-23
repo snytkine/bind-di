@@ -35,3 +35,13 @@ export function PreDestroy(target: Target, propertyKey: string, descriptor: Type
     defineMetadataUnique(_DESTRUCTOR_, propertyKey, target.constructor);
 
 }
+
+
+export function getPredestroy(target: Target):string {
+    return Reflect.getMetadata(_DESTRUCTOR_, target);
+}
+
+
+export function getPostConstruct(target: Target):string {
+    return Reflect.getMetadata(_INIT_METHOD_, target);
+}
