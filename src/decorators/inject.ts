@@ -1,6 +1,5 @@
 import {
     Target,
-    DESIGN_TYPE,
     PARAM_TYPES,
     _CTOR_DEPENDENCIES_,
     _PROP_DEPENDENCY_,
@@ -14,6 +13,7 @@ import {
     IfComponentIdentity
 
 } from "../"
+import {DESIGN_TYPE} from "../definitions/consts";
 
 const debug = require('debug')('bind:decorator:inject');
 const TAG = "@Inject";
@@ -71,9 +71,13 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
              * but a component that is produced by a factory, in which case it does not have decorator at all
              *
              */
-            let injectName = getComponentName(rt);
-            let injectClassName = getClassName(rt);
+            let injectName = rt && getComponentName(rt);
+            let injectClassName = rt && getClassName(rt);
             debug(`${TAG} DESIGN_TYPE of property "${name}.${propertyKey}" is ${injectName}`);
+
+            if(!rt){
+                throw new TypeError(`Could not determine the dependency name for injected component "${name}.${propertyKey}". Consider using named dependency using @Inject("some_name") instead of just @Inject`)
+            }
 
             if (INVALID_COMPONENT_NAMES.includes(injectName)) {
 
@@ -165,6 +169,9 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
 
                 const rt = Reflect.getMetadata(DESIGN_TYPE, target, propertyKey); // rt is class Classname{}
                 debug(TAG, "rt=", rt);
+                if(!rt){
+                    debug(TAG, `Failed to get return type of propertyKey="${propertyKey}" of target="${targetName}"`)
+                }
 
                 /**
                  * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
@@ -174,7 +181,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                let className = getClassName(rt);
+                let className = rt && getClassName(rt);
                 debug(`${TAG} className of injected property "${targetName}.${propertyKey}" is "${className}"`);
 
                 /**
