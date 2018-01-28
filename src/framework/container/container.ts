@@ -6,6 +6,7 @@ import {
     IocComponentScope
 
 } from "../../";
+import {StringOrSymbol} from "../../definitions/types";
 
 
 const debug = require('debug')('bind:container');
@@ -154,7 +155,7 @@ const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
 
 export class Container<T> implements IfIocContainer<T> {
 
-    private readonly store_: Map<string, IfIocComponent<T>>;
+    private readonly store_: Map<StringOrSymbol, IfIocComponent<T>>;
 
 
     constructor() {
@@ -181,7 +182,7 @@ export class Container<T> implements IfIocContainer<T> {
 
         debug(TAG, "Entered Container.getComponent Requesting component=", name, " With ctx=", !!ctx);
 
-        return this.getComponentDetails(name).get(ctx);
+        return this.getComponentDetails(name).get(this, ctx);
     }
 
 
@@ -214,7 +215,7 @@ export class Container<T> implements IfIocContainer<T> {
         const a: Array<Promise<Boolean>> = this.components
             .filter(_ => !!_.preDestroy)
             .map(_ => {
-                const obj = _.get();
+                const obj = _.get(this);
                 const methodName = _.preDestroy;
 
                 return obj[methodName]()

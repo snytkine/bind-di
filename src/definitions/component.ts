@@ -4,6 +4,7 @@ import {
     IfComponentFactoryMethod, IfComponentPropDependency, IfCtorInject, IocComponentGetter, IocComponentScope,
     IocComponentType, LifecycleCallback
 } from "./container";
+import {StringOrSymbol} from "./types";
 
 export type Target_ = ObjectConstructor;
 
@@ -27,7 +28,7 @@ export type Target = {
  * is used for value of className
  */
 export interface IfComponentIdentity {
-    componentName: string
+    componentName: StringOrSymbol
     className: string
 }
 
@@ -38,7 +39,7 @@ export interface IfPropertyWithDescriptor {
 }
 
 export interface IfComponentDecoration {
-    componentName: string
+    componentName: StringOrSymbol
     componentType: IocComponentType
     /**
      * Target should always be a Constructor function (newable) T extends {new(...args:any[]):{}}

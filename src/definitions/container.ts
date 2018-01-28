@@ -1,7 +1,18 @@
 import {Try, StringOrSymbol, IfComponentIdentity} from "../";
 import {IfComponentDetails} from "./component";
 
-export type IocComponentGetter<T> = (ctx?: T) => any
+/**
+ * Component may provide own function for how to create itself
+ * The function takes instance of container and context
+ * using these 2 parameters the function has all it needs to
+ * create instance. The function may use closure to store already
+ * created instance of instantiated component and return it in case
+ * when component's scope is singleton (default score)
+ *
+ * Framework provides these helper functions for singleton and context-scoped
+ * components
+ */
+export type IocComponentGetter<T> = (container:IfIocContainer<T>, ctx?: T) => any
 
 /**
  * Lifecycle callbacks are made by container after
@@ -27,8 +38,8 @@ export type LifecycleCallback = () => Promise<Boolean>
  *
  */
 export enum IocComponentScope {
-    PROTOTYPE = 1,
-    REQUEST,
+    NEWINSTANCE = 1,
+    CONTEXT,
     SESSION,
     SINGLETON
 }
@@ -95,7 +106,7 @@ export interface IfIocContainer<T> {
      * @param name
      * @returns boolean
      */
-    has(name: string): boolean
+    has(name: StringOrSymbol): boolean
 
     /**
      * Get a record for the component by name
@@ -106,7 +117,7 @@ export interface IfIocContainer<T> {
      * @param name
      * @returns any
      */
-    getComponentDetails(name: string): IfIocComponent<T>
+    getComponentDetails(name: StringOrSymbol): IfIocComponent<T>
 
     /**
      * Result of finding component and calling component getter
@@ -115,7 +126,7 @@ export interface IfIocContainer<T> {
      * @param name
      * @returns any
      */
-    getComponent(name:string, ctx?:T):any
+    getComponent(name:StringOrSymbol, ctx?:T):any
 
     /**
      * Adds component to container
