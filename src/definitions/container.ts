@@ -106,7 +106,7 @@ export interface IfIocContainer<T> {
      * @param name
      * @returns boolean
      */
-    has(name: StringOrSymbol): boolean
+    has(name: IfComponentIdentity): boolean
 
     /**
      * Get a record for the component by name
@@ -127,6 +127,17 @@ export interface IfIocContainer<T> {
      * @returns any
      */
     getComponent(name:StringOrSymbol, ctx?:T):any
+
+    /**
+     * Similar to getComponent but uses object of type ComponentIdentity as key
+     * ComponentIdentity may not have a componentName at all but only the clazz
+     * in which case container will return component that has same object for the .clazz property
+     *
+     * @param {IfComponentIdentity} id
+     * @param {T} ctx
+     * @returns {any}
+     */
+    getComponentByIdentity(id: IfComponentIdentity, ctx?: T):any
 
     /**
      * Adds component to container

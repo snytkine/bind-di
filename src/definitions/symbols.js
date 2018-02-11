@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports._PROP_DEPENDENCY_ = Symbol.for("bind:prop_dependency");
+exports._CTOR_DEPENDENCIES_ = Symbol.for("bind:ctor_dependencies");
+exports._COMPONENT_IDENTITY_ = Symbol.for("bind:component_name");
+exports._FACTORY_METHODS_ = Symbol.for("bind:componentfactory_methods");
+exports._COMPONENT_ENV_ = Symbol.for("bind:component_environment");
+exports._INIT_METHOD_ = Symbol.for("bind:component_init");
+exports._DESTRUCTOR_ = Symbol.for("bind:component_destruct");
+exports._COMPONENT_TYPE_ = Symbol.for("bind:component_type");
+exports._COMPONENT_META_TYPE_ = Symbol.for("bind:component_meta_type");
+exports._COMPONENT_SCOPE_ = Symbol.for("bind:component_scope");
+exports._DEFAULT_SCOPE_ = Symbol.for("bind:component_default_scope");
+exports._CONTEXT_ = Symbol.for("bind:context");
+exports._UNNAMED_COMPONENT_ = Symbol.for("bind:component_unnamed");

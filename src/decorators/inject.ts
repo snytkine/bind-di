@@ -32,6 +32,12 @@ export function Inject(target: ObjectConstructor): void
 
 export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
 
+/**
+ * Named Inject
+ * @param {string} name
+ * @returns {(target: Target, propertyKey?: string, parameterIndex?: number) => void}
+ * @constructor
+ */
 export function Inject(name: string): (target: Target, propertyKey?: string, parameterIndex?: number) => void
 
 export function Inject(nameOrTarget: string | Target, propertyKey?: string, parameterIndex?: number) {
@@ -61,7 +67,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
 
             debug(`${TAG} called on "${name}.${propertyKey}"`);
             const rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget, propertyKey); // rt is class Classname{}
-            debug(TAG, "rt=", rt);
+            debug(TAG, "[70] rt=", rt);
 
             /**
              * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
@@ -96,7 +102,8 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
              * add a property if it does not have a value.
              */
             if (!nameOrTarget.hasOwnProperty(propertyKey)) {
-                Object.defineProperty(nameOrTarget, propertyKey, {value: void 0});
+                debug(`${TAG} - defining property "${propertyKey}" for Injection on target="${name}"`);
+                Object.defineProperty(nameOrTarget, propertyKey, {value: void 0, writable: true});
                 debug(`${TAG} added property ${propertyKey} to prototype of ${name}`);
             }
         } else {
@@ -200,8 +207,12 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  *
                  * MUST must make this property writable explicitly otherwise the default readonly type is used
                  * and then injector will not be able to set the injected value
+                 *
+                 * Important - must pass writable:true otherwise will not be able to set injected value at
+                 * the time of injection
                  */
                 if (!target.hasOwnProperty(propertyKey)) {
+                    debug(`${TAG} - defining property "${propertyKey}" for Injection of "${injectName}" on target="${name}"`)
                     Object.defineProperty(target, propertyKey, {value: void 0, writable:true});
                     debug(`${TAG} added property ${propertyKey} to prototype of ${targetName}`);
                 }

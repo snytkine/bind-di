@@ -7,6 +7,7 @@ import {
 
 } from "../../";
 import {StringOrSymbol} from "../../definitions/types";
+import {IfComponentIdentity} from "../../definitions/component";
 
 
 const debug = require('debug')('bind:container');
@@ -185,6 +186,10 @@ export class Container<T> implements IfIocContainer<T> {
         return this.getComponentDetails(name).get(this, ctx);
     }
 
+    getComponentByIdentity(id: IfComponentIdentity, ctx?: T):any {
+
+    }
+
 
     addComponent(component: IfIocComponent<T>): boolean {
 
@@ -225,8 +230,8 @@ export class Container<T> implements IfIocContainer<T> {
     }
 
 
-    has(name: string) {
-        return this.store_.has(name);
+    has(id: IfComponentIdentity) {
+        return this.store_.has(id.componentName);
     }
 
 }
