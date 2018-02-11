@@ -12,22 +12,22 @@ import {
     defineMetadataUnique,
     IfCtorInject,
     IfComponentFactoryMethod
-} from '../'
+} from "../";
 
 import {setComponentIdentity} from "../metadata/index";
+import {randomBytes} from "crypto";
 
 
 /**
  * When @Component or @Factory is added to class
  * Component name is added to class as a hidden non-enumerable property (with Symbol as name)
  * Component scope is added to class as hidden non-enumerable property (with Symbol as name)
- * Component type (Component or ComponentFactory is added to class as hidden non-enumerable hidded property (with Symbol as name)
- * A Scope property must NOT be added ONLY if explicitly set with @Scope or @Singleton decorator, cannot be set
- * to initial default value.
- * But what about decorating controller? Controller in not Singleton by default but generic component IS singleton!
- * A component must also have _DEFAULT_SCOPE_
- * This way when a new component type needs to add component meta data (like controller) it must call
- * the addComponentDecoration with own _DEFAULT_SCOPE_ value.
+ * Component type (Component or ComponentFactory is added to class as hidden non-enumerable hidded property (with
+ * Symbol as name) A Scope property must NOT be added ONLY if explicitly set with @Scope or @Singleton decorator,
+ * cannot be set to initial default value. But what about decorating controller? Controller in not Singleton by default
+ * but generic component IS singleton! A component must also have _DEFAULT_SCOPE_ This way when a new component type
+ * needs to add component meta data (like controller) it must call the addComponentDecoration with own _DEFAULT_SCOPE_
+ * value.
  *
  *
  * When @Component is added to method or get accessor:
@@ -36,11 +36,11 @@ import {setComponentIdentity} from "../metadata/index";
  * @type {debug.IDebugger | any}
  */
 
-const debug = require('debug')('bind:decorator:component');
-const TAG = '@Component';
+const debug = require("debug")("bind:decorator:component");
+const TAG = "@Component";
 
 /**
-export type _Target = {
+ export type _Target = {
     new? (...args: any[]): any
     constructor: (...args: any[]) => any
     name?: string
@@ -69,34 +69,41 @@ export function Component(target: Target): void
 
 export function Component(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
 
-export function Component(name: string): (target: any, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) => void
+export function Component(name: string): (target: any, propertyKey?: string,
+                                          descriptor?: TypedPropertyDescriptor<Object>) => void
 
-export function Component(nameOrTarget: string | Target, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) {
+export function Component(nameOrTarget: string | Target, propertyKey?: string,
+                          descriptor?: TypedPropertyDescriptor<Object>) {
 
     let componentName: string;
     let className: string;
 
 
-
-    if (typeof nameOrTarget !== 'string') {
-        componentName = className = nameOrTarget['name'];
+    if (typeof nameOrTarget !== "string") {
+        className = nameOrTarget["name"];
+        componentName = className + "." + randomBytes(36)
+        .toString("hex");
 
         debug(`Entered @Component for unnamed component propertyKey="${propertyKey}"`);
 
-        if (typeof nameOrTarget === "function" && !propertyKey && componentName && nameOrTarget['prototype']) {
+        if (typeof nameOrTarget === "function" && !propertyKey && componentName && nameOrTarget["prototype"]) {
             /**
              * Applying decorator to class
              */
 
             debug(`Defining unnamed ${TAG} for class ${componentName}`);
 
-            setComponentIdentity({componentName, className}, nameOrTarget);
+            setComponentIdentity({
+                componentName,
+                className
+            }, nameOrTarget);
+
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget);
 
         } else {
 
-            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget['name']}`);
+            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget["name"]}`);
 
             /**
              * Applying decorator to method of the class
@@ -105,8 +112,9 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
              *
              * We should not allow Component decorator on a static member.
              */
-            if (!descriptor || typeof descriptor.value !== 'function') {
-                throw new TypeError(`Only class or class method can have a '${TAG}'decorator. ${nameOrTarget.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`);
+            if (!descriptor || typeof descriptor.value !== "function") {
+                const ex1 = `Only class or class method can have a '${TAG}'decorator. ${nameOrTarget.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`;
+                throw new TypeError(ex1);
             }
 
             /**
@@ -136,12 +144,16 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
             if (INVALID_COMPONENT_NAMES.includes(rettype.name)) {
                 throw new TypeError(`${TAG} Return type of method "${nameOrTarget.constructor.name}.${propertyKey}" 
                 is not a valid name for a component: "${rettype.name}". 
-                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`)
+                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`);
             }
 
             componentName = className = rettype.name;
 
-            setComponentIdentity({componentName, className}, nameOrTarget, propertyKey);
+            setComponentIdentity({
+                componentName,
+                className
+            }, nameOrTarget, propertyKey);
+
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget, propertyKey);
 
@@ -160,9 +172,12 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
 
                 // Applying to target (without .prototype fails to get meta for the instance)
                 //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
-                setComponentIdentity({componentName, className}, target);
+                setComponentIdentity({
+                    componentName,
+                    className
+                }, target);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target);
-                defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target)
+                defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target);
 
             } else {
                 /**
@@ -170,7 +185,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
                  */
                 const factoryClassName = target.constructor && target.constructor.name;
 
-                if (typeof descriptor.value !== 'function') {
+                if (typeof descriptor.value !== "function") {
                     throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${componentName}') is NOT a class or method`);
                 }
 
@@ -183,12 +198,15 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string, d
 
                 className = rettype && rettype.name;
 
-                setComponentIdentity({componentName, className}, target, propertyKey);
+                setComponentIdentity({
+                    componentName,
+                    className
+                }, target, propertyKey);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target, propertyKey);
 
             }
 
-        }
+        };
     }
 }

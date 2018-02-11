@@ -8,6 +8,7 @@ import {
 } from "../../";
 import {StringOrSymbol} from "../../definitions/types";
 import {IfComponentIdentity} from "../../definitions/component";
+import {INVALID_COMPONENT_NAMES} from "../../metadata/index";
 
 
 const debug = require('debug')('bind:container');
@@ -35,7 +36,7 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
                 throw new ReferenceError(`Component ${component.identity.componentName} has unsatisfied constructor dependency "${dep.dependency.componentName}"`)
             }
 
-            if (dep.dependency.className && found.identity.className !== dep.dependency.className) {
+            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
                 throw new ReferenceError(`Component ${component.identity.componentName} has constructor dependency "${dep.dependency.componentName}:${dep.dependency.className}" but dependency component has className="${found.identity.className}"`)
             }
 
@@ -58,7 +59,7 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
                 throw new ReferenceError(`Component "${component.identity.componentName}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`)
             }
 
-            if (dep.dependency.className && found.identity.className !== dep.dependency.className) {
+            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
                 throw new ReferenceError(`Component "${component.identity.componentName}" has property dependency "${dep.dependency.componentName}:${dep.dependency.className}" for propertyName="${dep.propertyName}" but dependency component has className="${found.identity.className}"`)
             }
 
