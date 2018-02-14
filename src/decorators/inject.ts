@@ -181,8 +181,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string, para
                  *
                  */
                 if (typeof parameterIndex === "number") {
-
-                    throw new TypeError(`${TAG} can only be applied to constructor function of class property. Was applied to method "${targetName}.${propertyKey}" index ${parameterIndex}`)
+                    throw new TypeError(`${TAG} can only be applied to constructor function or a class property. Was applied to method "${targetName}.${propertyKey}" index ${parameterIndex}`)
                 } else if(typeof parameterIndex === "object"){
                     debug(`${TAG} called with dependency name="${nameOrTarget}" on setter for "${targetName}.${propertyKey}"`);
                 } else {
