@@ -29,7 +29,9 @@ export type Target = {
  */
 export interface IfComponentIdentity {
     componentName: StringOrSymbol
-    className: string
+    clazz: any
+    className?: string
+    equals: (other: IfComponentIdentity) => boolean
 }
 
 
@@ -74,7 +76,7 @@ export interface IfComponentDetails<T> {
     /**
      * Constructor dependencies
      */
-    constructorDependencies: Array<IfCtorInject>
+    constructorDependencies: Array<IfComponentIdentity>
 
     /**
      * Array of componentIDs that this

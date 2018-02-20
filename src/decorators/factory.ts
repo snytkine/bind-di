@@ -11,6 +11,7 @@ import {
     getComponentName,
     IocComponentScope
 } from "../";
+import {Identity} from "../metadata/index";
 
 
 const debug = require('debug')('bind:decorator:factory');
@@ -33,7 +34,7 @@ export function Factory(target: Object) {
     componentName = className = getComponentName(target);
     debug(`Defining unnamed ${TAG} for class "${componentName}"`);
 
-    setComponentIdentity({componentName, className}, target);
+    setComponentIdentity(new Identity(componentName, target, className), target);
     defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
     defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target);
     /**
@@ -47,13 +48,13 @@ export function Factory(target: Object) {
 export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
     let methods = Object.getOwnPropertyNames(target.prototype);
     const cName = getComponentName(target);
-    debug(`${TAG} property names of target "${cName}"`, methods);
+    debug(`${TAG} property names of target "${String(cName)}"`, methods);
 
     let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target, m)).map(m => {
         return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target, m)}
     });
 
-    debug(`${TAG} factory methods of "${cName}"=`, factoryMethods);
+    debug(`${TAG} factory methods of "${String(cName)}"=`, factoryMethods);
 
     return factoryMethods
 }

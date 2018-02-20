@@ -9,7 +9,7 @@ const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Singleton';
 
 export function Singleton(target: Object) {
-    debug(`Adding ${TAG} to component ${getComponentName(target)}`);
+    debug(`Adding ${TAG} to component ${String(getComponentName(target))}`);
     defineMetadataUnique(_COMPONENT_SCOPE_, IocComponentScope.SINGLETON, target);
 }
 

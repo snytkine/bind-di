@@ -20,13 +20,22 @@ export function Scope(scope: IocComponentScope) {
 
 export function getScope(target: Object, propertyKey = undefined): IocComponentScope {
 
+
     const cName = getComponentName(target);
+
     let scope = Reflect.getMetadata(_COMPONENT_SCOPE_, target, propertyKey);
 
-    debug(`${TAG} for component "${cName}"=${scope}`);
+    debug(`${TAG} for component "${String(cName)}"=${String(scope)}`);
+
     if (!scope) {
+
         scope = Reflect.getMetadata(_DEFAULT_SCOPE_, target, propertyKey);
-        debug(`Using Default Scope="${IocComponentScope[scope]}" for "${cName}"`)
+        debug(`Using Default Scope="${IocComponentScope[scope]}" for "${String(cName)}"`)
+    }
+
+    if(!scope) {
+        debug(`Using Singleton Scope as default for "${String(cName)}"`);
+        scope = IocComponentScope.SINGLETON;
     }
 
     return scope;

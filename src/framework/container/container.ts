@@ -9,20 +9,23 @@ import {
 import {StringOrSymbol} from "../../definitions/types";
 import {IfComponentIdentity} from "../../definitions/component";
 import {INVALID_COMPONENT_NAMES} from "../../metadata/index";
+import {_UNNAMED_COMPONENT_} from "../../definitions/symbols";
 
 
-const debug = require('debug')('bind:container');
+const debug = require("debug")("bind:container");
 
 export const TAG = "Container";
 
 
 /**
- * Check that all components have a correcsponding component available
+ * Check that all components have a corresponding component available
  * for all its' dependencies
  *
- * @param {Array<IfIocComponent<T>>} components
+ * @param IfIocContainer<T>
  */
-const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
+const checkDependencies = <T>(container: IfIocContainer<T>) => {
+
+    const components = container.components;
 
     debug(TAG, "entered checkDependencies");
     components.forEach((component, i, arr) => {
@@ -30,14 +33,13 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
         /**
          * Check constructor dependencies
          */
-        component.constructorDependencies.forEach((dep: IfCtorInject) => {
-            const found = arr.find(_ => _.identity.componentName === dep.dependency.componentName);
-            if (!found) {
-                throw new ReferenceError(`Component ${component.identity.componentName} has unsatisfied constructor dependency "${dep.dependency.componentName}"`)
-            }
+        component.constructorDependencies.forEach((dep: IfComponentIdentity) => {
 
-            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
-                throw new ReferenceError(`Component ${component.identity.componentName} has constructor dependency "${dep.dependency.componentName}:${dep.dependency.className}" but dependency component has className="${found.identity.className}"`)
+            let found;
+            try {
+                found = container.getComponentDetails(dep);
+            } catch (e) {
+                throw new ReferenceError(`Component componentName=${String(component.identity.componentName)} className=${component.identity.className} has unsatisfied constructor dependency on componentName="${String(dep.componentName)}" className=${dep.className}`);
             }
 
             /**
@@ -45,7 +47,7 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`)
+                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`);
             }
         });
 
@@ -54,13 +56,19 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
          * Check property dependencies
          */
         component.propDependencies.forEach((dep: IfComponentPropDependency) => {
-            const found = arr.find(_ => _.identity.componentName === dep.dependency.componentName);
+            let found;
+            try {
+                found = container.getComponentDetails(dep.dependency);
+            } catch (e) {
+
+            }
+
             if (!found) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`)
+                throw new ReferenceError(`Component "${component.identity.componentName}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`);
             }
 
             if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has property dependency "${dep.dependency.componentName}:${dep.dependency.className}" for propertyName="${dep.propertyName}" but dependency component has className="${found.identity.className}"`)
+                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency.className}" for propertyName="${dep.propertyName}" but dependency component has className="${found.identity.className}"`);
             }
 
             /**
@@ -68,11 +76,11 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope "${IocComponentScope[component.scope]}" but has property dependency for propertyName="${dep.propertyName}" on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`)
+                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope "${IocComponentScope[component.scope]}" but has property dependency for propertyName="${dep.propertyName}" on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`);
             }
         });
 
-    })
+    });
 };
 
 
@@ -83,10 +91,12 @@ const checkDependencies = <T>(components: Array<IfIocComponent<T>>) => {
  *
  * @param {Array<IfIocComponent<T>>} components
  */
-const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
+const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
 
-    const TAG = 'checkDependencyLoop';
+    const TAG = "checkDependencyLoop";
     debug(TAG, "Entered checkDependencyLoop");
+
+    let components: Array<IfIocComponent<T>> = container.components;
 
 
     /**
@@ -104,10 +114,10 @@ const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
      */
     const namedComponents = components.map(_ => {
         return {
-            name: _.identity.componentName,
-            dependencies: _.constructorDependencies.map(cd => cd.dependency.componentName).concat(_.propDependencies.map(pd => pd.dependency.componentName)),
-            visited: false
-        }
+            name:         _.identity.componentName,
+            dependencies: _.constructorDependencies.concat(_.propDependencies.map(pd => pd.dependency)),
+            visited:      false
+        };
     });
 
     debug(TAG, `namedComponents: ${JSON.stringify(namedComponents)}`);
@@ -121,7 +131,7 @@ const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
         }
 
         if (parents.includes(component.name)) {
-            throw new ReferenceError(`Dependency Loop detected for component "${component.name}". Loop: ${parents.join(' -> ')} -> ${component.name}`);
+            throw new ReferenceError(`Dependency Loop detected for component "${component.name}". Loop: ${parents.join(" -> ")} -> ${component.name}`);
         }
 
         /**
@@ -136,20 +146,20 @@ const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
          * start to unwind.
          */
         component.dependencies
-            .map(cname => namedComponents.find(_ => _.name === cname))
-            .reduce((parents, child) => {
-                check(child, parents);
-                child.visited = true;
+        .map(cname => namedComponents.find(_ => _.name === cname))
+        .reduce((parents, child) => {
+            check(child, parents);
+            child.visited = true;
 
-                return parents;
+            return parents;
 
-            }, parents.concat(component.name));
+        }, parents.concat(component.name));
 
     };
 
 
     for (const nc of namedComponents) {
-        check(nc)
+        check(nc);
     }
 
 };
@@ -157,38 +167,88 @@ const checkDependencyLoop = <T>(components: Array<IfIocComponent<T>>) => {
 
 export class Container<T> implements IfIocContainer<T> {
 
-    private readonly store_: Map<StringOrSymbol, IfIocComponent<T>>;
+    private readonly store_: Array<IfIocComponent<T>>;//Map<StringOrSymbol, IfIocComponent<T>>;
 
 
     constructor() {
-        this.store_ = new Map<string, IfIocComponent<T>>();
+        this.store_ = [];
     }
 
     get components(): Array<IfIocComponent<T>> {
-        return Array.from(this.store_.values());
+        return Array.from(this.store_);
     }
 
-    getComponentDetails(name: string): IfIocComponent<T> {
-        debug(TAG, "Entered Container.getComponentDetails Requesting component=", name);
 
-        const ret = this.store_.get(name);
+    /**
+     * 2 named components can have same clazz and className
+     * example: 2 different mongo Collection instances will both have same className and class
+     * or 2 or more instances of same object produced by component factory always have same className and class
+     *
+     * If looking for unnamed component we can allow finding a named one
+     * only if named component is the only one with same class
+     *
+     * @param {IfComponentIdentity} id
+     * @returns {IfIocComponent<T>}
+     */
+    getComponentDetails(id: IfComponentIdentity): IfIocComponent<T> {
+
+        let ret;
+
+        debug(TAG, "Entered Container.getComponentDetails Requesting componentName=", id.componentName, " className=", id.className);
+
+        /**
+         * For a named component a match is by name
+         * For unnamed component a match is by clazz
+         */
+        if (id.componentName !== _UNNAMED_COMPONENT_) {
+            ret = this.store_.find(_ => _.identity.componentName === id.componentName);
+            /**
+             * className check?
+             * if id contains className and it's not generic Object then
+             * compare className. Also provided component can in theory be a generic Object
+             * which will be the case if component factory does not define a type on
+             * component getter return.
+             *
+             * A special case may be when a component constructor returns an instance
+             * of totally different object for example MyLogger component has a constructor
+             * that returns instance of Winston's LoggerInstance
+             * In this case provided component's className will be MyLogger but it will actually
+             * be providing a LoggerInstance and another component may be injecting a LoggerInstance type
+             * in case like this one there will be a mismatch of className but only because
+             * developer made these decisions. If we force validation of className for named components
+             * then this scenario will result in Exception.
+             *
+             * @todo consider validating className for named components.
+             * @todo consider also validating clazz of named components.
+             */
+        } else {
+            /**
+             * Request for unnamed component
+             * Currently Named components must be injected only as named injections.
+             * and unnamed injection will find only unnamed components
+             *
+             * @todo consider allowing unnamed injection if actual
+             * component is named.
+             */
+            ret = this.store_.find(
+                _ => _.identity.componentName === _UNNAMED_COMPONENT_ && _.identity.clazz === id.clazz);
+
+        }
+
 
         if (!ret) {
-            throw new ReferenceError(`Container Component Not found by name="${name}"`);
+            throw new ReferenceError(`Container Component Not found by name="${id.componentName}" (className=${id.className})`);
         }
 
         return ret;
     }
 
-    getComponent(name: string, ctx?: T): any {
+    getComponent(id: IfComponentIdentity, ctx?: T): any {
 
-        debug(TAG, "Entered Container.getComponent Requesting component=", name, " With ctx=", !!ctx);
+        debug(TAG, "Entered Container.getComponent Requesting component=", id.componentName, "className=", id.className, " With ctx=", !!ctx);
 
-        return this.getComponentDetails(name).get(this, ctx);
-    }
-
-    getComponentByIdentity(id: IfComponentIdentity, ctx?: T):any {
-
+        return this.getComponentDetails(id)
+        .get(this, ctx);
     }
 
 
@@ -197,19 +257,19 @@ export class Container<T> implements IfIocContainer<T> {
         const name = component.identity.componentName;
 
         debug(TAG, "Entered Container.addComponent with component name=", name);
-        if (this.store_.has(component.identity.componentName)) {
-            throw new ReferenceError(`Container already has component with name="${name}"`)
+        if (this.has(component.identity)) {
+            throw new ReferenceError(`Container already has component with name="${name}"`);
         }
 
-        this.store_.set(name, component);
+        this.store_.push(component);
 
         return true;
     }
 
     initialize(): Promise<IfIocContainer<T>> {
         const components = this.components;
-        checkDependencies(components);
-        checkDependencyLoop(components);
+        checkDependencies(this);
+        //checkDependencyLoop(this);
 
         // @todo sort PostConstruct components in correct order and initialize them
         return Promise.resolve(this);
@@ -219,20 +279,25 @@ export class Container<T> implements IfIocContainer<T> {
     cleanup(): Promise<boolean> {
 
         const a: Array<Promise<Boolean>> = this.components
-            .filter(_ => !!_.preDestroy)
-            .map(_ => {
-                const obj = _.get(this);
-                const methodName = _.preDestroy;
+        .filter(_ => !!_.preDestroy)
+        .map(_ => {
+            const obj = _.get(this);
+            const methodName = _.preDestroy;
 
-                return obj[methodName]()
-            });
+            return obj[methodName]();
+        });
 
-        return Promise.all(a).then(_ => true)
+        return Promise.all(a)
+        .then(_ => true);
     }
 
 
-    has(id: IfComponentIdentity) {
-        return this.store_.has(id.componentName);
+    has(id: IfComponentIdentity): boolean {
+        try {
+            return !!this.getComponentDetails(id);
+        } catch (e) {
+            return false;
+        }
     }
 
 }

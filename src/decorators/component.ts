@@ -14,7 +14,10 @@ import {
     IfComponentFactoryMethod
 } from "../";
 
-import {setComponentIdentity} from "../metadata/index";
+import {
+    Identity,
+    setComponentIdentity
+} from "../metadata/index";
 import {randomBytes} from "crypto";
 
 
@@ -80,6 +83,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
 
     if (typeof nameOrTarget !== "string") {
+
         className = nameOrTarget["name"];
         componentName = className + "." + randomBytes(36)
         .toString("hex");
@@ -93,10 +97,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
             debug(`Defining unnamed ${TAG} for class ${componentName}`);
 
-            setComponentIdentity({
-                componentName,
-                className
-            }, nameOrTarget);
+            setComponentIdentity(new Identity(componentName, nameOrTarget, className), nameOrTarget);
 
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget);
@@ -149,10 +150,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
             componentName = className = rettype.name;
 
-            setComponentIdentity({
-                componentName,
-                className
-            }, nameOrTarget, propertyKey);
+            setComponentIdentity(new Identity(componentName, nameOrTarget, className), nameOrTarget, propertyKey);
 
             defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey);
             defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, nameOrTarget, propertyKey);
@@ -172,10 +170,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
                 // Applying to target (without .prototype fails to get meta for the instance)
                 //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
-                setComponentIdentity({
-                    componentName,
-                    className
-                }, target);
+                setComponentIdentity(new Identity(componentName, target, className), target);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target);
 
@@ -198,10 +193,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
                 className = rettype && rettype.name;
 
-                setComponentIdentity({
-                    componentName,
-                    className
-                }, target, propertyKey);
+                setComponentIdentity(new Identity(componentName, target, className), target, propertyKey);
                 defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey);
                 defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target, propertyKey);
 
