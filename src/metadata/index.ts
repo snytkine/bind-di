@@ -4,8 +4,9 @@ import {
     Target,
     _COMPONENT_IDENTITY_,
     _UNNAMED_COMPONENT_,
+    StringOrSymbol
 } from "../";
-import {StringOrSymbol} from "../definitions/types";
+
 
 const debug = require("debug")("bind:decorator");
 export const INVALID_COMPONENT_NAMES = ["Object", "String", "Number", "Boolean"];
@@ -63,8 +64,8 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
 }
 
 
-export function getComponentIdentity(target: Target): IfComponentIdentity | undefined {
-    let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
+export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbol): IfComponentIdentity {
+    let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
     if (ret) {
         debug("Found className from _COMPONENT_IDENTITY_ metadata ", ret);
         return ret;
@@ -73,7 +74,7 @@ export function getComponentIdentity(target: Target): IfComponentIdentity | unde
          * Maybe a raw class unannotated.
          * In this case create clazz-based identity
          */
-        const className = getClassName(target);
+        const className = getClassName(target, propertyKey);
         debug("Returning unnamed component className=", className);
 
         return new Identity(_UNNAMED_COMPONENT_, target, className);
@@ -87,10 +88,10 @@ export function getComponentIdentity(target: Target): IfComponentIdentity | unde
  * @param {Object} component
  * @returns {string}
  */
-export function getComponentName(target: Target): StringOrSymbol {
+export function getComponentName(target: Target, propertyKey?: StringOrSymbol): StringOrSymbol {
 
     if (target) {
-        let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
+        let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
         if (ret) {
             debug("Found component name from _COMPONENT_IDENTITY_ metadata ", String(ret.componentName));
             return ret.componentName;
@@ -101,7 +102,7 @@ export function getComponentName(target: Target): StringOrSymbol {
 }
 
 
-export function getClassName(target: Target): string {
+export function getClassName(target: Target, propertyKey?: StringOrSymbol): string {
 
     if (target) {
         let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);

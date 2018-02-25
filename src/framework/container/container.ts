@@ -47,7 +47,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`);
+                throw new ReferenceError(`Component componentName="${String(component.identity.componentName)}" className=${component.identity.className} has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${IocComponentScope[found.scope]}"`);
             }
         });
 
@@ -76,7 +76,12 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has a scope "${IocComponentScope[component.scope]}" but has property dependency for propertyName="${dep.propertyName}" on component "${found.identity.componentName}" with a smaller scope "${IocComponentScope[found.scope]}"`);
+                const err = `Component componentName="${String(component.identity.componentName)}" className=${component.identity.className} 
+                 has a scope "${IocComponentScope[component.scope]}"
+                 but has property dependency for
+                 propertyName="${dep.propertyName}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
+                "${IocComponentScope[found.scope]}"`;
+                throw new ReferenceError(err);
             }
         });
 
@@ -167,7 +172,12 @@ const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
 
 export class Container<T> implements IfIocContainer<T> {
 
-    private readonly store_: Array<IfIocComponent<T>>;//Map<StringOrSymbol, IfIocComponent<T>>;
+    private readonly store_: Array<IfIocComponent<T>>;
+    /**
+     * @todo this will be configurable by passing options to constructor
+     * @type {IocComponentScope}
+     */
+    public readonly defaultScope: IocComponentScope = IocComponentScope.SINGLETON;
 
 
     constructor() {
@@ -254,11 +264,22 @@ export class Container<T> implements IfIocContainer<T> {
 
     addComponent(component: IfIocComponent<T>): boolean {
 
-        const name = component.identity.componentName;
+        const name = String(component.identity.componentName);
 
-        debug(TAG, "Entered Container.addComponent with component name=", name);
+        debug(TAG, "Entered Container.addComponent with component name=", name, " className=", component.identity.className);
         if (this.has(component.identity)) {
-            throw new ReferenceError(`Container already has component with name="${name}"`);
+            throw new ReferenceError(`Container already has component with name="${name}" className=${component.identity.className}`);
+        }
+
+        /**
+         * Update default scope
+         * Unannotated component will not have any scope set, not even DEFAULT_SCOPE
+         * because it Component function was never applied to that component class, so
+         * it does not have any metadata at all.
+         */
+        if (!component.scope) {
+            debug(TAG, "Component className=", component.identity.className, " componentName=", name, " Does not have defined scope. Setting default scope=", IocComponentScope[this.defaultScope]);
+            component.scope = this.defaultScope;
         }
 
         this.store_.push(component);

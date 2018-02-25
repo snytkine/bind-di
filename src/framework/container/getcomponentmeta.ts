@@ -11,18 +11,18 @@ import {
     getPostConstruct,
     Target
 } from "../../";
+import {StringOrSymbol} from "../../definitions/types";
 
-export const getComponentMeta = <T>(clazz: Target): IfComponentDetails<T> => {
+export const getComponentMeta = <T>(clazz: Target, propertyKey?: StringOrSymbol): IfComponentDetails<T> => {
 
     return {
-        identity: getComponentIdentity(clazz),
-        componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz),
-        componentMetaType: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz),
-        scope: getScope(clazz),
+        identity: getComponentIdentity(clazz, propertyKey),
+        componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz, propertyKey),
+        componentMetaType: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz, propertyKey),
+        scope: getScope(clazz, propertyKey),
         propDependencies: getPropDependencies(clazz),
         constructorDependencies: getConstructorDependencies(clazz),
         provides: getFactoryMethods(clazz),
-        clazz: clazz,
         preDestroy: getPredestroy(clazz),
         postConstruct: getPostConstruct(clazz)
     }

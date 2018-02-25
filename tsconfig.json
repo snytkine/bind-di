@@ -12,6 +12,7 @@
       "es7",
       "es2016.array.include"
     ],
+    "watch":true,
     "sourceMap": true,
     "declaration": true,
     "declarationDir": "build/types",

@@ -25,9 +25,9 @@ export type LifecycleCallback = () => Promise<Boolean>
 
 
 /**
- * APPLICATION (aka singleton) component created only the first time they requested
- * INSTANCE component is created using new keyword every time its requested
- * REQUEST one per request
+ * SINGLETON component created only one and same instance returned every time
+ * NEWINSTANCE component is created using new keyword every time its requested
+ * CONTEXT one per context instance (request/response in case of http rest context)
  * SESSION one per http session
  *
  *
@@ -135,6 +135,9 @@ export interface IfIocContainer<T> {
      * @returns string name of added component
      */
     addComponent(component: IfIocComponent<T>): boolean
+
+
+    defaultScope:IocComponentScope;
 
     /**
      * Get array of all components in this container

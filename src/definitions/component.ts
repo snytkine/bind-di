@@ -99,14 +99,6 @@ export interface IfComponentDetails<T> {
     preDestroy?: string
 
     /**
-     * Classes that using this container can have
-     * own metadata
-     * The way to get class's metadata is to be able to get the
-     * actual class for component.
-     */
-    clazz?: Target
-
-    /**
      * Unique identifier of component type
      */
     componentType?: IocComponentType

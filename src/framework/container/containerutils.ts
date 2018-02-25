@@ -3,12 +3,13 @@ import {
     IfComponentDetails,
     IocComponentScope,
     IocComponentType,
-    Target
+    Target,
+    StringOrSymbol,
+    IfComponentIdentity
 } from "../../";
 import {getComponentMeta} from "./getcomponentmeta";
 import {IfComponentFactoryMethod} from "../../definitions/container";
-import {StringOrSymbol} from "../../definitions/types";
-import {IfComponentIdentity} from "../../definitions/component";
+import {getScope} from "../../decorators/scope";
 
 const TAG = "CONTAINER_UTILS";
 const debug = require("debug")("bind:container");
@@ -102,17 +103,17 @@ export function addContextComponent<T>(container: IfIocContainer<T>, clazz: Targ
 export function addPrototypeComponent<T>(container: IfIocContainer<T>, clazz: Target): void {
 
     const componentMeta = getComponentMeta(clazz);
-    debug(TAG, "Adding prototype component=", componentMeta.identity.componentName);
+    debug(TAG, "Adding prototype component=", String(componentMeta.identity.componentName), " className=", componentMeta.identity.className);
 
     const getter = function (ctnr: IfIocContainer<T>, ctx: T) {
-        const name = componentMeta.identity.componentName;
+        const name = String(componentMeta.identity.componentName);
 
-        debug(TAG, "Creating new instance of component' ", name, "' with constructor args", componentMeta.constructorDependencies, " with ctx=", !!ctx);
+        debug(TAG, "Creating new instance of componentName='", name, "' className=", componentMeta.identity.className, ", with constructor args", componentMeta.constructorDependencies, " with ctx=", !!ctx);
         const constructorArgs = componentMeta.constructorDependencies.map(
             _ => ctnr.getComponent(_, ctx));
         const instance = Reflect.construct(<ObjectConstructor>clazz, constructorArgs);
 
-        debug(TAG, "Adding dependencies to NewInstance component' ", name, "' ", componentMeta.propDependencies);
+        debug(TAG, "Adding dependencies to NewInstance componentName='", name, "' className=", componentMeta.identity.className,"' ", componentMeta.propDependencies);
         return componentMeta.propDependencies.reduce((prev, curr) => {
             prev[curr.propertyName] = ctnr.getComponent(curr.dependency, ctx);
 
@@ -144,7 +145,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
      */
     const componentMeta: IfComponentDetails<T> = getComponentMeta(clazz);
 
-    debug(TAG, "Adding Factory componentName=", componentMeta.identity.componentName, " className=", componentMeta.identity.className);
+    debug(TAG, "Adding Factory componentName=", String(componentMeta.identity.componentName), " className=", componentMeta.identity.className);
 
 
     /**
@@ -164,39 +165,39 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
         const providedComponent: IfComponentDetails<T> = {
             identity:                curr.providesComponent,
             componentType:           IocComponentType.COMPONENT,
-            scope:                   IocComponentScope.SINGLETON,
+            scope:                   getScope(clazz, curr.methodName),
             propDependencies:        [],
             constructorDependencies: [],
             provides:                []
         };
 
-        //const getter = function (factoryIdentity: IfComponentIdentity, factoryMethodName: string, componentIdentity: IfComponentIdentity) {
+        //const getter = function (factoryIdentity: IfComponentIdentity, factoryMethodName: string, componentIdentity:
+        // IfComponentIdentity) {
 
 
-
-            const getter = function (ctnr: IfIocContainer<T>, ctx?: T) {
-                debug(TAG, "Getter called on Factory-Provided componentName=", providedComponent.identity.componentName, " className=", providedComponent.identity.className, " of factory componentName=", componentMeta.identity.componentName, " factory className=", componentMeta.identity.className);
-                if (instance) {
-                    debug(TAG, "Factory-Provided componentName=", providedComponent.identity.componentName, " className=", providedComponent.identity.className,  " already created. Returning same instance");
-
-                    return instance;
-                }
-
-                /**
-                 * Factory Component is always singleton? Yes for now
-                 * but not sure if there is any possibility to have ContextScoped factory
-                 * Maybe in the future there could be a SessionScoped factory, then
-                 * we will have to pass ctx param since it will contain means to get
-                 * session-scoped objects
-                 * @type {any}
-                 */
-                const factory = ctnr.getComponent(componentMeta.identity, ctx);
-                debug(TAG, "Calling factory method=", curr.methodName, " of factory componentName=", componentMeta.identity.componentName, " factory className=", componentMeta.identity.className);
-                instance = factory[curr.methodName]();
+        const getter = function (ctnr: IfIocContainer<T>, ctx?: T) {
+            debug(TAG, "Getter called on Factory-Provided componentName=", String(providedComponent.identity.componentName), " className=", providedComponent.identity.className, " of factory componentName=", String(componentMeta.identity.componentName), " factory className=", componentMeta.identity.className);
+            if (instance) {
+                debug(TAG, "Factory-Provided componentName=", providedComponent.identity.componentName, " className=", providedComponent.identity.className, " already created. Returning same instance");
 
                 return instance;
+            }
 
-            };
+            /**
+             * Factory Component is always singleton? Yes for now
+             * but not sure if there is any possibility to have ContextScoped factory
+             * Maybe in the future there could be a SessionScoped factory, then
+             * we will have to pass ctx param since it will contain means to get
+             * session-scoped objects
+             * @type {any}
+             */
+            const factory = ctnr.getComponent(componentMeta.identity, ctx);
+            debug(TAG, "Calling factory method=", curr.methodName, " of factory componentName=", componentMeta.identity.componentName, " factory className=", componentMeta.identity.className);
+            instance = factory[curr.methodName]();
+
+            return instance;
+
+        };
 
         //}(componentMeta.identity, curr.methodName, curr.providesComponent);
 
@@ -205,7 +206,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
             get: getter
         };
 
-        debug(TAG, "Adding factory-provided component=", component.identity.componentName);
+        debug(TAG, "Adding factory-provided componentName=", String(component.identity.componentName), " className=", component.identity.componentName, " scope=", component.scope);
 
         prev.addComponent(component);
 
@@ -219,6 +220,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, clazz: Targ
 export function addComponent<T>(container: IfIocContainer<T>, clazz: Target): void {
 
     const meta = getComponentMeta(clazz);
+    meta.scope = meta.scope || container.defaultScope;
 
     if (meta.componentType === IocComponentType.FACTORY) {
         return addFactoryComponent(container, clazz);
@@ -227,7 +229,7 @@ export function addComponent<T>(container: IfIocContainer<T>, clazz: Target): vo
     } else if (meta.scope === IocComponentScope.NEWINSTANCE) {
         return addPrototypeComponent(container, clazz);
     } else {
-        throw new TypeError(`Unable to add component. ${JSON.stringify(meta)}`);
+        throw new TypeError(`Unable to add component. ${JSON.stringify(meta)} with scope=${String(meta.scope)}`);
     }
 }
 
