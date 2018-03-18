@@ -2,11 +2,14 @@ import {
     _COMPONENT_SCOPE_,
     _DEFAULT_SCOPE_,
     defineMetadataUnique,
+    defineMetadata,
     getComponentName,
     IocComponentScope,
     StringOrSymbol
 } from "../";
-import {getComponentIdentity} from "../metadata/index";
+import {
+    getComponentIdentity
+} from "../metadata/index";
 
 const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Scope';
@@ -19,7 +22,7 @@ export function Scope(scope: IocComponentScope) {
      */
     return function (target: Object, propertyKey?: StringOrSymbol) {
         debug(`Adding ${TAG} to component ${String(getComponentName(target))}`);
-        defineMetadataUnique(_COMPONENT_SCOPE_, scope, target, propertyKey);
+        defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey);
     }
 }
 

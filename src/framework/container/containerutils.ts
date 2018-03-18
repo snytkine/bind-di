@@ -56,7 +56,19 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, clazz: Ta
          * and will also be returned
          */
         return meta.propDependencies.reduce((prev, curr) => {
-            prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
+
+            /**
+             * Don't add if instance already has property with the same name
+             * it could be the case with class inheritance where child class
+             * redefined property but parent class has same property is annotated with @Inject
+             *
+             * @type {any}
+             */
+            if (!prev[curr.propertyName]) {
+                prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
+            } else {
+                debug(name, "Singleton component already has property=", curr.propertyName);
+            }
 
             return prev;
         }, instance);
@@ -113,9 +125,14 @@ export function addPrototypeComponent<T>(container: IfIocContainer<T>, clazz: Ta
             _ => ctnr.getComponent(_, ctx));
         const instance = Reflect.construct(<ObjectConstructor>clazz, constructorArgs);
 
-        debug(TAG, "Adding dependencies to NewInstance componentName='", name, "' className=", componentMeta.identity.className,"' ", componentMeta.propDependencies);
+        debug(TAG, "Adding dependencies to NewInstance componentName='", name, "' className=", componentMeta.identity.className, "' ", componentMeta.propDependencies);
         return componentMeta.propDependencies.reduce((prev, curr) => {
-            prev[curr.propertyName] = ctnr.getComponent(curr.dependency, ctx);
+
+            if (!prev[curr.propertyName]) {
+                prev[curr.propertyName] = ctnr.getComponent(curr.dependency, ctx);
+            } else {
+                debug(name, "Instance component already has own property", curr.propertyName);
+            }
 
             return prev;
 

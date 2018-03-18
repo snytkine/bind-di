@@ -43,18 +43,3 @@ export function Factory(target: Object) {
      */
     defineMetadataUnique(_COMPONENT_SCOPE_, IocComponentScope.SINGLETON, target);
 }
-
-
-export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
-    let methods = Object.getOwnPropertyNames(target.prototype);
-    const cName = getComponentName(target);
-    debug(`${TAG} property names of target "${String(cName)}"`, methods);
-
-    let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target, m)).map(m => {
-        return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target, m)}
-    });
-
-    debug(`${TAG} factory methods of "${String(cName)}"=`, factoryMethods);
-
-    return factoryMethods
-}

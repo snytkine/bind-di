@@ -1,5 +1,4 @@
 export * from './component'
 export * from './inject'
-export * from './factory'
 export * from './scope'
 export * from './lifecycle'

@@ -38,24 +38,38 @@ export class Identity implements IfComponentIdentity {
 
 }
 
-export function defineMetadataUnique(metadataKey: any, metadataValue: any, target: Object,
-                                     propertyKey?: string | symbol): void {
+
+export function defineMetadata(metadataKey: any, metadataValue: any, target: Object,
+                               propertyKey?: string | symbol, isUnique: boolean = false): void {
     // Need for prototype decorating class and for properties on class instances
 
-    if (Reflect.hasMetadata(metadataKey, target, propertyKey)) {
+    if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
         const className = getClassName(target);
         throw new TypeError(`Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${propertyKey}"`);
     }
 
     Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
 
-    // Need for decorating instances on classes
+    // Need for decorating instances on classes?
+    // Why were these prototype and constructor things here?
+    // Why adding metadata of prototype of constructor?
+    // Has something to do with factory component? When commented these out got
+    // exception Factory component componentName ... is not providing any components
     if (target["prototype"]) {
         Reflect.defineMetadata(metadataKey, metadataValue, target["prototype"], propertyKey);
     } else if (target.constructor) {
         // Need for decorating properties on properties of a prototype
+        // without adding metadata on target.constructor getting this exception
+        //exception Factory component componentName ... is not providing any components
         Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
     }
+}
+
+
+export function defineMetadataUnique(metadataKey: any, metadataValue: any, target: Object,
+                                     propertyKey?: string | symbol): void {
+    // Need for prototype decorating class and for properties on class instances
+    return defineMetadata(metadataKey, metadataValue, target, propertyKey, true);
 }
 
 

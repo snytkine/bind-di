@@ -20,6 +20,7 @@ import {
     setComponentIdentity
 } from "../metadata/index";
 import {randomBytes} from "crypto";
+import {getComponentName} from "../index";
 
 
 /**
@@ -228,3 +229,29 @@ export const Factory = (target: Target): void => {
     Component(target);
     Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)
 };
+
+
+
+/**
+ * @todo will the getOwnPropertyNames be a problem in case of inheritance?
+ * If factory class extends another class then method of parent class will not be considered?
+ *
+ * @param {Target} target
+ * @returns {Array<IfComponentFactoryMethod>}
+ */
+export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
+
+
+    let methods = Object.getOwnPropertyNames(target.prototype);
+    const cName = getComponentName(target);
+    debug(`${TAG} property names of target "${String(cName)}"`, methods);
+
+    let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target, m)).map(m => {
+        return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target, m)}
+    });
+
+    debug(`${TAG} factory methods of "${String(cName)}"=`, factoryMethods);
+
+    return factoryMethods
+}
+
