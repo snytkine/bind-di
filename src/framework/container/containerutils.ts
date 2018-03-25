@@ -128,6 +128,12 @@ export function addPrototypeComponent<T>(container: IfIocContainer<T>, clazz: Ta
         debug(TAG, "Adding dependencies to NewInstance componentName='", name, "' className=", componentMeta.identity.className, "' ", componentMeta.propDependencies);
         return componentMeta.propDependencies.reduce((prev, curr) => {
 
+            /**
+             * Add prop dependency but ONLY if this property is not already set
+             * It would be set if sub-class overrides parent where in parent
+             * this property is auto-wired with @Inject but sub-class overrides it
+             * with own value.
+             */
             if (!prev[curr.propertyName]) {
                 prev[curr.propertyName] = ctnr.getComponent(curr.dependency, ctx);
             } else {

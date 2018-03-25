@@ -419,14 +419,14 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
         /**
          * First check if class has own property p
          */
-        if (Reflect.hasMetadata(_PROP_DEPENDENCY_, target, p)) {
+        if (Reflect.hasMetadata(_PROP_DEPENDENCY_, target.prototype, p)) {
             debug(`Prop ${String(cName)}.${p} has dependency`);
             /**
              * dependency may already exist for the same property key if it was
              * defined on the parent class.
              *
              */
-            dependencies.push({propertyName: p, dependency: Reflect.getMetadata(_PROP_DEPENDENCY_, target, p)})
+            dependencies.push({propertyName: p, dependency: Reflect.getMetadata(_PROP_DEPENDENCY_, target.prototype, p)})
         }
     }
 

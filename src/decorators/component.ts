@@ -241,16 +241,26 @@ export const Factory = (target: Target): void => {
  */
 export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
 
-
+    /**
+     * use target.prototype because target is just a constructor function
+     * we need to access to object's properties and for that we need
+     * to get the prototype
+     *
+     *
+     * @type {string[]}
+     */
     let methods = Object.getOwnPropertyNames(target.prototype);
-    const cName = getComponentName(target);
-    debug(`${TAG} property names of target "${String(cName)}"`, methods);
 
-    let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target, m)).map(m => {
-        return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target, m)}
+    const cName = String(getComponentName(target));
+
+
+    debug(`${TAG} property names of target "${cName}"`, methods);
+
+    let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target.prototype, m)).map(m => {
+        return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target.prototype, m)}
     });
 
-    debug(`${TAG} factory methods of "${String(cName)}"=`, factoryMethods);
+    debug(`${TAG} factory methods of "${cName}"=`, factoryMethods);
 
     return factoryMethods
 }

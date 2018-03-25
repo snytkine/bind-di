@@ -60,11 +60,13 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
             try {
                 found = container.getComponentDetails(dep.dependency);
             } catch (e) {
+                console.error("Container error63", e)
 
             }
 
             if (!found) {
-                throw new ReferenceError(`Component "${component.identity.componentName}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`);
+
+                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`);
             }
 
             if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
