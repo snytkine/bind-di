@@ -12,7 +12,7 @@ const debug = require('debug')('bind:decorator:lifecycle');
 
 export function PostConstruct(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<LifecycleCallback>) {
     debug(`Adding @PostConstruct decorator to ${target.name} for method ${propertyKey}`);
-    defineMetadata(_INIT_METHOD_, propertyKey, target);
+    defineMetadata(_INIT_METHOD_, propertyKey, target)();
     /**
      * target is a prototype of class in this case
      * we also need to define this on constructor method
@@ -26,7 +26,7 @@ export function PostConstruct(target: Target, propertyKey: string, descriptor: T
 
 export function PreDestroy(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<LifecycleCallback>) {
     debug(`Adding @PreDestroy decorator to ${target.name} for method ${propertyKey}`);
-    defineMetadata(_DESTRUCTOR_, propertyKey, target);
+    defineMetadata(_DESTRUCTOR_, propertyKey, target)();
     /**
      * target is a prototype of class in this case
      * we also need to define this on constructor method

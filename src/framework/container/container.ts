@@ -66,7 +66,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
 
             if (!found) {
 
-                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${dep.dependency.componentName}"`);
+                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${String(dep.dependency.componentName)}" className=${dep.dependency.className}`);
             }
 
             if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
@@ -206,7 +206,7 @@ export class Container<T> implements IfIocContainer<T> {
 
         let ret;
 
-        debug(TAG, "Entered Container.getComponentDetails Requesting componentName=", id.componentName, " className=", id.className);
+        debug(TAG, "Entered Container.getComponentDetails Requesting componentName=", String(id.componentName), " className=", id.className);
 
         /**
          * For a named component a match is by name
@@ -249,7 +249,7 @@ export class Container<T> implements IfIocContainer<T> {
 
 
         if (!ret) {
-            throw new ReferenceError(`Container Component Not found by name="${id.componentName}" (className=${id.className})`);
+            throw new ReferenceError(`Container Component Not found by name="${String(id.componentName)}" (className=${id.className})`);
         }
 
         return ret;
@@ -257,7 +257,7 @@ export class Container<T> implements IfIocContainer<T> {
 
     getComponent(id: IfComponentIdentity, ctx?: T): any {
 
-        debug(TAG, "Entered Container.getComponent Requesting component=", id.componentName, "className=", id.className, " With ctx=", !!ctx);
+        debug(TAG, "Entered Container.getComponent Requesting component=", String(id.componentName), "className=", id.className, " With ctx=", !!ctx);
 
         return this.getComponentDetails(id)
         .get(this, ctx);

@@ -8,7 +8,6 @@ import {
     IfComponentPropDependency,
     getClassName,
     Identity,
-    defineMetadataUnique,
     defineMetadata,
     IfCtorInject,
     IfComponentIdentity
@@ -148,7 +147,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 debug(`${TAG} added property ${propertyKey} to prototype of ${name}`);
             }
 
-            defineMetadata(_PROP_DEPENDENCY_, injectIdentity, nameOrTarget, propertyKey);
+            defineMetadata(_PROP_DEPENDENCY_, injectIdentity, nameOrTarget, propertyKey)();
 
         } else {
 
@@ -254,7 +253,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                defineMetadataUnique(_PROP_DEPENDENCY_, new Identity(injectName, rt, injectClassName), target, propertyKey);
+                defineMetadata(_PROP_DEPENDENCY_, new Identity(injectName, rt, injectClassName), target, propertyKey)();
 
                 /**
                  * The actual target object may not have this property defined because typesceipt compiler will not

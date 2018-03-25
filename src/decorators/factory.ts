@@ -3,15 +3,14 @@ import {
     _COMPONENT_TYPE_,
     _COMPONENT_SCOPE_,
     _DEFAULT_SCOPE_,
-    _COMPONENT_IDENTITY_,
-    Target,
-    IfComponentFactoryMethod,
     setComponentIdentity,
-    defineMetadataUnique,
     getComponentName,
     IocComponentScope
 } from "../";
-import {Identity} from "../metadata/index";
+import {
+    defineMetadata,
+    Identity
+} from "../metadata/index";
 
 
 const debug = require('debug')('bind:decorator:factory');
@@ -35,11 +34,11 @@ export function Factory(target: Object) {
     debug(`Defining unnamed ${TAG} for class "${componentName}"`);
 
     setComponentIdentity(new Identity(componentName, target, className), target);
-    defineMetadataUnique(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
-    defineMetadataUnique(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target);
+    defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)(true);
+    defineMetadata(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target)(true);
     /**
      * Must also define _SCOPE_ with value of SINGLETON because Factory must always be singleton
      * component. Defining this score now will prevent adding @Scope annotation on Factory component
      */
-    defineMetadataUnique(_COMPONENT_SCOPE_, IocComponentScope.SINGLETON, target);
+    defineMetadata(_COMPONENT_SCOPE_, IocComponentScope.SINGLETON, target)(true);
 }

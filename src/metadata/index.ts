@@ -39,9 +39,8 @@ export class Identity implements IfComponentIdentity {
 }
 
 
-export function defineMetadata(metadataKey: any, metadataValue: any, target: Object,
-                               propertyKey?: string | symbol, isUnique: boolean = false): void {
-    // Need for prototype decorating class and for properties on class instances
+export const defineMetadata = (metadataKey: any, metadataValue: any, target: Object,
+                               propertyKey?: StringOrSymbol) => (isUnique: boolean = false) => {
 
     if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
         const className = getClassName(target);
@@ -65,18 +64,12 @@ export function defineMetadata(metadataKey: any, metadataValue: any, target: Obj
         // the target is a prototype and not a constructor like in case of decorating class
         //Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
     }
-}
 
-
-export function defineMetadataUnique(metadataKey: any, metadataValue: any, target: Object,
-                                     propertyKey?: string | symbol): void {
-    // Need for prototype decorating class and for properties on class instances
-    return defineMetadata(metadataKey, metadataValue, target, propertyKey, true);
-}
+};
 
 
 export function setComponentIdentity(identity: IfComponentIdentity, target: Object, propertyKey?: string): void {
-    return defineMetadataUnique(_COMPONENT_IDENTITY_, identity, target, propertyKey);
+    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(true);
 }
 
 

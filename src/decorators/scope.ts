@@ -22,7 +22,7 @@ export function Scope(scope: IocComponentScope) {
      */
     return function (target: Object, propertyKey?: StringOrSymbol) {
         debug(`Adding ${TAG} to component ${String(getComponentName(target))}`);
-        defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey);
+        defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey)();
     }
 }
 
