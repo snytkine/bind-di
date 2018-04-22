@@ -138,8 +138,8 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
             }
 
             /**
-             * @todo
-             * Make sure that returntype is user-defined class and not a build-in like String, Object, etc.
+             *
+             * Make sure that return type is user-defined class and not a build-in like String, Object, etc.
              */
             if (INVALID_COMPONENT_NAMES.includes(rettype.name)) {
                 throw new TypeError(`${TAG} Return type of method "${nameOrTarget.constructor.name}.${propertyKey}" 
@@ -210,6 +210,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
 
 /**
+ * @todo
  * Functions to create Component annotations
  * For example it will be possible to create
  * Controller annotation by calling
@@ -244,6 +245,23 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
      * we need to access to object's properties and for that we need
      * to get the prototype
      *
+     *
+     * @type {string[]}
+     */
+    /**
+     * Take care of case when target has no .prototype
+     * this is the case when attempting to add a pure function to container, which does not make sense
+     * but could happen when loading ALL exported variables from file, in which case a pure function
+     * can be imported
+     */
+    if(!target.prototype){
+        return [];
+    }
+
+    /**
+     * @todo
+     * get rid of getOwnPropertyNames because it will cause problem
+     * with inheritance.
      *
      * @type {string[]}
      */

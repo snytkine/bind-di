@@ -1,13 +1,13 @@
 import {
     _COMPONENT_SCOPE_,
     _DEFAULT_SCOPE_,
-    defineMetadataUnique,
     defineMetadata,
     getComponentName,
     IocComponentScope,
     StringOrSymbol
 } from "../";
 import {
+    getClassName,
     getComponentIdentity
 } from "../metadata/index";
 
@@ -21,7 +21,7 @@ export function Scope(scope: IocComponentScope) {
      * for that need to also add propertyKey
      */
     return function (target: Object, propertyKey?: StringOrSymbol) {
-        debug(`Adding ${TAG} to component ${String(getComponentName(target))}`);
+        debug(`Adding ${TAG} to component ${String(getComponentName(target))} className=${getClassName(target)}`);
         defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey)();
     }
 }

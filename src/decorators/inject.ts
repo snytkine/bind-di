@@ -134,7 +134,8 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
 
 
             /**
-             * The actual target object may not have this property defined because typescript compiler will not
+             * The actual target object may not have this property defined
+             * because typescript compiler will not
              * add a property if it does not have a value.
              */
             if (!nameOrTarget.hasOwnProperty(propertyKey)) {
@@ -190,7 +191,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
             let compName = compIdentity.componentName;
             let className = compIdentity.className;
 
-            debug(TAG, "got component name", compName);
+            debug(TAG, "got component name", String(compName), " className=", className);
             addConstructorDependency(nameOrTarget, compIdentity, parameterIndex);
         }
 
