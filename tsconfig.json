@@ -4,6 +4,7 @@
     "module": "commonjs",
     "target": "es6",
     "lib": [
+      "esnext",
       "es2015",
       "es2015.collection",
       "es2015.core",
@@ -12,7 +13,7 @@
       "es7",
       "es2016.array.include"
     ],
-    "watch":true,
+    //"watch":true,
     "sourceMap": true,
     "declaration": true,
     "declarationDir": "build/types",
