@@ -10,6 +10,12 @@ import {StringOrSymbol} from "../../definitions/types";
 import {IfComponentIdentity} from "../../definitions/component";
 import {INVALID_COMPONENT_NAMES} from "../../metadata/index";
 import {_UNNAMED_COMPONENT_} from "../../definitions/symbols";
+import {stringifyIdentify} from "./containerutils";
+import {
+    initIterator,
+    sortComponents
+} from "./initializer";
+import {IocComponentType} from "../../definitions/container";
 
 
 const debug = require("debug")("bind:container");
@@ -39,7 +45,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
             try {
                 found = container.getComponentDetails(dep);
             } catch (e) {
-                throw new ReferenceError(`Component componentName=${String(component.identity.componentName)} className=${component.identity.className} has unsatisfied constructor dependency on componentName="${String(dep.componentName)}" className=${dep.className}`);
+                throw new ReferenceError(`Component ${stringifyIdentify(component.identity)} has unsatisfied constructor dependency on dependency ${stringifyIdentify(dep)}`);
             }
 
             /**
@@ -47,7 +53,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component componentName="${String(component.identity.componentName)}" className=${component.identity.className} has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${IocComponentScope[found.scope]}"`);
+                throw new ReferenceError(`Component "${stringifyIdentify(component.identity)}" has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${IocComponentScope[found.scope]}"`);
             }
         });
 
@@ -60,7 +66,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
             try {
                 found = container.getComponentDetails(dep.dependency);
             } catch (e) {
-                console.error("Container error63", e)
+                console.error("Container error63", e);
 
             }
 
@@ -70,7 +76,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
             }
 
             if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
-                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency.className}" for propertyName="${dep.propertyName}" but dependency component has className="${found.identity.className}"`);
+                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency.className}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
             }
 
             /**
@@ -78,7 +84,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                const err = `Component componentName="${String(component.identity.componentName)}" className=${component.identity.className} 
+                const err = `Component ${stringifyIdentify(component.identity)}
                  has a scope "${IocComponentScope[component.scope]}"
                  but has property dependency for
                  propertyName="${dep.propertyName}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
@@ -97,6 +103,9 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
  * This type of loop cannot be allowed
  *
  * @param {Array<IfIocComponent<T>>} components
+ *
+ * @todo this is old implementation, uses component names.
+ * Should instead use Identify and equals method of Identify class
  */
 const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
 
@@ -137,8 +146,12 @@ const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
             return;
         }
 
+
+        /**
+         * @todo should not be checking by name, should instead check by Identity
+         */
         if (parents.includes(component.name)) {
-            throw new ReferenceError(`Dependency Loop detected for component "${component.name}". Loop: ${parents.join(" -> ")} -> ${component.name}`);
+            throw new ReferenceError(`Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(" -> ")} -> ${String(component.name)}`);
         }
 
         /**
@@ -183,11 +196,18 @@ export class Container<T> implements IfIocContainer<T> {
 
 
     constructor() {
+        /**
+         * Polyfill Symbol.asyncIterator
+         * @type {any | symbol}
+         */
+        (Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
         this.store_ = [];
     }
 
     get components(): Array<IfIocComponent<T>> {
-        return Array.from(this.store_);
+        //return Array.from(this.store_); //? was it causing any problems?
+
+        return this.store_;
     }
 
 
@@ -289,13 +309,51 @@ export class Container<T> implements IfIocContainer<T> {
         return true;
     }
 
-    initialize(): Promise<IfIocContainer<T>> {
-        const components = this.components;
-        checkDependencies(this);
-        //checkDependencyLoop(this);
+    async initialize(): Promise<IfIocContainer<T>> {
 
-        // @todo sort PostConstruct components in correct order and initialize them
-        return Promise.resolve(this);
+        const that = this;
+
+        debug(TAG, "Entered initialize. components=", JSON.stringify(this.components, null, 2));
+
+        checkDependencies(this);
+
+        const {sorted, unsorted} = sortComponents({
+            unsorted: this.components,
+            sorted:   []
+        });
+
+        if (unsorted.length > 0) {
+            const error = `
+                    Dependency sorting error. Following components have unresolved dependencies.
+                    Check dependency loop.
+                    ${unsorted.map(_ => stringifyIdentify(_.identity))
+            .join(",")}
+                    `;
+
+            debug(TAG, error);
+
+            throw new Error(error);
+        }
+
+        debug(TAG, "sorted=", JSON.stringify(sorted, null, 2));
+
+        /**
+         * Now initialize components that have initializer
+         */
+        const initializable = sorted.filter(_ =>  _.postConstruct);
+        if (initializable.length > 0) {
+            debug(TAG, "HAS initializable components", initializable.length);
+
+            for await(const initialized of initIterator(this, initializable)){
+                debug(TAG, "Initialized component", initialized)
+            }
+
+        } else {
+            debug(TAG, "NO initilizable components");
+        }
+
+        return this;
+
     }
 
 

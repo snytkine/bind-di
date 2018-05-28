@@ -14,6 +14,10 @@ import {getScope} from "../../decorators/scope";
 const TAG = "CONTAINER_UTILS";
 const debug = require("debug")("bind:container");
 
+export const stringifyIdentify = (identity: IfComponentIdentity): string => {
+    return `componentName=${String(identity.componentName)} className=${identity.className}`
+};
+
 /**
  *
  * @param {IfIocContainer<T>} container
@@ -91,7 +95,7 @@ export function addContextComponent<T>(container: IfIocContainer<T>, clazz: Targ
     const getter = function (ctnr: IfIocContainer<T>, ctx: T) {
 
         /**
-         * Look in ctx first if found return it
+         * @todo Look in ctx first if found return it
          * otherwise create new one using deps from ctnr and ctx
          * and set result in ctx.components
          */

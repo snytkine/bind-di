@@ -24,7 +24,7 @@ export class Identity implements IfComponentIdentity {
          * which is a special componentName
          */
         if (this.componentName !== _UNNAMED_COMPONENT_) {
-            return this.componentName === this.componentName;
+            return this.componentName === other.componentName;
         }
 
         /**
@@ -44,7 +44,8 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
 
     if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
         const className = getClassName(target);
-        throw new TypeError(`Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${propertyKey}"`);
+        const err = `Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${propertyKey}"`;
+        throw new TypeError(err);
     }
 
     Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
@@ -69,7 +70,7 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
 
 
 export function setComponentIdentity(identity: IfComponentIdentity, target: Object, propertyKey?: string): void {
-    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(true);
+    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(); // used to be true but was causing problems when component extended another decorated component
 }
 
 
