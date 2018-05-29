@@ -32,6 +32,7 @@ export interface IfComponentIdentity {
     clazz: any
     className?: string
     equals: (other: IfComponentIdentity) => boolean
+    copy: () => IfComponentIdentity
 }
 
 

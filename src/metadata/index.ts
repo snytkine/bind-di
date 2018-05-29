@@ -16,6 +16,11 @@ export class Identity implements IfComponentIdentity {
                 public readonly className?: string) {
     }
 
+    copy(){
+        const name = this.componentName, className = this.className;
+        return new Identity(name, this.clazz, className);
+    }
+
     equals(other: IfComponentIdentity) {
 
         /**

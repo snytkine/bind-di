@@ -6,7 +6,11 @@ import {
     IocComponentType
 } from "../../definitions";
 import {stringifyIdentify} from "./containerutils";
-import {IocComponentScope} from "../../definitions/container";
+import {
+    IfComponentFactoryMethod,
+    IfComponentPropDependency,
+    IocComponentScope
+} from "../../definitions/container";
 
 const debug = require("debug")("bind:container");
 
@@ -24,6 +28,37 @@ export const sortdependencies = async <T>(components: Array<IfIocComponent<T>>):
 
 
     return components;
+};
+
+const copyPropDependency = (dep: IfComponentPropDependency):IfComponentPropDependency => {
+    return {
+        propertyName: dep.propertyName,
+        dependency: dep.dependency.copy()
+    }
+};
+
+const copyFactoryMethod = (m: IfComponentFactoryMethod):IfComponentFactoryMethod => {
+    return {
+        methodName: m.methodName,
+        providesComponent: m.providesComponent.copy()
+    }
+};
+
+const copyComponents = <T>(a: Array<IfComponentDetails<T>>): Array<IfComponentDetails<T>> => {
+
+    return a.map(_ => {
+        return {
+            identity: _.identity.copy(),
+            scope:    _.scope,
+            propDependencies: _.propDependencies.map(copyPropDependency),
+            constructorDependencies: _.constructorDependencies.map(_ => _.copy()),
+            componentMetaType: _.componentMetaType,
+            componentType: _.componentType,
+            preDestroy: _.preDestroy,
+            postConstruct: _.postConstruct,
+            provides: _.provides.map(copyFactoryMethod)
+        };
+    });
 };
 
 
@@ -113,7 +148,7 @@ export const sortComponents = <T>(input: unsorted_sorted<T>): unsorted_sorted<T>
 
     const ret: unsorted_sorted<T> = {
         unsorted: [],
-        sorted:   input.sorted
+        sorted:   copyComponents(input.sorted)
     };
 
     for (const component of input.unsorted) {
