@@ -205,9 +205,9 @@ export class Container<T> implements IfIocContainer<T> {
     }
 
     get components(): Array<IfIocComponent<T>> {
-        //return Array.from(this.store_); //? was it causing any problems?
+        return Array.from(this.store_); //? was it causing any problems?
 
-        return this.store_;
+        //return this.store_;
     }
 
 

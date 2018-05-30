@@ -16,8 +16,9 @@ export class Identity implements IfComponentIdentity {
                 public readonly className?: string) {
     }
 
-    copy(){
-        const name = this.componentName, className = this.className;
+    copy() {
+        const name = this.componentName,
+              className = this.className;
         return new Identity(name, this.clazz, className);
     }
 
@@ -75,14 +76,46 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
 
 
 export function setComponentIdentity(identity: IfComponentIdentity, target: Object, propertyKey?: string): void {
-    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(); // used to be true but was causing problems when component extended another decorated component
+    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(); // used to be true but was causing
+                                                                                  // problems when component extended
+                                                                                  // another decorated component
 }
 
 
 export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbol): IfComponentIdentity {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
+    let targetName: string;
+
+    /**
+     * Now get className
+     * it it's different that found by Identity it could be a sub-class
+     * or an annotated class. In such case the parent class since it had
+     * a Component decorator, will already have a _COMPONENT_IDENTITY_ meta
+     * but a child-class if it's not decorated will not have own meta
+     * In this edge-case we should generate an Identity for a child-class
+     * and not use parent, otherwise it will not be possible
+     * to add child class and parent class to container since they will
+     * have same Identity object
+     */
     if (ret) {
         debug("Found className from _COMPONENT_IDENTITY_ metadata ", ret);
+        if (target["name"]) {
+            debug(`Found className in .name property "${target["name"]}"`);
+
+            targetName = target["name"];
+
+        } else if (target.constructor && target.constructor.name) {
+            debug(`Found className in constructor.name "${target.constructor.name}"`);
+
+            targetName = target.constructor.name;
+        }
+
+        if (targetName && targetName !== ret.className) {
+            debug(`Different className from Identity and class name. className=${ret.className} name=${targetName}`);
+            if (target !== ret.clazz) {
+                return new Identity(_UNNAMED_COMPONENT_, target, targetName);
+            }
+        }
         return ret;
     } else {
         /**
