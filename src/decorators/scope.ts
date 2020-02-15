@@ -3,13 +3,14 @@ import {
     _DEFAULT_SCOPE_,
     defineMetadata,
     getComponentName,
-    ComponentScope,
     StringOrSymbol
 } from "../";
 import {
     getClassName,
     getComponentIdentity
 } from "../metadata/index";
+
+import {ComponentScope} from '../enums/componentscope'
 
 const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Scope';
@@ -28,7 +29,7 @@ export function Scope(scope: ComponentScope) {
 
 export const Singleton = Scope(ComponentScope.SINGLETON);
 export const NewInstance = Scope(ComponentScope.NEWINSTANCE);
-export const ContextScope = Scope(ComponentScope.CONTEXT);
+export const RequestScoped = Scope(ComponentScope.REQUEST);
 
 export function getScope(target: Object, propertyKey?: StringOrSymbol): ComponentScope {
 

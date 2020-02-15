@@ -85,6 +85,10 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * Should not have both propertyKey and parameterIndex because that would mean
              * that @Inject is added to parameter of some class method but not to constructor function
              */
+            /**
+             * @todo allow injecting parameter to function
+             * this way can inject dependency to controller function.
+             */
             if (typeof parameterIndex === "number") {
                 throw new TypeError(`${TAG} can only be applied to constructor function of class property. Was applied to method ${name}.${propertyKey} index ${parameterIndex}`);
             }
@@ -257,7 +261,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 defineMetadata(_PROP_DEPENDENCY_, new Identity(injectName, rt, injectClassName), target, propertyKey)();
 
                 /**
-                 * The actual target object may not have this property defined because typesceipt compiler will not
+                 * The actual target object may not have this property defined because typescript compiler will not
                  * add a property if it does not have a value.
                  * So we must add property to prototype manually, setting the undefined as a value
                  *
@@ -273,7 +277,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 if (!parameterIndex && !target.hasOwnProperty(propertyKey)) {
                     debug(`${TAG} - defining property "${propertyKey}" for Injection of "${injectName}" on target="${name}"`);
                     Object.defineProperty(target, propertyKey, {
-                        value:    void 0,
+                        value:    undefined,
                         writable: true
                     });
                     debug(`${TAG} added property ${propertyKey} to prototype of ${String(targetName)}`);

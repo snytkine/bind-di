@@ -9,8 +9,8 @@ import {stringifyIdentify} from "./containerutils";
 import {
     IfComponentFactoryMethod,
     IfComponentPropDependency,
-    ComponentScope
 } from "../../definitions/container";
+import {ComponentScope} from "../../enums/componentscope"
 
 const debug = require("debug")("bind:container");
 
@@ -24,7 +24,7 @@ export const TAG = "Initializer";
  * @param {Array<IfIocComponent<T>>} components
  * @returns {Promise<Array<IfIocComponent<T>>>}
  */
-export const sortdependencies = async <T>(components: Array<IfIocComponent<T>>): Promise<Array<IfIocComponent<T>>> => {
+export const sortdependencies = async <T>(components: Array<IfIocComponent>): Promise<Array<IfIocComponent>> => {
 
 
     return components;
@@ -44,7 +44,7 @@ const copyFactoryMethod = (m: IfComponentFactoryMethod):IfComponentFactoryMethod
     }
 };
 
-const copyComponents = <T>(a: Array<IfComponentDetails<T>>): Array<IfComponentDetails<T>> => {
+const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails> => {
 
     return a.map(_ => {
         return {
@@ -52,7 +52,7 @@ const copyComponents = <T>(a: Array<IfComponentDetails<T>>): Array<IfComponentDe
             scope:    _.scope,
             propDependencies: _.propDependencies.map(copyPropDependency),
             constructorDependencies: _.constructorDependencies.map(_ => _.copy()),
-            componentMetaType: _.componentMetaType,
+            componentMetaData: _.componentMetaData,
             componentType: _.componentType,
             preDestroy: _.preDestroy,
             postConstruct: _.postConstruct,
@@ -63,12 +63,12 @@ const copyComponents = <T>(a: Array<IfComponentDetails<T>>): Array<IfComponentDe
 
 
 export type unsorted_sorted<T> = {
-    unsorted: Array<IfComponentDetails<T>>,
-    sorted: Array<IfComponentDetails<T>>
+    unsorted: Array<IfComponentDetails>,
+    sorted: Array<IfComponentDetails>
 }
 
 
-const depsResolved = <T>(component: IfComponentDetails<T>, aComponents: Array<IfComponentDetails<T>>): boolean => {
+const depsResolved = <T>(component: IfComponentDetails, aComponents: Array<IfComponentDetails>): boolean => {
 
     debug(TAG, "entered depsResolved for component=", stringifyIdentify(component.identity));
     /**
@@ -100,8 +100,8 @@ const depsResolved = <T>(component: IfComponentDetails<T>, aComponents: Array<If
 };
 
 
-export const initIterator = async function* <T>(container: IfIocContainer<T>,
-                                                components: Array<IfComponentDetails<T>>): AsyncIterableIterator<boolean> {
+export const initIterator = async function* <T>(container: IfIocContainer,
+                                                components: Array<IfComponentDetails>): AsyncIterableIterator<boolean> {
 
     for (const comp of components) {
         /**

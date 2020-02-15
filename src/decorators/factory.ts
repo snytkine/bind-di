@@ -5,12 +5,13 @@ import {
     _DEFAULT_SCOPE_,
     setComponentIdentity,
     getComponentName,
-    ComponentScope
 } from "../";
 import {
     defineMetadata,
     Identity
 } from "../metadata/index";
+
+import {ComponentScope} from '../enums/componentscope'
 
 
 const debug = require('debug')('bind:decorator:factory');
