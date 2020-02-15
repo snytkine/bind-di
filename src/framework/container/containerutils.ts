@@ -174,7 +174,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, componentMe
      * First add the factory component itself to container
      */
     if (componentMeta.provides.length === 0) {
-        throw new TypeError(`Factory component componentName=${componentMeta.identity.componentName} className=${componentMeta.identity.className} is not providing any components`);
+        throw new TypeError(`Factory component componentName=${String(componentMeta.identity.componentName)} className=${componentMeta.identity.className} is not providing any components`);
     }
 
     addSingletonComponent(container, componentMeta);

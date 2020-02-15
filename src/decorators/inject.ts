@@ -122,7 +122,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
 
             if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
 
-                throw new TypeError(`Dependency name for property "${name}.${propertyKey}"  is not an allowed name for dependency component: "${injectName}"`);
+                throw new TypeError(`Dependency name for property "${name}.${propertyKey}"  is not an allowed name for dependency component: "${String(injectName)}"`);
             }
 
             /**
@@ -219,18 +219,18 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  *
                  */
                 if (typeof parameterIndex === "number") {
-                    throw new TypeError(`${TAG} can only be applied to constructor function or a class property. Was applied to method "${targetName}.${propertyKey}" index ${parameterIndex}`);
+                    throw new TypeError(`${TAG} can only be applied to constructor function or a class property. Was applied to method "${String(targetName)}.${propertyKey}" index ${parameterIndex}`);
                 } else if (typeof parameterIndex === "object") {
-                    debug(`${TAG} called with dependency name="${nameOrTarget}" on setter for "${targetName}.${propertyKey}"`);
+                    debug(`${TAG} called with dependency name="${nameOrTarget}" on setter for "${String(targetName)}.${propertyKey}"`);
                 } else {
-                    debug(`${TAG} called with dependency name="${nameOrTarget}" on "${targetName}.${propertyKey}"`);
+                    debug(`${TAG} called with dependency name="${nameOrTarget}" on "${String(targetName)}.${propertyKey}"`);
                 }
 
 
                 const rt = Reflect.getMetadata(DESIGN_TYPE, target, propertyKey); // rt is class Classname{}
                 debug(TAG, "rt=", rt);
                 if (!rt) {
-                    debug(TAG, `Failed to get return type of propertyKey="${propertyKey}" of target="${targetName}"`);
+                    debug(TAG, `Failed to get return type of propertyKey="${propertyKey}" of target="${String(targetName)}"`);
                 }
 
                 /**
@@ -244,7 +244,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 let injectIdentity = getComponentIdentity(rt);
                 let injectClassName = injectIdentity.className;
 
-                debug(`${TAG} injected property "${targetName}.${propertyKey}" injectName="${injectName}"  injectClassName="${injectClassName}"`);
+                debug(`${TAG} injected property "${String(targetName)}.${propertyKey}" injectName="${injectName}"  injectClassName="${injectClassName}"`);
 
                 /**
                  * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
@@ -276,19 +276,19 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                         value:    void 0,
                         writable: true
                     });
-                    debug(`${TAG} added property ${propertyKey} to prototype of ${targetName}`);
+                    debug(`${TAG} added property ${propertyKey} to prototype of ${String(targetName)}`);
                 }
             } else {
                 // No propertyKey. So must be constructor argument for named inject
 
                 if (typeof parameterIndex !== "number") {
-                    throw new TypeError(`${TAG} is applied to constructor of "${getComponentName(target)}" but parameterIndex is not passed or not a number [ERROR INJECT-129]`);
+                    throw new TypeError(`${TAG} is applied to constructor of "${String(getComponentName(target))}" but parameterIndex is not passed or not a number [ERROR INJECT-129]`);
                 }
 
                 const pt = Reflect.getMetadata(PARAM_TYPES, target);
                 debug(TAG, "pt=", pt);
                 if (!pt[parameterIndex] || !pt[parameterIndex].name) {
-                    throw new TypeError(`Error adding ${TAG} to "${getComponentName(nameOrTarget)}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
+                    throw new TypeError(`Error adding ${TAG} to "${String(getComponentName(nameOrTarget))}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
                 }
 
                 let className = getClassName(pt[parameterIndex]);

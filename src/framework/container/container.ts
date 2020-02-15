@@ -72,7 +72,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
 
             if (!found) {
 
-                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${dep.propertyName}" dependency="${String(dep.dependency.componentName)}" className=${dep.dependency.className}`);
+                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${String(dep.propertyName)}" dependency="${String(dep.dependency.componentName)}" className=${dep.dependency.className}`);
             }
 
             if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
@@ -87,7 +87,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
                 const err = `Component ${stringifyIdentify(component.identity)}
                  has a scope "${IocComponentScope[component.scope]}"
                  but has property dependency for
-                 propertyName="${dep.propertyName}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
+                 propertyName="${String(dep.propertyName)}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
                 "${IocComponentScope[found.scope]}"`;
                 throw new ReferenceError(err);
             }

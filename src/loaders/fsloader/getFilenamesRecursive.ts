@@ -3,6 +3,8 @@
  */
 import * as fs from "fs";
 import * as path from "path";
+import {IfIocContainer} from "../../index";
+import {addComponent} from "../../framework/container";
 
 const debug = require("debug")("bind:loader");
 
@@ -58,9 +60,11 @@ export function getFilenamesRecursive(dirs: string[]): Array<string> {
  *    default: [Function: Song] } }
  *
  */
-export const getExportsFromFile = (file: string): FileExports => {
+export const getExportsFromFile = (file: string) => {
     let exports = {};
     try {
+        const loaded = require.cache;
+
         exports = require(file);
     } catch (e) {
         /**
@@ -74,29 +78,34 @@ export const getExportsFromFile = (file: string): FileExports => {
         console.error(`${TAG} failed to require file '${file}' error: ${e}`);
     }
 
-    return {
-        file,
-        exports
-    };
+    debug('getExportsFromFile() returning export for file "%s" exports="%O"', file, exports);
+
+    return exports;
+
 };
 
 
-export const load = (dirs: string[]) => {
+export const load = <T>(container: IfIocContainer<T>, dirs: string[]) => {
 
-    const files = getFilenamesRecursive(dirs);
-    debug(`${TAG}, loading from files: ${JSON.stringify(files)}`);
+    const files = getFilenamesRecursive(dirs)
+    .filter(file => file.endsWith(".js"));
+    debug(`${TAG}, loading from files: ${JSON.stringify(files, null, "\t")}`);
 
     files.map(file => {
-        const exports = getExportsFromFile(file);
-        for (const name in exports) {
+        const fileexports = getExportsFromFile(file);
+        for (const fe in fileexports) {
             try {
                 /**
                  * Filter by name?
                  */
+                debug(`Adding export ${fe} from file ${file}`)
+                addComponent(container, fileexports[fe]);
             } catch (e) {
                 /**
                  * Here we know the export name and filename where it came from
                  */
+                debug(`Failed to load component from file ${file}. Error=${e.message}`);
+                throw e;
 
             }
         }

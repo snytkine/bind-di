@@ -46,7 +46,8 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "debug": "^2.2.0",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "typescript": "^3.7.5"
   },
   "optionalDependencies": {
     "@types/bytes": "^2.4.33",

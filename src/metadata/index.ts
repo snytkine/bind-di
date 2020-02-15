@@ -50,7 +50,7 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
 
     if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
         const className = getClassName(target);
-        const err = `Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${propertyKey}"`;
+        const err = `Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${String(propertyKey)}"`;
         throw new TypeError(err);
     }
 
