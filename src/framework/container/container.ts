@@ -2,11 +2,12 @@ import {
     IfIocComponent,
     IfIocContainer,
     IfCtorInject,
-    IfComponentPropDependency,
-    IocComponentScope
+    IfComponentPropDependency, IScopedComponentStorage,
 
-} from "../../";
+} from '../../';
+import {ComponentScope} from "../../enums/componentscope"
 import {StringOrSymbol} from "../../definitions/types";
+
 import {IfComponentIdentity} from "../../definitions/component";
 import {INVALID_COMPONENT_NAMES} from "../../metadata/index";
 import {_UNNAMED_COMPONENT_} from "../../definitions/symbols";
@@ -29,7 +30,7 @@ export const TAG = "Container";
  *
  * @param IfIocContainer<T>
  */
-const checkDependencies = <T>(container: IfIocContainer<T>) => {
+const checkDependencies = (container: IfIocContainer) => {
 
     const components = container.components;
 
@@ -53,7 +54,7 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${stringifyIdentify(component.identity)}" has a scope ${IocComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${IocComponentScope[found.scope]}"`);
+                throw new ReferenceError(`Component "${stringifyIdentify(component.identity)}" has a scope ${ComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${ComponentScope[found.scope]}"`);
             }
         });
 
@@ -85,10 +86,10 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
              */
             if (component.scope > found.scope) {
                 const err = `Component ${stringifyIdentify(component.identity)}
-                 has a scope "${IocComponentScope[component.scope]}"
+                 has a scope "${ComponentScope[component.scope]}"
                  but has property dependency for
                  propertyName="${String(dep.propertyName)}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
-                "${IocComponentScope[found.scope]}"`;
+                "${ComponentScope[found.scope]}"`;
                 throw new ReferenceError(err);
             }
         });
@@ -107,12 +108,12 @@ const checkDependencies = <T>(container: IfIocContainer<T>) => {
  * @todo this is old implementation, uses component names.
  * Should instead use Identify and equals method of Identify class
  */
-const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
+const checkDependencyLoop = (container: IfIocContainer) => {
 
     const TAG = "checkDependencyLoop";
     debug(TAG, "Entered checkDependencyLoop");
 
-    let components: Array<IfIocComponent<T>> = container.components;
+    let components: Array<IfIocComponent> = container.components;
 
 
     /**
@@ -185,14 +186,14 @@ const checkDependencyLoop = <T>(container: IfIocContainer<T>) => {
 };
 
 
-export class Container<T> implements IfIocContainer<T> {
+export class Container implements IfIocContainer {
 
-    private readonly store_: Array<IfIocComponent<T>>;
+    private readonly store_: Array<IfIocComponent>;
     /**
      * @todo this will be configurable by passing options to constructor
-     * @type {IocComponentScope}
+     * @type {ComponentScope}
      */
-    public readonly defaultScope: IocComponentScope = IocComponentScope.SINGLETON;
+    public readonly defaultScope: ComponentScope = ComponentScope.SINGLETON;
 
 
     constructor() {
@@ -204,7 +205,7 @@ export class Container<T> implements IfIocContainer<T> {
         this.store_ = [];
     }
 
-    get components(): Array<IfIocComponent<T>> {
+    get components(): Array<IfIocComponent> {
         return Array.from(this.store_); //? was it causing any problems?
 
         //return this.store_;
@@ -222,7 +223,7 @@ export class Container<T> implements IfIocContainer<T> {
      * @param {IfComponentIdentity} id
      * @returns {IfIocComponent<T>}
      */
-    getComponentDetails(id: IfComponentIdentity): IfIocComponent<T> {
+    getComponentDetails(id: IfComponentIdentity): IfIocComponent {
 
         let ret;
 
@@ -275,16 +276,16 @@ export class Container<T> implements IfIocContainer<T> {
         return ret;
     }
 
-    getComponent(id: IfComponentIdentity, ctx?: T): any {
+    getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
 
-        debug(TAG, "Entered Container.getComponent Requesting component=", String(id.componentName), "className=", id.className, " With ctx=", !!ctx);
+        debug(TAG, "Entered Container.getComponent Requesting component=", String(id.componentName), "className=", id.className, " With scopedStorage=", !!scopedStorage);
 
         return this.getComponentDetails(id)
-        .get(this, ctx);
+        .get(this, scopedStorage);
     }
 
 
-    addComponent(component: IfIocComponent<T>): boolean {
+    addComponent(component: IfIocComponent): boolean {
 
         const name = String(component.identity.componentName);
 
@@ -300,7 +301,7 @@ export class Container<T> implements IfIocContainer<T> {
          * it does not have any metadata at all.
          */
         if (!component.scope) {
-            debug(TAG, "Component className=", component.identity.className, " componentName=", name, " Does not have defined scope. Setting default scope=", IocComponentScope[this.defaultScope]);
+            debug(TAG, "Component className=", component.identity.className, " componentName=", name, " Does not have defined scope. Setting default scope=", ComponentScope[this.defaultScope]);
             component.scope = this.defaultScope;
         }
 
@@ -309,7 +310,7 @@ export class Container<T> implements IfIocContainer<T> {
         return true;
     }
 
-    async initialize(): Promise<IfIocContainer<T>> {
+    async initialize(): Promise<IfIocContainer> {
 
         const that = this;
 

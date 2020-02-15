@@ -5,7 +5,7 @@ import {
     _DEFAULT_SCOPE_,
     setComponentIdentity,
     getComponentName,
-    IocComponentScope
+    ComponentScope
 } from "../";
 import {
     defineMetadata,
@@ -35,10 +35,10 @@ export function Factory(target: Object) {
 
     setComponentIdentity(new Identity(componentName, target, className), target);
     defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)(true);
-    defineMetadata(_DEFAULT_SCOPE_, IocComponentScope.SINGLETON, target)(true);
+    defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, target)(true);
     /**
      * Must also define _SCOPE_ with value of SINGLETON because Factory must always be singleton
      * component. Defining this score now will prevent adding @Scope annotation on Factory component
      */
-    defineMetadata(_COMPONENT_SCOPE_, IocComponentScope.SINGLETON, target)(true);
+    defineMetadata(_COMPONENT_SCOPE_, ComponentScope.SINGLETON, target)(true);
 }

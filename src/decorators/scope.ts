@@ -3,7 +3,7 @@ import {
     _DEFAULT_SCOPE_,
     defineMetadata,
     getComponentName,
-    IocComponentScope,
+    ComponentScope,
     StringOrSymbol
 } from "../";
 import {
@@ -14,7 +14,7 @@ import {
 const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Scope';
 
-export function Scope(scope: IocComponentScope) {
+export function Scope(scope: ComponentScope) {
 
     /**
      * @todo allow adding scope on Factory-Provided components
@@ -26,11 +26,11 @@ export function Scope(scope: IocComponentScope) {
     }
 }
 
-export const Singleton = Scope(IocComponentScope.SINGLETON);
-export const NewInstance = Scope(IocComponentScope.NEWINSTANCE);
-export const ContextScope = Scope(IocComponentScope.CONTEXT);
+export const Singleton = Scope(ComponentScope.SINGLETON);
+export const NewInstance = Scope(ComponentScope.NEWINSTANCE);
+export const ContextScope = Scope(ComponentScope.CONTEXT);
 
-export function getScope(target: Object, propertyKey?: StringOrSymbol): IocComponentScope {
+export function getScope(target: Object, propertyKey?: StringOrSymbol): ComponentScope {
 
 
     const cid = getComponentIdentity(target, propertyKey);
@@ -45,7 +45,7 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): IocCompo
     if (!scope) {
 
         scope = Reflect.getMetadata(_DEFAULT_SCOPE_, target, propertyKey);
-        scope && debug(`Scope not found but found Default Scope="${IocComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`)
+        scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`)
     }
 
     return scope;

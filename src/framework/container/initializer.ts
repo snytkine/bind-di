@@ -9,7 +9,7 @@ import {stringifyIdentify} from "./containerutils";
 import {
     IfComponentFactoryMethod,
     IfComponentPropDependency,
-    IocComponentScope
+    ComponentScope
 } from "../../definitions/container";
 
 const debug = require("debug")("bind:container");
@@ -115,7 +115,7 @@ export const initIterator = async function* <T>(container: IfIocContainer<T>,
          * because initializer returns a promise but container must return
          * instance, it cannot return a Promise of component.
          */
-        if (comp.scope === IocComponentScope.SINGLETON && comp.postConstruct) {
+        if (comp.scope === ComponentScope.SINGLETON && comp.postConstruct) {
 
             const o = container.getComponent(comp.identity);
 

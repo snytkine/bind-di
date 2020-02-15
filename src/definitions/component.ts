@@ -1,10 +1,10 @@
-
-
 import {
-    IfComponentFactoryMethod, IfComponentPropDependency, IfCtorInject, IocComponentGetter, IocComponentScope,
+    IfComponentFactoryMethod, IfComponentPropDependency, IfCtorInject, IocComponentGetter,
     IocComponentType, LifecycleCallback
 } from "./container";
-import {StringOrSymbol} from "./types";
+
+import {ComponentScope} from '../enums/componentscope'
+import { StringOrSymbol, StringToAny } from './types';
 
 export type Target_ = ObjectConstructor;
 
@@ -50,14 +50,14 @@ export interface IfComponentDecoration {
      * it will have .name
      */
     target: object
-    defaultScope: IocComponentScope
+    defaultScope: ComponentScope
     componentMeta?: Symbol
     property?: IfPropertyWithDescriptor
 
 }
 
 
-export interface IfComponentDetails<T> {
+export interface IfComponentDetails {
 
     /**
      * Component Unique Identifier (component name)
@@ -67,7 +67,7 @@ export interface IfComponentDetails<T> {
     /**
      * Component lifecycle
      */
-    scope: IocComponentScope
+    scope: ComponentScope
 
     /**
      * Property dependencies
@@ -113,6 +113,6 @@ export interface IfComponentDetails<T> {
      * Default value is DEFAULT_COMPONENT_META
      *
      */
-    componentMetaType?: Symbol
+    componentMetaData?: StringToAny
 
 }

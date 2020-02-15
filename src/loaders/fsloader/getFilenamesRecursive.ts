@@ -85,7 +85,7 @@ export const getExportsFromFile = (file: string) => {
 };
 
 
-export const load = <T>(container: IfIocContainer<T>, dirs: string[]) => {
+export const load = <T>(container: IfIocContainer, dirs: string[]) => {
 
     const files = getFilenamesRecursive(dirs)
     .filter(file => file.endsWith(".js"));

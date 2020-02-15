@@ -1,22 +1,33 @@
 import {
     IfIocContainer,
     IfComponentDetails,
-    IocComponentScope,
     IocComponentType,
     Target,
-    StringOrSymbol,
-    IfComponentIdentity
-} from "../../";
-import {getComponentMeta} from "./getcomponentmeta";
-import {IfComponentFactoryMethod} from "../../definitions/container";
-import {getScope} from "../../decorators/scope";
+    IfComponentIdentity,
+} from '../../';
+import { getComponentMeta } from './getcomponentmeta';
+import { IfComponentFactoryMethod } from '../../definitions/container';
+import { ComponentScope } from '../../definitions/component';
 
-const TAG = "CONTAINER_UTILS";
-const debug = require("debug")("bind:container");
+import { getScope } from '../../decorators/scope';
+
+const TAG = 'CONTAINER_UTILS';
+const debug = require('debug')('bind:container');
 
 export const stringifyIdentify = (identity: IfComponentIdentity): string => {
-    return `componentName=${String(identity.componentName)} className=${identity.className}`
+    return `componentName=${String(identity.componentName)} className=${identity.className}`;
 };
+
+/**
+ * RequestLogger depends on Logger and on Request object
+ * Request is RequestScoped
+ *
+ * getter function: look for object in RequestScopeStore
+ * a) Found object -> return it
+ * b) Not found: get dependencies from Container. Container will get Logger
+ * will then need to get Request.
+ * Container get Details of Request
+ */
 
 /**
  *
@@ -25,10 +36,15 @@ export const stringifyIdentify = (identity: IfComponentIdentity): string => {
  */
 export function addSingletonComponent<T>(container: IfIocContainer<T>, meta: IfComponentDetails<T>): void {
 
-    debug(TAG, "Adding singleton componentName=", stringifyIdentify(meta.identity));
+    debug(TAG, 'Adding singleton componentName=', stringifyIdentify(meta.identity));
     const name = meta.identity.componentName;
     const className = meta.identity.className;
-
+    /**
+     * @todo test this: will the instance set by one getter
+     * be available from another component's getter since they both
+     * were created using this same function? Or will the 2 components
+     * get their own version of this addSingletonComponent?
+     */
     let instance: any;
 
     /**
@@ -36,20 +52,20 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, meta: IfC
      * does not take context as second param
      */
     const getter = function (ctnr: IfIocContainer<T>) {
-        debug(TAG, "Getter called for Singleton componentName=", name, "className=", className);
+        debug(TAG, 'Getter called for Singleton componentName=', name, 'className=', className);
 
         if (instance) {
-            debug(TAG, "Returning same instance of componentName=", name, "className=", className);
+            debug(TAG, 'Returning same instance of componentName=', name, 'className=', className);
             return instance;
         }
 
-        debug(TAG, "Creating new instance of Singleton componentName=", name, " className=", className, " with constructor args", meta.constructorDependencies);
+        debug(TAG, 'Creating new instance of Singleton componentName=', name, ' className=', className, ' with constructor args', meta.constructorDependencies);
         const constructorArgs = meta.constructorDependencies.map(
-            _ => ctnr.getComponent(_));
+                _ => ctnr.getComponent(_));
 
         instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
-        debug(TAG, "Adding dependencies to Singleton component' ", name, "' ", meta.propDependencies);
+        debug(TAG, 'Adding dependencies to Singleton component\' ', name, '\' ', meta.propDependencies);
 
         /**
          * Have instance object
@@ -70,7 +86,7 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, meta: IfC
             if (!prev[curr.propertyName]) {
                 prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
             } else {
-                debug(name, "Singleton component already has property=", curr.propertyName);
+                debug(name, 'Singleton component already has property=', curr.propertyName);
             }
 
             return prev;
@@ -79,7 +95,7 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, meta: IfC
 
     const component = {
         ...meta,
-        get: getter
+        get: getter,
     };
 
     container.addComponent(component);
@@ -88,7 +104,7 @@ export function addSingletonComponent<T>(container: IfIocContainer<T>, meta: IfC
 
 export function addContextComponent<T>(container: IfIocContainer<T>, meta: IfComponentDetails<T>): void {
 
-    debug(TAG, "Adding singleton component=", meta.identity.componentName);
+    debug(TAG, 'Adding singleton component=', meta.identity.componentName);
 
     const getter = function (ctnr: IfIocContainer<T>, ctx: T) {
 
@@ -102,7 +118,7 @@ export function addContextComponent<T>(container: IfIocContainer<T>, meta: IfCom
 
     const component = {
         ...meta,
-        get: getter
+        get: getter,
     };
 
     container.addComponent(component);
@@ -116,16 +132,16 @@ export function addContextComponent<T>(container: IfIocContainer<T>, meta: IfCom
  */
 export function addPrototypeComponent<T>(container: IfIocContainer<T>, meta: IfComponentDetails<T>): void {
 
-    debug(TAG, "Adding prototype component=", String(meta.identity.componentName), " className=", meta.identity.className);
+    debug(TAG, 'Adding prototype component=', String(meta.identity.componentName), ' className=', meta.identity.className);
     const name = String(meta.identity.componentName);
     const getter = function (ctnr: IfIocContainer<T>, ctx: T) {
 
-        debug(TAG, "Creating new instance of componentName='", name, "' className=", meta.identity.className, ", with constructor args", meta.constructorDependencies, " with ctx=", !!ctx);
+        debug(TAG, 'Creating new instance of componentName=\'', name, '\' className=', meta.identity.className, ', with constructor args', meta.constructorDependencies, ' with ctx=', !!ctx);
         const constructorArgs = meta.constructorDependencies.map(
-            _ => ctnr.getComponent(_, ctx));
+                _ => ctnr.getComponent(_, ctx));
         const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
-        debug(TAG, "Adding dependencies to NewInstance componentName='", name, "' className=", meta.identity.className, "' ", meta.propDependencies);
+        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity.className, '\' ', meta.propDependencies);
         return meta.propDependencies.reduce((prev, curr) => {
 
             /**
@@ -137,7 +153,7 @@ export function addPrototypeComponent<T>(container: IfIocContainer<T>, meta: IfC
             if (!prev[curr.propertyName]) {
                 prev[curr.propertyName] = ctnr.getComponent(curr.dependency, ctx);
             } else {
-                debug(name, "Instance component already has own property", curr.propertyName);
+                debug(name, 'Instance component already has own property', curr.propertyName);
             }
 
             return prev;
@@ -148,7 +164,7 @@ export function addPrototypeComponent<T>(container: IfIocContainer<T>, meta: IfC
 
     const component = {
         ...meta,
-        get: getter
+        get: getter,
     };
 
     container.addComponent(component);
@@ -167,13 +183,13 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, componentMe
      * and add it to container
      */
 
-    debug(TAG, "Adding Factory componentName=", stringifyIdentify(componentMeta.identity));
+    debug(TAG, 'Adding Factory componentName=', stringifyIdentify(componentMeta.identity));
 
 
     /**
      * First add the factory component itself to container
      */
-    if (componentMeta.provides.length === 0) {
+    if (componentMeta.provides.length===0) {
         throw new TypeError(`Factory component componentName=${String(componentMeta.identity.componentName)} className=${componentMeta.identity.className} is not providing any components`);
     }
 
@@ -185,19 +201,19 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, componentMe
         let instance: any;
 
         const providedComponent: IfComponentDetails<T> = {
-            identity:                curr.providesComponent,
-            componentType:           IocComponentType.COMPONENT,
-            scope:                   getScope(componentMeta.identity.clazz, curr.methodName),
-            propDependencies:        [],
+            identity: curr.providesComponent,
+            componentType: IocComponentType.COMPONENT,
+            scope: getScope(componentMeta.identity.clazz, curr.methodName),
+            propDependencies: [],
             constructorDependencies: [],
-            provides:                []
+            provides: [],
         };
 
 
         const getter = function (ctnr: IfIocContainer<T>, ctx?: T) {
-            debug(TAG, "Getter called on Factory-Provided componentName=", String(providedComponent.identity.componentName), " className=", providedComponent.identity.className, " of factory componentName=", String(componentMeta.identity.componentName), " factory className=", componentMeta.identity.className);
+            debug(TAG, 'Getter called on Factory-Provided componentName=', String(providedComponent.identity.componentName), ' className=', providedComponent.identity.className, ' of factory componentName=', String(componentMeta.identity.componentName), ' factory className=', componentMeta.identity.className);
             if (instance) {
-                debug(TAG, "Factory-Provided componentName=", providedComponent.identity.componentName, " className=", providedComponent.identity.className, " already created. Returning same instance");
+                debug(TAG, 'Factory-Provided componentName=', providedComponent.identity.componentName, ' className=', providedComponent.identity.className, ' already created. Returning same instance');
 
                 return instance;
             }
@@ -211,7 +227,7 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, componentMe
              * @type {any}
              */
             const factory = ctnr.getComponent(componentMeta.identity, ctx);
-            debug(TAG, "Calling factory method=", curr.methodName, " of factory componentName=", componentMeta.identity.componentName, " factory className=", componentMeta.identity.className);
+            debug(TAG, 'Calling factory method=', curr.methodName, ' of factory componentName=', componentMeta.identity.componentName, ' factory className=', componentMeta.identity.className);
             instance = factory[curr.methodName]();
 
             return instance;
@@ -222,10 +238,10 @@ export function addFactoryComponent<T>(container: IfIocContainer<T>, componentMe
 
         const component = {
             ...providedComponent,
-            get: getter
+            get: getter,
         };
 
-        debug(TAG, "Adding factory-provided componentName=", String(component.identity.componentName), " className=", component.identity.componentName, " scope=", component.scope);
+        debug(TAG, 'Adding factory-provided componentName=', String(component.identity.componentName), ' className=', component.identity.componentName, ' scope=', component.scope);
 
         prev.addComponent(component);
 
@@ -241,11 +257,11 @@ export function addComponent<T>(container: IfIocContainer<T>, clazz: Target): vo
     const meta = getComponentMeta(clazz);
     meta.scope = meta.scope || container.defaultScope;
 
-    if (meta.componentType === IocComponentType.FACTORY) {
+    if (meta.componentType===IocComponentType.FACTORY) {
         return addFactoryComponent(container, meta);
-    } else if (meta.scope === IocComponentScope.SINGLETON) {
+    } else if (meta.scope===ComponentScope.SINGLETON) {
         return addSingletonComponent(container, meta);
-    } else if (meta.scope === IocComponentScope.NEWINSTANCE) {
+    } else if (meta.scope===ComponentScope.NEWINSTANCE) {
         return addPrototypeComponent(container, meta);
     } else {
         throw new TypeError(`Unable to add component. ${JSON.stringify(meta)} with scope=${String(meta.scope)}`);
