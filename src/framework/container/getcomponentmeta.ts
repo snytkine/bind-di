@@ -13,11 +13,17 @@ import {
 } from "../../";
 import {StringOrSymbol} from "../../definitions/types";
 
-export const getComponentMeta = (clazz: Target, propertyKey?: StringOrSymbol): IfComponentDetails => {
+export interface IfGetComponentMetaArg {
+    clazz: Target
+    filePath: string
+    propertyKey?: StringOrSymbol
+}
+export const getComponentMeta = ({clazz, filePath, propertyKey}: IfGetComponentMetaArg): IfComponentDetails => {
 
     return {
-        identity: getComponentIdentity(clazz, propertyKey),
+        identity: getComponentIdentity({ target: clazz, propertyKey, filePath}),
         componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz, propertyKey),
+        filePath,
         componentMetaData: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz, propertyKey),
         scope: getScope(clazz, propertyKey),
         propDependencies: getPropDependencies(clazz),

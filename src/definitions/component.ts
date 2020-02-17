@@ -30,6 +30,7 @@ export type Target = {
 export interface IfComponentIdentity {
     componentName: StringOrSymbol
     clazz: any
+    filePath?: string
     className?: string
     equals: (other: IfComponentIdentity) => boolean
     copy: () => IfComponentIdentity
@@ -68,6 +69,11 @@ export interface IfComponentDetails {
      * Component lifecycle
      */
     scope: ComponentScope
+
+    /**
+     * A full path to a file in which component was defined
+     */
+    filePath: string
 
     /**
      * Property dependencies

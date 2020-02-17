@@ -8,9 +8,9 @@ import { ComponentScope } from '../enums/componentscope';
  * What should it return - a component or a component getter function?
  */
 export interface IComponentStorage {
-    getComponent(id: StringOrSymbol): any
+    getComponent(id: IfComponentIdentity): any
 
-    setComponent(component: any): void
+    setComponent(id: IfComponentIdentity, component: any): void
 }
 
 export interface IScopedComponentStorage {

@@ -1,25 +1,25 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 import {
     Target,
     _COMPONENT_IDENTITY_,
     _UNNAMED_COMPONENT_,
-    INVALID_COMPONENT_NAMES,
     _COMPONENT_TYPE_,
     _DEFAULT_SCOPE_,
     RETURN_TYPE,
     IocComponentType,
-    IfComponentFactoryMethod
-} from "../";
+    IfComponentFactoryMethod,
+} from '../';
 
-import {ComponentScope} from "../enums/componentscope"
+import { ComponentScope } from '../enums/componentscope';
+import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 
 import {
     defineMetadata,
     Identity,
-    setComponentIdentity
-} from "../metadata/index";
-import {randomBytes} from "crypto";
-import {getComponentName} from "../index";
+    setComponentIdentity,
+} from '../metadata/index';
+import { randomBytes } from 'crypto';
+import { getComponentName } from '../index';
 
 
 /**
@@ -40,8 +40,8 @@ import {getComponentName} from "../index";
  * @type {debug.IDebugger | any}
  */
 
-const debug = require("debug")("bind:decorator:component");
-const TAG = "@Component";
+const debug = require('debug')('bind:decorator:component');
+const TAG = '@Component';
 
 /**
  export type _Target = {
@@ -83,28 +83,32 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
     let className: string;
 
 
-    if (typeof nameOrTarget !== "string") {
+    if (typeof nameOrTarget!=='string') {
 
-        className = nameOrTarget["name"];
-        componentName = className + "." + randomBytes(36)
-        .toString("hex");
+        className = nameOrTarget.name;
+        componentName = className + '.' + randomBytes(36)
+                .toString('hex');
 
         debug(`Entered @Component for unnamed component propertyKey="${propertyKey}"`);
 
-        if (typeof nameOrTarget === "function" && !propertyKey && nameOrTarget["prototype"]) {
+        if (typeof nameOrTarget==='function' && !propertyKey && nameOrTarget['prototype']) {
             /**
              * Applying decorator to class
              */
 
             debug(`Defining unnamed ${TAG} for class ${componentName}`);
 
-            setComponentIdentity(new Identity(componentName, nameOrTarget, className), nameOrTarget);
+            setComponentIdentity(new Identity({
+                componentName,
+                className,
+                clazz: nameOrTarget,
+            } /*componentName, nameOrTarget, className*/), nameOrTarget);
 
             defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget)(); // used to be true
 
         } else {
 
-            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget["name"]}`);
+            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget['name']}`);
 
             /**
              * Applying decorator to method of the class
@@ -113,7 +117,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
              *
              * We should not allow Component decorator on a static member.
              */
-            if (!descriptor || typeof descriptor.value !== "function") {
+            if (!descriptor || typeof descriptor.value!=='function') {
                 const ex1 = `Only class or class method can have a '${TAG}'decorator. ${nameOrTarget.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`;
                 throw new TypeError(ex1);
             }
@@ -134,7 +138,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
             const rettype = Reflect.getMetadata(RETURN_TYPE, nameOrTarget, propertyKey);
             const RT = typeof rettype;
 
-            if (RT != "function" || !rettype.name) {
+            if (RT!='function' || !rettype.name) {
                 throw new TypeError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and rettype is not an object: ${RT}`);
             }
 
@@ -149,8 +153,18 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
             }
 
             className = rettype.name;
-
-            setComponentIdentity(new Identity(_UNNAMED_COMPONENT_, rettype, className), nameOrTarget, propertyKey);
+            /**
+             * the rettype is actually a class that if usually declared in different file
+             * (not same file as factory class)
+             * And also that class itself does not have @Component decorator.
+             * So how can we get the file path of that file?
+             *
+             */
+            setComponentIdentity(new Identity({
+                componentName: _UNNAMED_COMPONENT_,
+                clazz: rettype,
+                className,
+            }/*_UNNAMED_COMPONENT_, rettype, className*/), nameOrTarget, propertyKey);
 
             defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey)(); // used to be true
             /**
@@ -166,14 +180,18 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
         componentName = nameOrTarget;
         return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
 
-            if (typeof target === "function" && !propertyKey) {
+            if (typeof target==='function' && !propertyKey) {
                 className = target.name;
 
                 debug(`Defining named ${TAG} '${componentName}' for class ${target.name}`);
 
                 // Applying to target (without .prototype fails to get meta for the instance)
                 //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
-                setComponentIdentity(new Identity(componentName, target, className), target);
+                setComponentIdentity(new Identity({
+                    componentName,
+                    className,
+                    clazz: target,
+                }/*componentName, target, className*/), target);
                 defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target)(); // used to be true
 
             } else {
@@ -182,7 +200,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
                  */
                 const factoryClassName = target.constructor && target.constructor.name;
 
-                if (typeof descriptor.value !== "function") {
+                if (typeof descriptor.value!=='function') {
                     throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${componentName}') is NOT a class or method`);
                 }
 
@@ -195,7 +213,11 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
                 className = rettype && rettype.name;
 
-                setComponentIdentity(new Identity(componentName, rettype, className), target, propertyKey);
+                setComponentIdentity(new Identity({
+                    componentName,
+                    className,
+                    clazz: rettype,
+                }/*componentName, rettype, className*/), target, propertyKey);
                 defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey)(); // used to be true
                 /**
                  * Method component are components generated by factory
@@ -227,9 +249,8 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
 export const Factory = (target: Target): void => {
     Component(target);
-    Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)
+    Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
 };
-
 
 
 /**
@@ -255,7 +276,7 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
      * but could happen when loading ALL exported variables from file, in which case a pure function
      * can be imported
      */
-    if(!target.prototype){
+    if (!target.prototype) {
         return [];
     }
 
@@ -274,11 +295,11 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
     debug(`${TAG} property names of target "${cName}"`, methods);
 
     let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target.prototype, m)).map(m => {
-        return {"methodName": m, "providesComponent": Reflect.getMetadata(_COMPONENT_IDENTITY_, target.prototype, m)}
+        return { 'methodName': m, 'providesComponent': Reflect.getMetadata(_COMPONENT_IDENTITY_, target.prototype, m) };
     });
 
     debug(`${TAG} factory methods of "${cName}"=`, factoryMethods);
 
-    return factoryMethods
+    return factoryMethods;
 }
 

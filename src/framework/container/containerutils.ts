@@ -105,7 +105,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
 export function addScopedComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
     debug('%s Adding scoped component="%s" scope="%s"', TAG, meta.identity.componentName, meta.scope);
-
+    const name = String(meta.identity.componentName);
     const getter = function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
 
         let componentStorage: IComponentStorage;
@@ -120,13 +120,49 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
             const scopedStorage = scopedComponentStorage.find(_ => _.scope === meta.scope)
             if(scopedStorage){
                 componentStorage = scopedStorage.storage;
+                let storedComponent = componentStorage.getComponent(meta.identity);
+                if(storedComponent){
+                    debug('Component "%s" found in componentStorage', meta.identity.componentName);
+                    return storedComponent
+                }
             }
         }
 
+
+
         /**
-         * Now need to get unique ID for this component because
-         * it may be unnamed component and not have unique id
+         * Create new instance
          */
+        const constructorArgs = meta.constructorDependencies.map(
+                _ => ctnr.getComponent(_, scopedComponentStorage));
+        const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
+
+        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity.className, '\' ', meta.propDependencies);
+        const ret = meta.propDependencies.reduce((prev, curr) => {
+
+            /**
+             * Add prop dependency but ONLY if this property is not already set
+             * It would be set if sub-class overrides parent where in parent
+             * this property is auto-wired with @Inject but sub-class overrides it
+             * with own value.
+             */
+            if (!prev[curr.propertyName]) {
+                prev[curr.propertyName] = ctnr.getComponent(curr.dependency, scopedComponentStorage);
+            } else {
+                debug(name, 'Instance component already has own property', curr.propertyName);
+            }
+
+            return prev;
+
+        }, instance);
+
+
+        /**
+         * Now add ret to componentStorage and also return it
+         */
+        componentStorage.setComponent(meta.identity, ret);
+
+        return ret;
 
     };
 
@@ -221,6 +257,13 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
             propDependencies: [],
             constructorDependencies: [],
             provides: [],
+            /**
+             * We don't know the filePath of provided component
+             * it is not the same as filePath of factory component
+             * and there is no good way to find the filename where this provided
+             * class was defined.
+             */
+            filePath: ""
         };
 
 
@@ -265,10 +308,46 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
 
 }
 
+export interface IfAddComponentArg {
+    container: IfIocContainer
+    clazz: Target
+    filePath: string
+}
+/**
+ *
+ * @param container
+ * @param clazz Expected to be a Class of component
+ * @param file string a full path to a file containing the class.
+ * Multiple classes can share the same file because its allowed to declare more than
+ * one component in a file
+ */
+export function addComponent({container, clazz, filePath}: IfAddComponentArg): void {
 
-export function addComponent(container: IfIocContainer, clazz: Target): void {
-
-    const meta = getComponentMeta(clazz);
+    /**
+     * @todo
+     * The second param can be an object holding {filePath, clazz}
+     * The we can add filePath as metadata on class, using Reflect.defineMetadata
+     * Then all our components will have this meta data and can be used for creating a unique
+     * identifier. This will be useful when the component does not have own unique name
+     * Using just class name is not reliable because 2 classes in different directories
+     * can have same class name
+     */
+    const meta = getComponentMeta({clazz, filePath});
+    /**
+     * @todo
+     * At this point meta.identity will most likely not
+     * have the .filePath set because identity was
+     * set from the @Component decorator and it did not
+     * set the filePath because it was unknown to the decorator function
+     * Now we need to update the component identity with the filePath
+     * and update it using defineMetadata
+     *
+     * The Container needs to have access to .filePath in the identity prop
+     * in order to properly determine if same class file is already added.
+     *
+     * Also the unnamed components should be using filePath.className as the value
+     * of the componentName instead of relying on random bytes.
+     */
     meta.scope = meta.scope || container.defaultScope;
 
     if (meta.componentType===IocComponentType.FACTORY) {

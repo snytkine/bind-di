@@ -3,7 +3,6 @@ import {
     PARAM_TYPES,
     _CTOR_DEPENDENCIES_,
     _PROP_DEPENDENCY_,
-    INVALID_COMPONENT_NAMES,
     getComponentName,
     IfComponentPropDependency,
     getClassName,
@@ -13,6 +12,7 @@ import {
     IfComponentIdentity
 
 } from "../";
+import {INVALID_COMPONENT_NAMES,} from '../consts/invalidcomponentnames'
 import {DESIGN_TYPE} from "../definitions/consts";
 import {getComponentIdentity} from "../metadata/index";
 
@@ -32,10 +32,7 @@ const TAG = "@Inject";
 
 /**
  * @Inject decorator can be applied to class property or to constructor parameter
- * or to constructor method itself.
  *
- * If applied to constructor method itself then every parameter in constructor will be
- * injected
  */
 
 
@@ -118,7 +115,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * but a component that is produced by a factory, in which case it does not have decorator at all
              *
              */
-            let injectIdentity = getComponentIdentity(rt);
+            let injectIdentity = getComponentIdentity({target:rt});
             let injectName = injectIdentity.componentName;
             let injectClassName = injectIdentity.className;
 
@@ -191,7 +188,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 throw new TypeError(`Injected parameter "${pt[parameterIndex].name}" at index ${parameterIndex} in constructor of "${getClassName(nameOrTarget)}"  is not an allowed name for constructor injection component`);
             }
 
-            let compIdentity = getComponentIdentity(pt[parameterIndex]);
+            let compIdentity = getComponentIdentity({target: pt[parameterIndex]});
             let compName = compIdentity.componentName;
             let className = compIdentity.className;
 
@@ -245,7 +242,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                let injectIdentity = getComponentIdentity(rt);
+                let injectIdentity = getComponentIdentity({target: rt});
                 let injectClassName = injectIdentity.className;
 
                 debug(`${TAG} injected property "${String(targetName)}.${propertyKey}" injectName="${injectName}"  injectClassName="${injectClassName}"`);
@@ -258,7 +255,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                defineMetadata(_PROP_DEPENDENCY_, new Identity(injectName, rt, injectClassName), target, propertyKey)();
+                defineMetadata(_PROP_DEPENDENCY_, new Identity({className: injectClassName, clazz: rt, componentName: injectName}/*injectName, rt, injectClassName*/), target, propertyKey)();
 
                 /**
                  * The actual target object may not have this property defined because typescript compiler will not
@@ -305,7 +302,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * propertyKey is undefined
                  * has parameterIndex
                  */
-                addConstructorDependency(target, new Identity(injectName, pt[parameterIndex], className), parameterIndex);
+                addConstructorDependency(target, new Identity({componentName: injectName, clazz: pt[parameterIndex], className }/*injectName, pt[parameterIndex], className*/), parameterIndex);
             }
         };
     }

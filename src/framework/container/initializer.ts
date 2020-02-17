@@ -50,6 +50,7 @@ const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails>
         return {
             identity: _.identity.copy(),
             scope:    _.scope,
+            filePath: _.filePath,
             propDependencies: _.propDependencies.map(copyPropDependency),
             constructorDependencies: _.constructorDependencies.map(_ => _.copy()),
             componentMetaData: _.componentMetaData,

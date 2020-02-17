@@ -66,6 +66,7 @@ export const getExportsFromFile = (file: string) => {
         const loaded = require.cache;
 
         exports = require(file);
+        debugger;
     } catch (e) {
         /**
          * If Error came from one of the decorator functions it will have
@@ -84,22 +85,74 @@ export const getExportsFromFile = (file: string) => {
 
 };
 
+/**
+ * Check file name
+ * If filename contains 2 underscore or not ends with .js then return false
+ * We don't load files with 2 underscores because this is the pattern of test files
+ * and we don't want to auto-load test files since that can lead to application startup error
+ * because it will load duplicate components.
+ *
+ * @param f string full path to file
+ * @returns {boolean} true if file should be loaded by application loader
+ */
+export function isFileNameLoadable(f: string): boolean {
+    return (!f.startsWith("__") ) && path.extname(f) === '.js';
+}
 
-export const load = <T>(container: IfIocContainer, dirs: string[]) => {
+
+/**
+ * Check that file exists and that contents of file
+ * contain one of the Component annotations.
+ * At application load time it will be checking the javascript file
+ * not the typescript file so we cannot check for any @Component or @Controller
+ * instead must check for compiled version .Controller or .Middleware etc.
+ *
+ * @param f string full path to file to check
+ * @returns {boolean} true if file exists and contains one of the component annotations|false otherwise
+ */
+export function fileContainsComponent(f: string): boolean {
+
+    const fileContents = fs.existsSync(f) && fs.readFileSync(f, "utf-8");
+
+    let match = !!(fileContents && fileContents.match(/__decorate/) && fileContents.match(/\.Middleware|\.Controller|\.Component|\.ControllerMiddleware|\.ErrorHandler|\.ContextService/));
+
+    debug(TAG, "fileContents of ", f, " match component: ", match);
+
+    return match;
+
+}
+
+
+export const load = (container: IfIocContainer, dirs: string[]) => {
 
     const files = getFilenamesRecursive(dirs)
-    .filter(file => file.endsWith(".js"));
+    .filter(file => isFileNameLoadable(file));
+    /**
+     * @todo filter our only files that has __decorate, some files may be just util functions.
+     */
     debug(`${TAG}, loading from files: ${JSON.stringify(files, null, "\t")}`);
 
     files.map(file => {
         const fileexports = getExportsFromFile(file);
+
         for (const fe in fileexports) {
             try {
                 /**
                  * Filter by name?
                  */
-                debug(`Adding export ${fe} from file ${file}`)
-                addComponent(container, fileexports[fe]);
+                /**
+                 * @todo not all exports may be the actual Components
+                 * Must check that export is a class with at least one @Component decorator
+                 * do something like if(isComponent(fileexports[fe]) addComponent else debug('not a component')
+                 */
+                debug(`Adding export ${fe} from file ${file}`);
+
+                /**
+                 * The class in fileexports[fe] already had @Component decorator applied to it
+                 * so it will already have Identity set on it.
+                 *
+                 */
+                addComponent({container, clazz: fileexports[fe], filePath:file});
             } catch (e) {
                 /**
                  * Here we know the export name and filename where it came from

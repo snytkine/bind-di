@@ -2,26 +2,26 @@ import {
     IfIocComponent,
     IfIocContainer,
     IfCtorInject,
-    IfComponentPropDependency, IScopedComponentStorage,
+    IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails,
 
 } from '../../';
-import {ComponentScope} from "../../enums/componentscope"
-import {StringOrSymbol} from "../../definitions/types";
+import { ComponentScope } from '../../enums/componentscope';
+import { StringOrSymbol } from '../../definitions/types';
 
-import {IfComponentIdentity} from "../../definitions/component";
-import {INVALID_COMPONENT_NAMES} from "../../metadata/index";
-import {_UNNAMED_COMPONENT_} from "../../definitions/symbols";
-import {stringifyIdentify} from "./containerutils";
+import { IfComponentIdentity } from '../../definitions/component';
+import { INVALID_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
+import { _UNNAMED_COMPONENT_ } from '../../definitions/symbols';
+import { stringifyIdentify } from './containerutils';
 import {
     initIterator,
-    sortComponents
-} from "./initializer";
-import {IocComponentType} from "../../definitions/container";
+    sortComponents,
+} from './initializer';
+import { IocComponentType } from '../../definitions/container';
 
 
-const debug = require("debug")("bind:container");
+const debug = require('debug')('bind:container');
 
-export const TAG = "Container";
+export const TAG = 'Container';
 
 
 /**
@@ -34,7 +34,7 @@ const checkDependencies = (container: IfIocContainer) => {
 
     const components = container.components;
 
-    debug(TAG, "entered checkDependencies");
+    debug(TAG, 'entered checkDependencies');
     components.forEach((component, i, arr) => {
 
         /**
@@ -67,7 +67,7 @@ const checkDependencies = (container: IfIocContainer) => {
             try {
                 found = container.getComponentDetails(dep.dependency);
             } catch (e) {
-                console.error("Container error63", e);
+                console.error('Container error63', e);
 
             }
 
@@ -76,7 +76,7 @@ const checkDependencies = (container: IfIocContainer) => {
                 throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${String(dep.propertyName)}" dependency="${String(dep.dependency.componentName)}" className=${dep.dependency.className}`);
             }
 
-            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className !== dep.dependency.className) {
+            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className!==dep.dependency.className) {
                 throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency.className}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
             }
 
@@ -110,8 +110,8 @@ const checkDependencies = (container: IfIocContainer) => {
  */
 const checkDependencyLoop = (container: IfIocContainer) => {
 
-    const TAG = "checkDependencyLoop";
-    debug(TAG, "Entered checkDependencyLoop");
+    const TAG = 'checkDependencyLoop';
+    debug(TAG, 'Entered checkDependencyLoop');
 
     let components: Array<IfIocComponent> = container.components;
 
@@ -131,9 +131,9 @@ const checkDependencyLoop = (container: IfIocContainer) => {
      */
     const namedComponents = components.map(_ => {
         return {
-            name:         _.identity.componentName,
+            name: _.identity.componentName,
             dependencies: _.constructorDependencies.concat(_.propDependencies.map(pd => pd.dependency)),
-            visited:      false
+            visited: false,
         };
     });
 
@@ -152,7 +152,7 @@ const checkDependencyLoop = (container: IfIocContainer) => {
          * @todo should not be checking by name, should instead check by Identity
          */
         if (parents.includes(component.name)) {
-            throw new ReferenceError(`Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(" -> ")} -> ${String(component.name)}`);
+            throw new ReferenceError(`Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(' -> ')} -> ${String(component.name)}`);
         }
 
         /**
@@ -167,14 +167,14 @@ const checkDependencyLoop = (container: IfIocContainer) => {
          * start to unwind.
          */
         component.dependencies
-        .map(cname => namedComponents.find(_ => _.name === cname))
-        .reduce((parents, child) => {
-            check(child, parents);
-            child.visited = true;
+                .map(cname => namedComponents.find(_ => _.name===cname))
+                .reduce((parents, child) => {
+                    check(child, parents);
+                    child.visited = true;
 
-            return parents;
+                    return parents;
 
-        }, parents.concat(component.name));
+                }, parents.concat(component.name));
 
     };
 
@@ -201,14 +201,18 @@ export class Container implements IfIocContainer {
          * Polyfill Symbol.asyncIterator
          * @type {any | symbol}
          */
-        (Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
+        if(!Symbol){
+            throw new Error('Symbol not defined. Most likely you are using an old version on Node.js')
+        }
+        if(!Symbol.asyncIterator){
+            Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'))
+        }
+        //(Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for('Symbol.asyncIterator');
         this.store_ = [];
     }
 
     get components(): Array<IfIocComponent> {
         return Array.from(this.store_); //? was it causing any problems?
-
-        //return this.store_;
     }
 
 
@@ -227,14 +231,15 @@ export class Container implements IfIocContainer {
 
         let ret;
 
-        debug(TAG, "Entered Container.getComponentDetails Requesting componentName=", String(id.componentName), " className=", id.className);
+        debug(TAG, 'Entered Container.getComponentDetails Requesting componentName=', String(id.componentName), ' className=', id.className);
 
         /**
          * For a named component a match is by name
          * For unnamed component a match is by clazz
+         *
          */
-        if (id.componentName !== _UNNAMED_COMPONENT_) {
-            ret = this.store_.find(_ => _.identity.componentName === id.componentName);
+        if (id.componentName!==_UNNAMED_COMPONENT_) {
+            ret = this.store_.find(_ => _.identity.componentName===id.componentName);
             /**
              * className check?
              * if id contains className and it's not generic Object then
@@ -264,7 +269,10 @@ export class Container implements IfIocContainer {
              * component is named.
              */
             ret = this.store_.find(
-                _ => _.identity.componentName === _UNNAMED_COMPONENT_ && _.identity.clazz === id.clazz);
+                    (component: IfComponentDetails) => {
+                        return component.identity.componentName===_UNNAMED_COMPONENT_ &&
+                                component.identity.clazz===id.clazz;
+                    });
 
         }
 
@@ -278,10 +286,10 @@ export class Container implements IfIocContainer {
 
     getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
 
-        debug(TAG, "Entered Container.getComponent Requesting component=", String(id.componentName), "className=", id.className, " With scopedStorage=", !!scopedStorage);
+        debug(TAG, 'Entered Container.getComponent Requesting component=', String(id.componentName), 'className=', id.className, ' With scopedStorage=', !!scopedStorage);
 
         return this.getComponentDetails(id)
-        .get(this, scopedStorage);
+                .get(this, scopedStorage);
     }
 
 
@@ -289,7 +297,7 @@ export class Container implements IfIocContainer {
 
         const name = String(component.identity.componentName);
 
-        debug(TAG, "Entered Container.addComponent with component name=", name, " className=", component.identity.className);
+        debug(TAG, 'Entered Container.addComponent with component name=', name, ' className=', component.identity.className);
         if (this.has(component.identity)) {
             throw new ReferenceError(`Container already has component with name="${name}" className=${component.identity.className}`);
         }
@@ -301,7 +309,7 @@ export class Container implements IfIocContainer {
          * it does not have any metadata at all.
          */
         if (!component.scope) {
-            debug(TAG, "Component className=", component.identity.className, " componentName=", name, " Does not have defined scope. Setting default scope=", ComponentScope[this.defaultScope]);
+            debug(TAG, 'Component className=', component.identity.className, ' componentName=', name, ' Does not have defined scope. Setting default scope=', ComponentScope[this.defaultScope]);
             component.scope = this.defaultScope;
         }
 
@@ -314,13 +322,13 @@ export class Container implements IfIocContainer {
 
         const that = this;
 
-        debug(TAG, "Entered initialize. components=", JSON.stringify(this.components, null, 2));
+        debug(TAG, 'Entered initialize. components=', JSON.stringify(this.components, null, 2));
 
         checkDependencies(this);
 
-        const {sorted, unsorted} = sortComponents({
+        const { sorted, unsorted } = sortComponents({
             unsorted: this.components,
-            sorted:   []
+            sorted: [],
         });
 
         if (unsorted.length > 0) {
@@ -328,7 +336,7 @@ export class Container implements IfIocContainer {
                     Dependency sorting error. Following components have unresolved dependencies.
                     Check dependency loop.
                     ${unsorted.map(_ => stringifyIdentify(_.identity))
-            .join(",")}
+                    .join(',')}
                     `;
 
             debug(TAG, error);
@@ -336,21 +344,21 @@ export class Container implements IfIocContainer {
             throw new Error(error);
         }
 
-        debug(TAG, "sorted=", JSON.stringify(sorted, null, 2));
+        debug(TAG, 'sorted=', JSON.stringify(sorted, null, 2));
 
         /**
          * Now initialize components that have initializer
          */
-        const initializable = sorted.filter(_ =>  _.postConstruct);
+        const initializable = sorted.filter(_ => _.postConstruct);
         if (initializable.length > 0) {
-            debug(TAG, "HAS initializable components", initializable.length);
+            debug(TAG, 'HAS initializable components', initializable.length);
 
-            for await(const initialized of initIterator(this, initializable)){
-                debug(TAG, "Initialized component", initialized)
+            for await(const initialized of initIterator(this, initializable)) {
+                debug(TAG, 'Initialized component', initialized);
             }
 
         } else {
-            debug(TAG, "NO initilizable components");
+            debug(TAG, 'NO initilizable components');
         }
 
         return this;
@@ -361,16 +369,16 @@ export class Container implements IfIocContainer {
     cleanup(): Promise<boolean> {
 
         const a: Array<Promise<Boolean>> = this.components
-        .filter(_ => !!_.preDestroy)
-        .map(_ => {
-            const obj = _.get(this);
-            const methodName = _.preDestroy;
+                .filter(_ => !!_.preDestroy)
+                .map(_ => {
+                    const obj = _.get(this);
+                    const methodName = _.preDestroy;
 
-            return obj[methodName]();
-        });
+                    return obj[methodName]();
+                });
 
         return Promise.all(a)
-        .then(_ => true);
+                .then(_ => true);
     }
 
 

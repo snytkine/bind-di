@@ -3,14 +3,14 @@ import {
     _DEFAULT_SCOPE_,
     defineMetadata,
     getComponentName,
-    StringOrSymbol
-} from "../";
+    StringOrSymbol,
+} from '../';
 import {
     getClassName,
-    getComponentIdentity
-} from "../metadata/index";
+    getComponentIdentity,
+} from '../metadata/index';
 
-import {ComponentScope} from '../enums/componentscope'
+import { ComponentScope } from '../enums/componentscope';
 
 const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Scope';
@@ -24,7 +24,7 @@ export function Scope(scope: ComponentScope) {
     return function (target: Object, propertyKey?: StringOrSymbol) {
         debug(`Adding ${TAG} to component ${String(getComponentName(target))} className=${getClassName(target)}`);
         defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey)();
-    }
+    };
 }
 
 export const Singleton = Scope(ComponentScope.SINGLETON);
@@ -34,7 +34,7 @@ export const RequestScoped = Scope(ComponentScope.REQUEST);
 export function getScope(target: Object, propertyKey?: StringOrSymbol): ComponentScope {
 
 
-    const cid = getComponentIdentity(target, propertyKey);
+    const cid = getComponentIdentity({ target, propertyKey });
     const cName = String(cid.componentName);
     const className = cid.className;
 
@@ -46,7 +46,7 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): Componen
     if (!scope) {
 
         scope = Reflect.getMetadata(_DEFAULT_SCOPE_, target, propertyKey);
-        scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`)
+        scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`);
     }
 
     return scope;
