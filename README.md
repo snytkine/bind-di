@@ -10,6 +10,16 @@ minimal validation. Do not validate that factory must be singleton, etc
 unannotated componets is not a good one.
 
 ###TODOS
+- Don't allow @Inject on whole class. Instead add function to 
+check for possible constructor dependencies when adding @Component decorator
+This will simplify @Inject function and will reduce noise because
+will no longer need to add @Component and @Inject together.
+Logic for dealing with named constructor injection and constructor dependencies via
+@Component - check if there are already constructor injections when applying
+@Component decorator. If there are any then don't use dependency injection fron
+processing the @Component decoration.
+A more sophisticated way is to allow certain @Inject constructor props and leave off
+some others to be backfilled by @Component constructor injection.
 - Don't use @Factory decorator, just normal @Component can be a factory
 - Allow @Inject as method param. In this case scope limitations will not apply.
 - Do not's allow unannotated Components to be added to container.

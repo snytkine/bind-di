@@ -1,14 +1,14 @@
 /**
  * Created by snytkind on 8/8/17.
  */
-import * as fs from "fs";
-import * as path from "path";
-import {IfIocContainer} from "../../index";
-import {addComponent} from "../../framework/container";
+import * as fs from 'fs';
+import * as path from 'path';
+import { IfIocContainer } from '../../index';
+import { addComponent } from '../../framework/container';
 
-const debug = require("debug")("bind:loader");
+const debug = require('debug')('bind:loader');
 
-const TAG = "FILE_LOADER";
+const TAG = 'FILE_LOADER';
 
 export type FileExports = {
     [key: string]: any
@@ -23,16 +23,15 @@ export type FileExports = {
  */
 export function getFilenamesRecursive(dirs: string[]): Array<string> {
 
-    debug(`Entered getFilenamesRecursive with dir ${dirs.join(",")}`);
+    debug(`Entered getFilenamesRecursive with dir ${dirs.join(',')}`);
 
     const getFilenamesRecursive_ = function (dir: string, aFiles: string[] = [], level = 0) {
         let files = fs.readdirSync(dir);
         files.forEach(function (file) {
             if (fs.statSync(path.join(dir, file))
-                .isDirectory()) {
+                    .isDirectory()) {
                 aFiles = getFilenamesRecursive_(path.join(dir, file), aFiles, level + 1);
-            }
-            else {
+            } else {
                 aFiles.push(path.join(dir, file));
             }
 
@@ -42,7 +41,7 @@ export function getFilenamesRecursive(dirs: string[]): Array<string> {
     };
 
     return dirs.map(_ => getFilenamesRecursive_(_))
-    .reduce((prev, cur) => prev.concat(cur), []);
+            .reduce((prev, cur) => prev.concat(cur), []);
 }
 
 /**
@@ -96,7 +95,7 @@ export const getExportsFromFile = (file: string) => {
  * @returns {boolean} true if file should be loaded by application loader
  */
 export function isFileNameLoadable(f: string): boolean {
-    return (!f.startsWith("__") ) && path.extname(f) === '.js';
+    return (!f.startsWith('__')) && path.extname(f)==='.js';
 }
 
 
@@ -115,11 +114,11 @@ export function isFileNameLoadable(f: string): boolean {
  */
 export function fileContainsComponent(f: string): boolean {
 
-    const fileContents = fs.existsSync(f) && fs.readFileSync(f, "utf-8");
+    const fileContents = fs.existsSync(f) && fs.readFileSync(f, 'utf-8');
 
     let match = !!(fileContents && fileContents.match(/__decorate/) && fileContents.match(/\.Middleware|\.Controller|\.Component|\.ControllerMiddleware|\.ErrorHandler|\.ContextService/));
 
-    debug(TAG, "fileContents of ", f, " match component: ", match);
+    debug(TAG, 'fileContents of ', f, ' match component: ', match);
 
     return match;
 
@@ -129,11 +128,11 @@ export function fileContainsComponent(f: string): boolean {
 export const load = (container: IfIocContainer, dirs: string[]) => {
 
     const files = getFilenamesRecursive(dirs)
-    .filter(file => isFileNameLoadable(file));
+            .filter(file => isFileNameLoadable(file));
     /**
      * @todo filter our only files that has __decorate, some files may be just util functions.
      */
-    debug(`${TAG}, loading from files: ${JSON.stringify(files, null, "\t")}`);
+    debug(`${TAG}, loading from files: ${JSON.stringify(files, null, '\t')}`);
 
     files.map(file => {
         const fileexports = getExportsFromFile(file);
@@ -155,7 +154,7 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
                  * so it will already have Identity set on it.
                  *
                  */
-                addComponent({container, clazz: fileexports[fe]});
+                addComponent(container, fileexports[fe]);
             } catch (e) {
                 /**
                  * Here we know the export name and filename where it came from

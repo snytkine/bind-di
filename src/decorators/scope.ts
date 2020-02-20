@@ -34,7 +34,7 @@ export const RequestScoped = Scope(ComponentScope.REQUEST);
 export function getScope(target: Object, propertyKey?: StringOrSymbol): ComponentScope {
 
 
-    const cid = getComponentIdentity({ target, propertyKey });
+    const cid = getComponentIdentity(target, propertyKey);
     const cName = String(cid.componentName);
     const className = cid?.clazz?.name;
 

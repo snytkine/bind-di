@@ -105,13 +105,13 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
                                                                                   // problems when component extended
                                                                                   // another decorated component
 }
-
+/*
 export interface IfGetComponentIdentityArg {
     target: Target
     propertyKey?: StringOrSymbol
-}
+}*/
 
-export function getComponentIdentity({ target, propertyKey }: IfGetComponentIdentityArg): IfComponentIdentity {
+export function getComponentIdentity(target: Target,propertyKey?: StringOrSymbol): IfComponentIdentity {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
     let targetName: string;
 

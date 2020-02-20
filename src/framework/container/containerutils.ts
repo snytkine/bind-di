@@ -301,10 +301,10 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
 
 }
 
-export interface IfAddComponentArg {
+/*export interface IfAddComponentArg {
     container: IfIocContainer
     clazz: Target
-}
+}*/
 /**
  *
  * @param container
@@ -313,7 +313,7 @@ export interface IfAddComponentArg {
  * Multiple classes can share the same file because its allowed to declare more than
  * one component in a file
  */
-export function addComponent({container, clazz}: IfAddComponentArg): void {
+export function addComponent(container: IfIocContainer, clazz: Target): void {
 
     /**
      * @todo
@@ -324,22 +324,8 @@ export function addComponent({container, clazz}: IfAddComponentArg): void {
      * Using just class name is not reliable because 2 classes in different directories
      * can have same class name
      */
-    const meta = getComponentMeta({clazz});
-    /**
-     * @todo
-     * At this point meta.identity will most likely not
-     * have the .filePath set because identity was
-     * set from the @Component decorator and it did not
-     * set the filePath because it was unknown to the decorator function
-     * Now we need to update the component identity with the filePath
-     * and update it using defineMetadata
-     *
-     * The Container needs to have access to .filePath in the identity prop
-     * in order to properly determine if same class file is already added.
-     *
-     * Also the unnamed components should be using filePath.className as the value
-     * of the componentName instead of relying on random bytes.
-     */
+    const meta = getComponentMeta(clazz);
+
     meta.scope = meta.scope || container.defaultScope;
 
     if (meta.componentType===IocComponentType.FACTORY) {

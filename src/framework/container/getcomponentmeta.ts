@@ -13,14 +13,14 @@ import {
 } from "../../";
 import {StringOrSymbol} from "../../definitions/types";
 
-export interface IfGetComponentMetaArg {
+/*export interface IfGetComponentMetaArg {
     clazz: Target
     propertyKey?: StringOrSymbol
-}
-export const getComponentMeta = ({clazz, propertyKey}: IfGetComponentMetaArg): IfComponentDetails => {
+}*/
+export const getComponentMeta = (clazz: Target, propertyKey?: StringOrSymbol): IfComponentDetails => {
 
     return {
-        identity: getComponentIdentity({ target: clazz, propertyKey}),
+        identity: getComponentIdentity(clazz, propertyKey),
         componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz, propertyKey),
         componentMetaData: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz, propertyKey),
         scope: getScope(clazz, propertyKey),

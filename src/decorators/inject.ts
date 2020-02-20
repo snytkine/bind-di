@@ -141,7 +141,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * but a component that is produced by a factory, in which case it does not have decorator at all
              *
              */
-            let injectIdentity = getComponentIdentity({ target: rt });
+            let injectIdentity = getComponentIdentity(rt);
             let injectName = injectIdentity.componentName;
             let injectClassName = injectIdentity?.clazz?.name;
 
@@ -207,7 +207,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                      */
                     console.log(ptypes[p].name)
                     try {
-                        const meta = getComponentMeta({clazz: ptypes[p]});
+                        const meta = getComponentMeta(ptypes[p]);
                         console.log('~~~~~~~~~~~~~~~~~');
                         console.dir(meta);
                     } catch (e) {
@@ -318,7 +318,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                let injectIdentity = getComponentIdentity({ target: rt });
+                let injectIdentity = getComponentIdentity(rt);
                 let injectClassName = injectIdentity?.clazz?.name;
 
                 debug(`${TAG} injected property "${String(targetName)}.${propertyKey}" injectName="${injectName}"  injectClassName="${injectClassName}"`);
