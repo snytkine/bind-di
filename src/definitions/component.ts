@@ -30,9 +30,16 @@ export type Target = {
 export interface IfComponentIdentity {
     componentName: StringOrSymbol
     clazz: any
-    filePath?: string
-    className?: string
+
+    /**
+     * @todo remove it and make separate function compareIdentity
+     * @param other
+     */
     equals: (other: IfComponentIdentity) => boolean
+
+    /**
+     * @todo remove it. If it's used at all anywhere then create copyIdentity function.
+     */
     copy: () => IfComponentIdentity
 }
 
@@ -71,11 +78,6 @@ export interface IfComponentDetails {
     scope: ComponentScope
 
     /**
-     * A full path to a file in which component was defined
-     */
-    filePath: string
-
-    /**
      * Property dependencies
      */
     propDependencies: Array<IfComponentPropDependency>
@@ -84,6 +86,16 @@ export interface IfComponentDetails {
      * Constructor dependencies
      */
     constructorDependencies: Array<IfComponentIdentity>
+
+    /**
+     * @todo
+     * add methodArgumentDependencies?
+     * the array of dependencies for methodArguments
+     * only when @Inject is supported in the method argument
+     *
+     *
+     * like getUser(@PathParam username, @Inject requestLogger: RequestLogger)
+     */
 
     /**
      * Array of componentIDs that this
@@ -107,6 +119,11 @@ export interface IfComponentDetails {
 
     /**
      * Unique identifier of component type
+     * @todo would not need it, instead
+     * should rely on componentMeta object
+     * For factory type we can just look at
+     * 'provides' to see if Component provides any components
+     * then it will be treated as factory as well as actual component.
      */
     componentType?: IocComponentType
 

@@ -3,7 +3,6 @@
  */
 
 export * from './container'
-export * from './ifcontext'
 export * from './types'
 export * from './consts'
 export * from './component'

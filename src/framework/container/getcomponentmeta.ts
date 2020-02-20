@@ -15,15 +15,13 @@ import {StringOrSymbol} from "../../definitions/types";
 
 export interface IfGetComponentMetaArg {
     clazz: Target
-    filePath: string
     propertyKey?: StringOrSymbol
 }
-export const getComponentMeta = ({clazz, filePath, propertyKey}: IfGetComponentMetaArg): IfComponentDetails => {
+export const getComponentMeta = ({clazz, propertyKey}: IfGetComponentMetaArg): IfComponentDetails => {
 
     return {
-        identity: getComponentIdentity({ target: clazz, propertyKey, filePath}),
+        identity: getComponentIdentity({ target: clazz, propertyKey}),
         componentType: Reflect.getMetadata(_COMPONENT_TYPE_, clazz, propertyKey),
-        filePath,
         componentMetaData: Reflect.getMetadata(_COMPONENT_META_TYPE_, clazz, propertyKey),
         scope: getScope(clazz, propertyKey),
         propDependencies: getPropDependencies(clazz),

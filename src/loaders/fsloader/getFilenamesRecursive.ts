@@ -106,6 +106,9 @@ export function isFileNameLoadable(f: string): boolean {
  * At application load time it will be checking the javascript file
  * not the typescript file so we cannot check for any @Component or @Controller
  * instead must check for compiled version .Controller or .Middleware etc.
+ * @todo We don't use it because we also parsing unannotated classes and will consider
+ * injecting unannotated classes. If this proves to be a bad idea then we can use this filter
+ * for loading only the files that contain at least one variance of component annotation,
  *
  * @param f string full path to file to check
  * @returns {boolean} true if file exists and contains one of the component annotations|false otherwise
@@ -152,7 +155,7 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
                  * so it will already have Identity set on it.
                  *
                  */
-                addComponent({container, clazz: fileexports[fe], filePath:file});
+                addComponent({container, clazz: fileexports[fe]});
             } catch (e) {
                 /**
                  * Here we know the export name and filename where it came from

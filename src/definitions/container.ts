@@ -40,7 +40,9 @@ export type IocComponentGetter = (container: IfIocContainer, scopedComponentStor
  */
 export type LifecycleCallback = () => Promise<Boolean>
 
-
+/**
+ * @todo remove when no longer using ComponentType
+ */
 export enum IocComponentType {
     COMPONENT = 1,
     FACTORY

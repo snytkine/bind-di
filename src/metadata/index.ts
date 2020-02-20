@@ -13,8 +13,6 @@ const debug = require('debug')('bind:decorator');
 export interface IfIdentityCtorArgs {
     componentName: StringOrSymbol
     clazz: any
-    filePath?: string
-    className?: string
 }
 
 export class Identity implements IfComponentIdentity {
@@ -28,26 +26,18 @@ export class Identity implements IfComponentIdentity {
      * That basically means we don't need to use filePath for class equality test.
      */
     public clazz: any;
-    public className?: string;
-    public filePath?: string;
 
     constructor({
                     componentName,
-                    clazz,
-                    filePath,
-                    className,
+                    clazz
                 }: IfIdentityCtorArgs) {
         this.componentName = componentName;
-        this.filePath = filePath;
-        this.className = className;
         this.clazz = clazz;
     }
 
     copy() {
         return new Identity({
             clazz: this.clazz,
-            className: this.className,
-            filePath: this.filePath,
             componentName: this.componentName,
         });
     }
@@ -104,7 +94,7 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
         //exception Factory component componentName ... is not providing any components
         // this is because in case of decorator applied to class properties and methods
         // the target is a prototype and not a constructor like in case of decorating class
-        //Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
+        Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
     }
 
 };
@@ -119,10 +109,9 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
 export interface IfGetComponentIdentityArg {
     target: Target
     propertyKey?: StringOrSymbol
-    filePath?: string
 }
 
-export function getComponentIdentity({ target, propertyKey, filePath }: IfGetComponentIdentityArg): IfComponentIdentity {
+export function getComponentIdentity({ target, propertyKey }: IfGetComponentIdentityArg): IfComponentIdentity {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
     let targetName: string;
 
@@ -155,8 +144,6 @@ export function getComponentIdentity({ target, propertyKey, filePath }: IfGetCom
             if (target!==ret.clazz) {
                 return new Identity({
                     componentName: _UNNAMED_COMPONENT_,
-                    className: targetName,
-                    filePath,
                     clazz: target,
                 });
             }
@@ -170,7 +157,7 @@ export function getComponentIdentity({ target, propertyKey, filePath }: IfGetCom
         const className = getClassName(target, propertyKey);
         debug('Returning unnamed component className=', className);
 
-        return new Identity({ componentName: _UNNAMED_COMPONENT_, filePath, className, clazz: target });
+        return new Identity({ componentName: _UNNAMED_COMPONENT_, clazz: target });
     }
 }
 

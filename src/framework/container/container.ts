@@ -73,11 +73,14 @@ const checkDependencies = (container: IfIocContainer) => {
 
             if (!found) {
 
-                throw new ReferenceError(`Component "${String(component.identity.componentName)} className=${component.identity.className}" has unsatisfied property dependency for propertyName="${String(dep.propertyName)}" dependency="${String(dep.dependency.componentName)}" className=${dep.dependency.className}`);
+                throw new ReferenceError(`Component "${String(component.identity.componentName)} 
+                className=${component.identity?.clazz?.name}" has unsatisfied property dependency for propertyName="${String(dep.propertyName)}" 
+                dependency="${String(dep.dependency.componentName)}" 
+                className=${dep.dependency?.clazz?.name}`);
             }
 
-            if (dep.dependency.className && !INVALID_COMPONENT_NAMES.includes(dep.dependency.className) && found.identity.className!==dep.dependency.className) {
-                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency.className}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
+            if (dep.dependency?.clazz?.name && !INVALID_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.namee) {
+                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
             }
 
             /**
@@ -231,7 +234,7 @@ export class Container implements IfIocContainer {
 
         let ret;
 
-        debug(TAG, 'Entered Container.getComponentDetails Requesting componentName=', String(id.componentName), ' className=', id.className);
+        debug(TAG, 'Entered Container.getComponentDetails Requesting componentName=', String(id.componentName), ' className=', id?.clazz?.name);
 
         /**
          * For a named component a match is by name
@@ -278,7 +281,7 @@ export class Container implements IfIocContainer {
 
 
         if (!ret) {
-            throw new ReferenceError(`Container Component Not found by name="${String(id.componentName)}" (className=${id.className})`);
+            throw new ReferenceError(`Container Component Not found by name="${String(id.componentName)}" (className=${id?.clazz?.name})`);
         }
 
         return ret;
@@ -286,7 +289,7 @@ export class Container implements IfIocContainer {
 
     getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
 
-        debug(TAG, 'Entered Container.getComponent Requesting component=', String(id.componentName), 'className=', id.className, ' With scopedStorage=', !!scopedStorage);
+        debug(TAG, 'Entered Container.getComponent Requesting component=', String(id.componentName), 'className=', id?.clazz?.name, ' With scopedStorage=', !!scopedStorage);
 
         return this.getComponentDetails(id)
                 .get(this, scopedStorage);
@@ -297,9 +300,9 @@ export class Container implements IfIocContainer {
 
         const name = String(component.identity.componentName);
 
-        debug(TAG, 'Entered Container.addComponent with component name=', name, ' className=', component.identity.className);
+        debug(TAG, 'Entered Container.addComponent with component name=', name, ' className=', component.identity?.clazz?.name);
         if (this.has(component.identity)) {
-            throw new ReferenceError(`Container already has component with name="${name}" className=${component.identity.className}`);
+            throw new ReferenceError(`Container already has component with name="${name}" className=${component.identity?.clazz?.name}`);
         }
 
         /**
@@ -309,7 +312,7 @@ export class Container implements IfIocContainer {
          * it does not have any metadata at all.
          */
         if (!component.scope) {
-            debug(TAG, 'Component className=', component.identity.className, ' componentName=', name, ' Does not have defined scope. Setting default scope=', ComponentScope[this.defaultScope]);
+            debug(TAG, 'Component className=', component.identity?.clazz?.name, ' componentName=', name, ' Does not have defined scope. Setting default scope=', ComponentScope[this.defaultScope]);
             component.scope = this.defaultScope;
         }
 

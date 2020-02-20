@@ -36,7 +36,7 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): Componen
 
     const cid = getComponentIdentity({ target, propertyKey });
     const cName = String(cid.componentName);
-    const className = cid.className;
+    const className = cid?.clazz?.name;
 
 
     let scope = Reflect.getMetadata(_COMPONENT_SCOPE_, target, propertyKey);

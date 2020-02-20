@@ -34,12 +34,12 @@ export function Factory(target: Object) {
     componentName = className = getComponentName(target);
     debug(`Defining unnamed ${TAG} for class "${componentName}"`);
 
-    setComponentIdentity(new Identity({componentName, className, clazz: target}/*componentName, target, className*/), target);
+    setComponentIdentity(new Identity({componentName, clazz: target}), target);
     defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)(true);
     defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, target)(true);
     /**
      * Must also define _SCOPE_ with value of SINGLETON because Factory must always be singleton
-     * component. Defining this score now will prevent adding @Scope annotation on Factory component
+     * component. Defining this scope now will prevent adding @Scope annotation on Factory component
      */
     defineMetadata(_COMPONENT_SCOPE_, ComponentScope.SINGLETON, target)(true);
 }

@@ -15,7 +15,7 @@ const TAG = 'CONTAINER_UTILS';
 const debug = require('debug')('bind:container');
 
 export const stringifyIdentify = (identity: IfComponentIdentity): string => {
-    return `componentName=${String(identity.componentName)} className=${identity.className}`;
+    return `componentName=${String(identity.componentName)} className=${identity?.clazz?.name}`;
 };
 
 /**
@@ -38,7 +38,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
 
     debug(TAG, 'Adding singleton componentName=', stringifyIdentify(meta.identity));
     const name = meta.identity.componentName;
-    const className = meta.identity.className;
+    const className = meta.identity?.clazz?.name;
     /**
      * @todo test this: will the instance set by one getter
      * be available from another component's getter since they both
@@ -137,7 +137,7 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
                 _ => ctnr.getComponent(_, scopedComponentStorage));
         const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
-        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity.className, '\' ', meta.propDependencies);
+        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity?.clazz?.name, '\' ', meta.propDependencies);
         const ret = meta.propDependencies.reduce((prev, curr) => {
 
             /**
@@ -182,16 +182,16 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
  */
 export function addPrototypeComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
-    debug(TAG, 'Adding prototype component=', String(meta.identity.componentName), ' className=', meta.identity.className);
+    debug(TAG, 'Adding prototype component=', String(meta.identity.componentName), ' className=', meta.identity?.clazz?.name);
     const name = String(meta.identity.componentName);
     const getter = function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
 
-        debug(TAG, 'Creating new instance of componentName=\'', name, '\' className=', meta.identity.className, ', with constructor args', meta.constructorDependencies, ' with scopedComponentStorage=', !!scopedComponentStorage);
+        debug(TAG, 'Creating new instance of componentName=\'', name, '\' className=', meta.identity?.clazz?.name, ', with constructor args', meta.constructorDependencies, ' with scopedComponentStorage=', !!scopedComponentStorage);
         const constructorArgs = meta.constructorDependencies.map(
                 _ => ctnr.getComponent(_, scopedComponentStorage));
         const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
-        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity.className, '\' ', meta.propDependencies);
+        debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity?.clazz?.name, '\' ', meta.propDependencies);
         return meta.propDependencies.reduce((prev, curr) => {
 
             /**
@@ -240,7 +240,7 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
      * First add the factory component itself to container
      */
     if (componentMeta.provides.length===0) {
-        throw new TypeError(`Factory component componentName=${String(componentMeta.identity.componentName)} className=${componentMeta.identity.className} is not providing any components`);
+        throw new TypeError(`Factory component componentName=${String(componentMeta.identity.componentName)} className=${componentMeta?.identity?.clazz?.name} is not providing any components`);
     }
 
     addSingletonComponent(container, componentMeta);
@@ -257,20 +257,13 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
             propDependencies: [],
             constructorDependencies: [],
             provides: [],
-            /**
-             * We don't know the filePath of provided component
-             * it is not the same as filePath of factory component
-             * and there is no good way to find the filename where this provided
-             * class was defined.
-             */
-            filePath: ""
         };
 
 
         const getter = function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
-            debug(TAG, 'Getter called on Factory-Provided componentName=', String(providedComponent.identity.componentName), ' className=', providedComponent.identity.className, ' of factory componentName=', String(componentMeta.identity.componentName), ' factory className=', componentMeta.identity.className);
+            debug(TAG, 'Getter called on Factory-Provided componentName=', String(providedComponent?.identity?.componentName), ' className=', providedComponent?.identity?.clazz?.name, ' of factory componentName=', String(componentMeta?.identity?.componentName), ' factory className=', componentMeta?.identity?.clazz?.name);
             if (instance) {
-                debug(TAG, 'Factory-Provided componentName=', providedComponent.identity.componentName, ' className=', providedComponent.identity.className, ' already created. Returning same instance');
+                debug(TAG, 'Factory-Provided componentName=', providedComponent.identity.componentName, ' className=', providedComponent?.identity?.clazz?.name, ' already created. Returning same instance');
 
                 return instance;
             }
@@ -284,7 +277,7 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
              * @type {any}
              */
             const factory = ctnr.getComponent(componentMeta.identity, scopedComponentStorage);
-            debug(TAG, 'Calling factory method=', curr.methodName, ' of factory componentName=', componentMeta.identity.componentName, ' factory className=', componentMeta.identity.className);
+            debug(TAG, 'Calling factory method=', curr.methodName, ' of factory componentName=', componentMeta.identity.componentName, ' factory className=', componentMeta?.identity?.clazz?.name);
             instance = factory[curr.methodName]();
 
             return instance;
@@ -311,7 +304,6 @@ export function addFactoryComponent(container: IfIocContainer, componentMeta: If
 export interface IfAddComponentArg {
     container: IfIocContainer
     clazz: Target
-    filePath: string
 }
 /**
  *
@@ -321,7 +313,7 @@ export interface IfAddComponentArg {
  * Multiple classes can share the same file because its allowed to declare more than
  * one component in a file
  */
-export function addComponent({container, clazz, filePath}: IfAddComponentArg): void {
+export function addComponent({container, clazz}: IfAddComponentArg): void {
 
     /**
      * @todo
@@ -332,7 +324,7 @@ export function addComponent({container, clazz, filePath}: IfAddComponentArg): v
      * Using just class name is not reliable because 2 classes in different directories
      * can have same class name
      */
-    const meta = getComponentMeta({clazz, filePath});
+    const meta = getComponentMeta({clazz});
     /**
      * @todo
      * At this point meta.identity will most likely not
