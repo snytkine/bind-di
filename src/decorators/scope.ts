@@ -46,6 +46,9 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): Componen
     if (!scope) {
 
         scope = Reflect.getMetadata(_DEFAULT_SCOPE_, target, propertyKey);
+        /**
+         *
+         */
         scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`);
     }
 

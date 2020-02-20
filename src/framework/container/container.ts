@@ -16,7 +16,7 @@ import {
     initIterator,
     sortComponents,
 } from './initializer';
-import { IocComponentType } from '../../definitions/container';
+
 
 
 const debug = require('debug')('bind:container');
@@ -79,7 +79,7 @@ const checkDependencies = (container: IfIocContainer) => {
                 className=${dep.dependency?.clazz?.name}`);
             }
 
-            if (dep.dependency?.clazz?.name && !INVALID_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.namee) {
+            if (dep.dependency?.clazz?.name && !INVALID_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.name) {
                 throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
             }
 

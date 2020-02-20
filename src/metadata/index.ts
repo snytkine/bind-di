@@ -7,15 +7,50 @@ import {
     StringOrSymbol,
 } from '../';
 
+import { Identity } from '../framework/lib/identity';
+
 
 const debug = require('debug')('bind:decorator');
 
 export interface IfIdentityCtorArgs {
-    componentName: StringOrSymbol
-    clazz: any
+    componentName?: StringOrSymbol
+    clazz?: Target
 }
 
-export class Identity implements IfComponentIdentity {
+/**
+ * Compare 2 component identities
+ * Component identities considered the same if
+ * either one is named and both have same componentName
+ *
+ * if both are unnamed components them compare by equality of clazz
+ *
+ *
+ * @param a
+ * @param b
+ * @return boolean
+ */
+export const isSameIdentity = (a: IfComponentIdentity, b: IfComponentIdentity): boolean => {
+    /**
+     * Either one is NOT _UNNAMED_COMPONENT_
+     * then compare by componentName
+     */
+    if (a.componentName!==_UNNAMED_COMPONENT_ ||
+            b.componentName!==_UNNAMED_COMPONENT_) {
+        return a.componentName===b.componentName;
+    }
+    /**
+     * Both are _UNNAMED_COMPONENT_
+     * then both must have same clazz
+     */
+    return b.componentName===_UNNAMED_COMPONENT_ && a.clazz===b.clazz;
+};
+
+export const copyIdentity = (identity: IfComponentIdentity): IfComponentIdentity => {
+
+    return Identity(identity.componentName, identity.clazz);
+}
+
+export class _Identity implements IfComponentIdentity {
 
     public componentName: StringOrSymbol;
 
@@ -29,43 +64,43 @@ export class Identity implements IfComponentIdentity {
 
     constructor({
                     componentName,
-                    clazz
+                    clazz,
                 }: IfIdentityCtorArgs) {
         this.componentName = componentName;
         this.clazz = clazz;
     }
 
-    copy() {
+    /*copy() {
         return new Identity({
             clazz: this.clazz,
             componentName: this.componentName,
         });
-    }
-
+    }*/
+/*
     equals(other: IfComponentIdentity) {
 
-        /**
+        /!**
          * Named component match other component by name only
          * This forces componentName to be unique except in cases of _UNNAMED_COMPONENT_
          * which is a special componentName
-         */
+         *!/
         if (this.componentName!==_UNNAMED_COMPONENT_) {
-            /**
+            /!**
              * Just using componentName is enough for named components,
              * components that have been annotated with @Component('my_service-x')
-             */
+             *!/
             return this.componentName===other.componentName;
         }
 
-        /**
+        /!**
          * In case of unnamed component
          * clazz must refer to the same object
          * and other component must also be unnamed
-         */
+         *!/
         return (other.componentName===_UNNAMED_COMPONENT_ &&
                 this.clazz===other.clazz);
 
-    }
+    }*/
 
 }
 
@@ -105,13 +140,14 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
                                                                                   // problems when component extended
                                                                                   // another decorated component
 }
-/*
-export interface IfGetComponentIdentityArg {
-    target: Target
-    propertyKey?: StringOrSymbol
-}*/
 
-export function getComponentIdentity(target: Target,propertyKey?: StringOrSymbol): IfComponentIdentity {
+/*
+ export interface IfGetComponentIdentityArg {
+ target: Target
+ propertyKey?: StringOrSymbol
+ }*/
+
+export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbol): IfComponentIdentity {
     let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
     let targetName: string;
 
@@ -142,10 +178,7 @@ export function getComponentIdentity(target: Target,propertyKey?: StringOrSymbol
         if (targetName && targetName!==ret.className) {
             debug(`Different className from Identity and class name. className=${ret.className} name=${targetName}`);
             if (target!==ret.clazz) {
-                return new Identity({
-                    componentName: _UNNAMED_COMPONENT_,
-                    clazz: target,
-                });
+                return Identity(target);
             }
         }
         return ret;
@@ -157,7 +190,7 @@ export function getComponentIdentity(target: Target,propertyKey?: StringOrSymbol
         const className = getClassName(target, propertyKey);
         debug('Returning unnamed component className=', className);
 
-        return new Identity({ componentName: _UNNAMED_COMPONENT_, clazz: target });
+        return Identity(target);
     }
 }
 

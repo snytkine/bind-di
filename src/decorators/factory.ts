@@ -8,10 +8,10 @@ import {
 } from "../";
 import {
     defineMetadata,
-    Identity
 } from "../metadata/index";
 
 import {ComponentScope} from '../enums/componentscope'
+import { Identity } from '../framework/lib/identity';
 
 
 const debug = require('debug')('bind:decorator:factory');
@@ -21,20 +21,23 @@ const TAG = '@Factory';
  * Factory decorator can be applied only to class
  * Factory cannot be a named component. Name is always inferred from class name
  *
+ * @todo Remove this, Factory is not any special. Just use regular Component as factory
+ * and check that it is Singleton.
+ *
  * @param target class
  * @constructor
  */
 export function Factory(target: Object) {
 
-    let componentName, className;
+    let componentName;
     /**
      * Since factory components are not names expliciely, the componentName and className are the same,
      * the name of the class is used
      */
-    componentName = className = getComponentName(target);
+    componentName =  getComponentName(target);
     debug(`Defining unnamed ${TAG} for class "${componentName}"`);
 
-    setComponentIdentity(new Identity({componentName, clazz: target}), target);
+    setComponentIdentity(Identity(componentName, target), target);
     defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target)(true);
     defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, target)(true);
     /**

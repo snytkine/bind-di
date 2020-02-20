@@ -65,7 +65,7 @@ export const getExportsFromFile = (file: string) => {
         const loaded = require.cache;
 
         exports = require(file);
-        debugger;
+
     } catch (e) {
         /**
          * If Error came from one of the decorator functions it will have

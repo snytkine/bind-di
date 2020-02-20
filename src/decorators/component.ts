@@ -7,7 +7,13 @@ import {
     _DEFAULT_SCOPE_,
     RETURN_TYPE,
     IocComponentType,
-    IfComponentFactoryMethod, DESIGN_TYPE,
+    IfComponentFactoryMethod,
+    DESIGN_TYPE,
+    PARAM_TYPES,
+    getComponentMeta,
+    getConstructorDependencies,
+    IfCtorInject,
+    _CTOR_DEPENDENCIES_,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
@@ -15,11 +21,11 @@ import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 
 import {
     defineMetadata,
-    Identity,
     setComponentIdentity,
 } from '../metadata/index';
 import { randomBytes } from 'crypto';
 import { getComponentName } from '../index';
+import { Identity } from '../framework/lib/identity';
 
 
 /**
@@ -93,8 +99,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
          * Just use className for componentName and we not going
          * to use className since we passing clazz
          */
-        componentName = className + '.' + randomBytes(36)
-                .toString('hex');
+        //componentName = className + '.' + randomBytes(36).toString('hex');
 
         debug(`Entered @Component for unnamed component propertyKey="${propertyKey}"`);
 
@@ -103,17 +108,37 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
              * Applying decorator to class
              */
 
-            debug(`Defining unnamed ${TAG} for class ${componentName}`);
+            debug(`Defining unnamed ${TAG} for class ${className}`);
+            const ptypes = Reflect.getMetadata(PARAM_TYPES, nameOrTarget);
 
             const rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget);
+
+
             debugger;
 
-            setComponentIdentity(new Identity({
-                componentName: _UNNAMED_COMPONENT_,
-                clazz: nameOrTarget,
-            }), nameOrTarget);
-
+            setComponentIdentity(Identity(_UNNAMED_COMPONENT_, nameOrTarget), nameOrTarget);
+            /**
+             * @todo stop using this COMPONENT_TYPE, type not important for anything
+             * COMPONENT_META object may be used for marking special components like "Controllers" etc.
+             *
+             */
             defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget)(); // used to be true
+            /**
+             * @todo what's the purpose of adding _DEFAULT_SCOPE_ if container
+             * has a property defaultScope and will use its own default if scope is not
+             * resolved?
+             * the function getScope uses this _DEFAULT_SCOPE_ if SCOPE is not defined.
+             * this means that scope will always be resolved to at least the default scope
+             * and container will not have a chance to use own default scope.
+             *
+             * This concept of _DEFAULT_SCOPE_ on component was designed for Controller or Middleware
+             * component. The idea was that _DEFAULT_SCOPE_ would be set by @Controller decorator
+             * but could be overwritten by @Singleton decorator
+             * in that case the value of scope is computer value - SCOPE || DEFAULT_SCOPE
+             * But for regular component we should never set _DEFAULT_SCOPE_ otherwise
+             * the container's own defaultScope can never be used.
+             */
+
 
         } else {
 
@@ -169,14 +194,12 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
              * So how can we get the file path of that file?
              *
              */
-            setComponentIdentity(new Identity({
-                componentName: _UNNAMED_COMPONENT_,
-                clazz: rettype,
-            }), nameOrTarget, propertyKey);
+            setComponentIdentity(Identity(_UNNAMED_COMPONENT_, rettype), nameOrTarget, propertyKey);
 
             defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey)(); // used to be true
             /**
              * Components created by functions of factory have default scope SINGLETON
+             * In this case it makes sense to set DEFAULT_SCOPE to be SINGLETON for this component
              */
             defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, nameOrTarget, propertyKey)(true);
 
@@ -184,27 +207,98 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
 
     } else {
+        /**
+         * Named component
+         */
         debug(`${TAG} decorator Called with component name="${nameOrTarget}"`);
         componentName = nameOrTarget;
         return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
 
             if (typeof target==='function' && !propertyKey) {
+                /**
+                 * Named component applied at class level
+                 *
+                 */
                 className = target.name;
 
                 debug(`Defining named ${TAG} '${componentName}' for class ${target.name}`);
+                /**
+                 * ptypes is array of constructor property param types
+                 */
+                const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
 
-                const rt = Reflect.getMetadata(DESIGN_TYPE, target);
+                /**
+                 * Get possibly already defined constructor dependencies
+                 * Some may have been defined using @Inject directly on
+                 * constructor parameters.
+                 */
+                //const existingCtorDeps = getConstructorDependencies(target);
+                const existingCtorDeps: Array<IfCtorInject> | undefined = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
+                console.log(componentName, '!!!!!!!!!!!!')
+                console.dir(existingCtorDeps);
+                console.log(componentName, '??????????????')
+                console.dir(ptypes);
+
+                /**
+                 * ptypes array has all constructor parameters.
+                 * existingCtopDeps has sorted array of dependencies
+                 * If any of the ctor dependency properties were not
+                 * decorated with @Inject then getConstructorDependencies would throw
+                 * because it would detect a gap in array.
+                 * We would not have a change to fill the missing elements.
+                 *
+                 * We need a function to get raw ctor dependencies.
+                 *
+                 * Loop over them and check that
+                 */
+
+                /**
+                 * mylogger !!!!!!!!!!!!
+                 [
+                 {
+    parameterIndex: 1,
+    dependency: {
+      componentName: Symbol(bind:component_unnamed),
+      clazz: [Function: Settings]
+    }
+  },
+                 {
+    parameterIndex: 0,
+    dependency: {
+      componentName: Symbol(bind:component_unnamed),
+      clazz: [Function: Settings]
+    }
+  }
+                 ]
+                 mylogger ??????????????
+                 [ [Function: Settings], [Function: Settings] ]
+                 *
+                 */
                 debugger;
+                console.log('++++++++++++++++');
+                if (ptypes && Array.isArray(ptypes)) {
+                    for (const p in ptypes) {
+                        /**
+                         * array members are objects (classes)
+                         * that themselves are components
+                         */
+                        console.log(ptypes[p].name);
+                        try {
+                            const meta = getComponentMeta(ptypes[p]);
+                            console.log('~~~~~~~~~~~~~~~~~');
+                            console.dir(meta);
+                        } catch (e) {
+                            console.error('@@@@@@');
+                        }
+
+                    }
+                }
+
 
                 // Applying to target (without .prototype fails to get meta for the instance)
                 //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
-                /**
-                 * @todo remove className
-                 */
-                setComponentIdentity(new Identity({
-                    componentName,
-                    clazz: target,
-                }), target);
+
+                setComponentIdentity(Identity(componentName, target), target);
                 defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target)(); // used to be true
 
             } else {
@@ -226,22 +320,13 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 
                 className = rettype && rettype.name;
 
-                setComponentIdentity(new Identity({
-                    componentName,
-                    clazz: rettype,
-                }), target, propertyKey);
+                setComponentIdentity(Identity(componentName, rettype), target, propertyKey);
                 defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey)(); // used to be true
                 /**
                  * Method component are components generated by factory
                  * these components are always Singleton?
                  */
                 defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, target, propertyKey)(true);
-
-                /**
-                 * @todo decorate the parent component as a FACTORY component.
-                 * This way the parent component can be originally decorated only as @Component or
-                 * dont' even have any @Component decorator
-                 */
 
             }
 

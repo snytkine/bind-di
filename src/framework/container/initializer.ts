@@ -1,20 +1,20 @@
-import {IfIocComponent} from "../..";
-import {IfComponentDetails} from "../../definitions/component";
+import { copyIdentity, IfIocComponent, isSameIdentity } from '../..';
+import { IfComponentDetails } from '../../definitions/component';
 import {
     IfComponentIdentity,
     IfIocContainer,
-    IocComponentType
-} from "../../definitions";
-import {stringifyIdentify} from "./containerutils";
+    IocComponentType,
+} from '../../definitions';
+import { stringifyIdentify } from './containerutils';
 import {
     IfComponentFactoryMethod,
     IfComponentPropDependency,
-} from "../../definitions/container";
-import {ComponentScope} from "../../enums/componentscope"
+} from '../../definitions/container';
+import { ComponentScope } from '../../enums/componentscope';
 
-const debug = require("debug")("bind:container");
+const debug = require('debug')('bind:container');
 
-export const TAG = "Initializer";
+export const TAG = 'Initializer';
 
 /**
  * The reason for async is to return a promise
@@ -30,33 +30,33 @@ export const sortdependencies = async <T>(components: Array<IfIocComponent>): Pr
     return components;
 };
 
-const copyPropDependency = (dep: IfComponentPropDependency):IfComponentPropDependency => {
+const copyPropDependency = (dep: IfComponentPropDependency): IfComponentPropDependency => {
     return {
         propertyName: dep.propertyName,
-        dependency: dep.dependency.copy()
-    }
+        dependency: copyIdentity(dep.dependency),
+    };
 };
 
-const copyFactoryMethod = (m: IfComponentFactoryMethod):IfComponentFactoryMethod => {
+const copyFactoryMethod = (m: IfComponentFactoryMethod): IfComponentFactoryMethod => {
     return {
         methodName: m.methodName,
-        providesComponent: m.providesComponent.copy()
-    }
+        providesComponent: copyIdentity(m.providesComponent),
+    };
 };
 
 const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails> => {
 
-    return a.map(_ => {
+    return a.map(componentDetails => {
         return {
-            identity: _.identity.copy(),
-            scope:    _.scope,
-            propDependencies: _.propDependencies.map(copyPropDependency),
-            constructorDependencies: _.constructorDependencies.map(_ => _.copy()),
-            componentMetaData: _.componentMetaData,
-            componentType: _.componentType,
-            preDestroy: _.preDestroy,
-            postConstruct: _.postConstruct,
-            provides: _.provides.map(copyFactoryMethod)
+            identity: copyIdentity(componentDetails.identity),
+            scope: componentDetails.scope,
+            propDependencies: componentDetails.propDependencies.map(copyPropDependency),
+            constructorDependencies: componentDetails.constructorDependencies.map(dependentyIdentity => copyIdentity(dependentyIdentity)),
+            componentMetaData: componentDetails.componentMetaData,
+            componentType: componentDetails.componentType,
+            preDestroy: componentDetails.preDestroy,
+            postConstruct: componentDetails.postConstruct,
+            provides: componentDetails.provides.map(copyFactoryMethod),
         };
     });
 };
@@ -70,31 +70,31 @@ export type unsorted_sorted<T> = {
 
 const depsResolved = <T>(component: IfComponentDetails, aComponents: Array<IfComponentDetails>): boolean => {
 
-    debug(TAG, "entered depsResolved for component=", stringifyIdentify(component.identity));
+    debug(TAG, 'entered depsResolved for component=', stringifyIdentify(component.identity));
     /**
      * Every propDependency and every Constructor Dependency must be provided by
      * components in the aComponents
      */
-    const ctorDepsresolved = component.constructorDependencies.map(dep => {
+    const ctorDepsresolved = component.constructorDependencies.map(ctorDep => {
 
-        return aComponents.findIndex(_ => {
-            return _.identity.equals(dep) || _.provides.findIndex(x => {
-                return x.providesComponent.equals(dep);
+        return aComponents.findIndex(component => {
+            return isSameIdentity(component.identity, ctorDep) || component.provides.findIndex(provided => {
+                return isSameIdentity(provided.providesComponent, ctorDep);
             }) > -1;
         });
     });
 
 
-    const propDepsresolved = component.propDependencies.map(dep => {
+    const propDepsresolved = component.propDependencies.map(propDep => {
 
-        return aComponents.findIndex(_ => {
-            return _.identity.equals(dep.dependency) || _.provides.findIndex(x => {
-                return x.providesComponent.equals(dep.dependency);
+        return aComponents.findIndex(component => {
+            return isSameIdentity(component.identity, propDep.dependency) || component.provides.findIndex(provided => {
+                return isSameIdentity(provided.providesComponent, propDep.dependency);
             }) > -1;
         });
     });
 
-    debug(TAG, "deps for component,", stringifyIdentify(component.identity), " ctorDepsresolved=", ctorDepsresolved, "propDepsresolved=", propDepsresolved);
+    debug(TAG, 'deps for component,', stringifyIdentify(component.identity), ' ctorDepsresolved=', ctorDepsresolved, 'propDepsresolved=', propDepsresolved);
 
     return !propDepsresolved.includes(-1) && !ctorDepsresolved.includes(-1);
 };
@@ -115,12 +115,12 @@ export const initIterator = async function* <T>(container: IfIocContainer,
          * because initializer returns a promise but container must return
          * instance, it cannot return a Promise of component.
          */
-        if (comp.scope === ComponentScope.SINGLETON && comp.postConstruct) {
+        if (comp.scope===ComponentScope.SINGLETON && comp.postConstruct) {
 
             const o = container.getComponent(comp.identity);
 
             yield o[comp.postConstruct]()
-            .then(_ => stringifyIdentify(comp.identity));
+                    .then(_ => stringifyIdentify(comp.identity));
         }
     }
 };
@@ -142,13 +142,13 @@ export const initIterator = async function* <T>(container: IfIocContainer,
 export const sortComponents = <T>(input: unsorted_sorted<T>): unsorted_sorted<T> => {
 
     let resolvedOne = false;
-    if (input.unsorted.length === 0) {
+    if (input.unsorted.length===0) {
         return input;
     }
 
     const ret: unsorted_sorted<T> = {
         unsorted: [],
-        sorted:   copyComponents(input.sorted)
+        sorted: copyComponents(input.sorted),
     };
 
     for (const component of input.unsorted) {

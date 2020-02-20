@@ -6,16 +6,17 @@ import {
     getComponentName,
     IfComponentPropDependency,
     getClassName,
-    Identity,
     defineMetadata,
     IfCtorInject,
-    IfComponentIdentity,
+    IfComponentIdentity, stringifyIdentify,
 
 } from '../';
 import { getComponentMeta } from '../framework/container/getcomponentmeta';
 import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 import { DESIGN_TYPE } from '../definitions/consts';
 import { getComponentIdentity } from '../metadata/index';
+import { Identity } from '../framework/lib/identity';
+
 
 const debug = require('debug')('bind:decorator:inject');
 const TAG = '@Inject';
@@ -91,7 +92,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
             name = nameOrTarget.constructor.name;
 
             rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget);
-            console.log('INJECT-92');
+            console.log('INJECT-92', name);
             console.dir(rt);
             debugger;
             /**
@@ -164,6 +165,8 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * The actual target object may not have this property defined
              * because typescript compiler will not
              * add a property if it does not have a value.
+             *
+             * @todo whould we define property on .prototype or on .constructor instead of nameOrTarget?
              */
             if (!nameOrTarget.hasOwnProperty(propertyKey)) {
                 debug(`${TAG} - defining property "${propertyKey}" for Injection on target="${name}"`);
@@ -185,7 +188,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
 
             /**
              * No propertyKey.
-             * @Inject applied to whole class
+             * @Inject applied to whole class OR to constructor parameter
              * Must extract parameterIndex for all constructor arts.
              *
              * In this case must have parameterIndex
@@ -193,40 +196,60 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * Check that parameterIndex is passed and IS a number
              * because it can also be propertyDescriptor
              */
+            if (typeof parameterIndex==='number') {
 
-            rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget.constructor);
-            const ptypes = Reflect.getMetadata(PARAM_TYPES, nameOrTarget);
-            debugger;
-            console.log('INJECT-92');
-            console.dir(rt);
-            if (ptypes && Array.isArray(ptypes)) {
-                for (const p in ptypes) {
-                    /**
-                     * array members are objects (classes)
-                     * that themselves are components
-                     */
-                    console.log(ptypes[p].name)
-                    try {
-                        const meta = getComponentMeta(ptypes[p]);
-                        console.log('~~~~~~~~~~~~~~~~~');
-                        console.dir(meta);
-                    } catch (e) {
-                        console.error('@@@@@@');
+                const ptypes = Reflect.getMetadata(PARAM_TYPES, nameOrTarget);
+                /**
+                 * Applied to constructor method parameter
+                 * ptypes = [class Settings] or in case of 2 injections it will be array of 2 classes!
+                 * nameOrTarget: class Logger
+                 * propertyKey: undefined
+                 * parameterIndex: 0
+                 */
+                //debugger;
+                console.log('INJECT-92');
+                /**
+                 * @todo the whole if... block is for debugging.
+                 * Delete it when done
+                 */
+                if (ptypes && Array.isArray(ptypes)) {
+                    for (const p in ptypes) {
+                        /**
+                         * array members are objects (classes)
+                         * that themselves are components
+                         */
+                        console.log(ptypes[p].name);
+                        try {
+                            const meta = getComponentMeta(ptypes[p]);
+                            console.log('~~~~~~~~~~~~~~~~~');
+                            console.dir(meta);
+                        } catch (e) {
+                            console.error('@@@@@@');
+                        }
+
                     }
-
                 }
-            }
-            console.log(JSON.stringify(ptypes));
-            /**
-             * [ [Function: Settings], [Function: Logger] ]
-             */
-            debugger;
 
-/*
-            if (typeof parameterIndex!=='number') {
-                const ex2 = `${TAG} is applied to constructor of ${getClassName(nameOrTarget)} but parameterIndex is not passed or not a number`;
-                throw new TypeError(ex2);
-            }*/
+                if (Array.isArray(ptypes) && ptypes.length > 0) {
+                    if (ptypes[parameterIndex]) {
+                        const meta = getComponentMeta(ptypes[parameterIndex]);
+                        addConstructorDependency(nameOrTarget, meta.identity, parameterIndex);
+                    } else {
+                        throw new Error(`${TAG} array "ptypes" does not have index ${parameterIndex} target=""`);
+                    }
+                }
+
+            } else {
+
+                /**
+                 * parameterIndex is a TypedPropertyDescriptor
+                 * probably the case when @Inject is applied to a class method.
+                 * This is not allowed
+                 */
+                const ex2 = `${TAG} is applied to unnamed constructor of ${getClassName(nameOrTarget)} but parameterIndex is not passed or not a number`;
+                //throw new TypeError(ex2);
+            }
+
 
             /**
              * @todo
@@ -245,12 +268,12 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * Applied to constructor function
              * In this case nameOrTarget is class (has .constructor and .constructor.name)
              * propertyKey is undefined
-             * has parameterIndex
+             * has parameterIndex but 0 is valid parameterIndex
              */
             const pt = Reflect.getMetadata(PARAM_TYPES, nameOrTarget);
             /*if (!pt[parameterIndex] || !pt[parameterIndex].name) {
-                throw new TypeError(`Error adding ${TAG} to "${getClassName(nameOrTarget)}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
-            }*/
+             throw new TypeError(`Error adding ${TAG} to "${getClassName(nameOrTarget)}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
+             }*/
 
             debug(TAG, '[INJECT-161]=', pt);
 
@@ -259,14 +282,14 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * for undeclared type it will be Object with .name === "Object"
              * can also be "Number" and "Boolean" for primitives like :number or :boolean
              */
-           /* if (INVALID_COMPONENT_NAMES.includes(pt[parameterIndex].name)) {
+            /* if (INVALID_COMPONENT_NAMES.includes(pt[parameterIndex].name)) {
 
-                throw new TypeError(`Injected parameter "${pt[parameterIndex].name}" at index ${parameterIndex} in constructor of "${getClassName(nameOrTarget)}"  is not an allowed name for constructor injection component`);
-            }
+             throw new TypeError(`Injected parameter "${pt[parameterIndex].name}" at index ${parameterIndex} in constructor of "${getClassName(nameOrTarget)}"  is not an allowed name for constructor injection component`);
+             }
 
-            let compIdentity = getComponentIdentity({ target: pt[parameterIndex] });
-            let compName = compIdentity.componentName;
-            let className = compIdentity.className;*/
+             let compIdentity = getComponentIdentity({ target: pt[parameterIndex] });
+             let compName = compIdentity.componentName;
+             let className = compIdentity.className;*/
 
             //debug(TAG, 'got component name', String(compName), ' className=', className);
             //addConstructorDependency(nameOrTarget, compIdentity, parameterIndex);
@@ -331,10 +354,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                defineMetadata(_PROP_DEPENDENCY_, new Identity({
-                    clazz: rt,
-                    componentName: injectName,
-                }), target, propertyKey)();
+                defineMetadata(_PROP_DEPENDENCY_, Identity(injectName, rt), target, propertyKey)();
 
                 /**
                  * The actual target object may not have this property defined because typescript compiler will not
@@ -362,16 +382,16 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 // No propertyKey. So must be constructor argument for named inject
 
                 /*if (typeof parameterIndex!=='number') {
-                    throw new TypeError(`${TAG} is applied to constructor of "${String(getComponentName(target))}" but parameterIndex is not passed or not a number [ERROR INJECT-129]`);
-                }*/
+                 throw new TypeError(`${TAG} is applied to constructor of "${String(getComponentName(target))}" but parameterIndex is not passed or not a number [ERROR INJECT-129]`);
+                 }*/
 
                 const pt = Reflect.getMetadata(PARAM_TYPES, target);
                 debug(TAG, 'pt=', pt);
                 /*if (!pt[parameterIndex] || !pt[parameterIndex].name) {
-                    throw new TypeError(`Error adding ${TAG} to "${String(getComponentName(nameOrTarget))}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
-                }*/
+                 throw new TypeError(`Error adding ${TAG} to "${String(getComponentName(nameOrTarget))}" Type of parameter for constructor function is not available for parameterIndex ${parameterIndex}`);
+                 }*/
 
-               // let className = getClassName(pt[parameterIndex]);
+                // let className = getClassName(pt[parameterIndex]);
                 //debug(`${TAG} inferred className="${className}" for constructor dependency name "${injectName}" at index "${parameterIndex}"`);
 
                 /**
@@ -381,11 +401,11 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * propertyKey is undefined
                  * has parameterIndex
                  */
-               /* addConstructorDependency(target, new Identity({
-                    componentName: injectName,
-                    clazz: pt[parameterIndex],
-                    className,
-                }), parameterIndex);*/
+                /* addConstructorDependency(target, new Identity({
+                 componentName: injectName,
+                 clazz: pt[parameterIndex],
+                 className,
+                 }), parameterIndex);*/
             }
         };
     }
@@ -400,28 +420,33 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
  * @param {number} parameterIndex
  */
 export function addConstructorDependency(target: Target, dependency: IfComponentIdentity, parameterIndex: number) {
-    let deps = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target) || [];
+    let deps = <Array<IfCtorInject>>Reflect.getMetadata(_CTOR_DEPENDENCIES_, target) || [];
     const name = String(getComponentName(target));
-    debug('Adding Constructor dependency at index=', parameterIndex, ' dependency=', dependency, ` for component="${String(name)}". className="${getClassName(target)}" Existing dependencies=${JSON.stringify(deps)}`);
+    debug('Adding Constructor dependency at index=', parameterIndex, ' dependency=', dependency, ` for component="${name}". className="${getClassName(target)}" Existing dependencies=${JSON.stringify(deps)}`);
 
     /**
-     * @todo in case of inheritance deps array may already have dependency at the same index
+     * In case of inheritance deps array may already have dependency at the same index
      * in which case need to replace element at index in deps array
      * just check if deps[parameterIndex] then replace value, else push as before.
      * Typescript compiler will allow to use only co-variant types in child constructor
      */
-    deps.push({
-        parameterIndex,
-        dependency,
-    });
+    let existingDepIndex: number = deps.findIndex(dep => dep.parameterIndex===parameterIndex);
+
+    if (existingDepIndex > -1) {
+        debug('%s constructor dependencies for "%s" already has dependency at index="%d"', TAG, name, existingDepIndex );
+        deps.splice(existingDepIndex, 1, {
+            parameterIndex,
+            dependency,
+        });
+        debug('%s Updated deps after splice="%o"', TAG, deps);
+    } else {
+        deps.push({
+            parameterIndex,
+            dependency,
+        });
+    }
 
     Reflect.defineMetadata(_CTOR_DEPENDENCIES_, deps, target);
-    /**
-     * Do we need to also add same meta to prototype?
-     * Right now I don't see a need for it.
-     *
-     *
-     */
 
 }
 
@@ -430,7 +455,7 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
 
     let ret: Array<IfCtorInject> = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
     if (ret) {
-        debug('Found component _CTOR_DEPENDENCIES_ for componentName=', String(getComponentName(target)), 'className=', getClassName(target), 'from metadata: ', ret);
+        debug('%s Found component _CTOR_DEPENDENCIES_ for componentName="%s" className="" deps="%o"', TAG, String(getComponentName(target)), getClassName(target), ret);
         let sorted = [];
         /**
          * Need to perform a check to make sure that
@@ -450,15 +475,13 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
             }
         }
 
-
         sorted = sorted.map(_ => _.dependency);
 
-        debug('Returning _CTOR_DEPENDENCIES_ for componentName=', String(getComponentName(target)), 'className=', getClassName(target), 'sorted=', sorted);
-
+        debug('%s Returning _CTOR_DEPENDENCIES_ for componentName="%s" className="%s" sorted="%o"', TAG, String(getComponentName(target)), getClassName(target), sorted);
 
         return sorted;
     } else {
-        debug(`NOT FOUND constructor dependencies for component ${String(getComponentName(target))}`);
+        debug('%s NOT FOUND constructor dependencies for component="%s"', TAG, String(getComponentName(target)));
         return [];
     }
 }

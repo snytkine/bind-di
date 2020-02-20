@@ -134,7 +134,13 @@ export interface IfIocContainer {
      */
     addComponent(component: IfIocComponent): boolean
 
-
+    /**
+     * @todo how can this even be used?
+     * The scope is added to component when class is loaded, before
+     * it is even aware of this container.
+     * Both scope and default_scope meta is added as metadata to component
+     *
+     */
     defaultScope: ComponentScope;
 
     /**

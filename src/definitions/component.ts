@@ -29,18 +29,7 @@ export type Target = {
  */
 export interface IfComponentIdentity {
     componentName: StringOrSymbol
-    clazz: any
-
-    /**
-     * @todo remove it and make separate function compareIdentity
-     * @param other
-     */
-    equals: (other: IfComponentIdentity) => boolean
-
-    /**
-     * @todo remove it. If it's used at all anywhere then create copyIdentity function.
-     */
-    copy: () => IfComponentIdentity
+    clazz?: Target
 }
 
 
