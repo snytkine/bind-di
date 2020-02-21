@@ -1,4 +1,4 @@
-export const _PROP_DEPENDENCY_ = Symbol.for("bind:prop_dependency");
+export const PROP_DEPENDENCY = Symbol.for("bind:prop_dependency");
 export const CONSTRUCTOR_DEPENDENCIES = Symbol.for("bind:ctor_dependencies");
 export const COMPONENT_IDENTITY = Symbol.for("bind:component_name");
 export const _FACTORY_METHODS_ = Symbol.for("bind:componentfactory_methods");

@@ -1,26 +1,55 @@
 import {
-    Target,
-    PARAM_TYPES,
+    PROP_DEPENDENCY,
     CONSTRUCTOR_DEPENDENCIES,
-    _PROP_DEPENDENCY_,
-    getComponentName,
-    IfComponentPropDependency,
-    getClassName,
     defineMetadata,
+    getClassName,
+    getComponentName,
+    IfComponentIdentity,
+    IfComponentPropDependency,
     IfCtorInject,
-    IfComponentIdentity, stringifyIdentify,
-
+    PARAM_TYPES,
+    Target,
 } from '../';
 import { getComponentMeta } from '../framework/container/getcomponentmeta';
 import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 import { DESIGN_TYPE } from '../definitions/consts';
 import { getComponentIdentity } from '../metadata/index';
 import { Identity } from '../framework/lib/identity';
+import { DependencyType } from '../consts/dependencytype';
+import { FrameworkError } from '../exceptions/frameworkerror';
 
 
 const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
 
+
+const getDependencyType = (target: Target, propertyKey?: string,
+                           parameterIndex?: number | TypedPropertyDescriptor<Object>): DependencyType => {
+
+    if (target &&
+            target.constructor &&
+            propertyKey &&
+            typeof propertyKey==='string' &&
+            parameterIndex===undefined) {
+
+        return DependencyType.PROPERTY;
+    } else if (target &&
+            target.prototype &&
+            target.name &&
+            propertyKey===undefined &&
+            typeof parameterIndex==='number'
+    ) {
+        return DependencyType.CONSTRUCTOR_PARAMETER;
+    }
+
+};
+/**
+ * Named @Inject
+ * on constructor argument
+ * nameOrTarget = string - name of component
+ * parameterIndex undefined
+ * propertyKey undefined
+ */
 
 /**
  * Named inject: has unique component name
@@ -51,15 +80,15 @@ const TAG = '@Inject';
 
 export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
 
-export function Inject<T>(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<T>): void
+export function Inject(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
 /**
  * Named Inject
  * @param {string} name
  * @returns {(target: Target, propertyKey?: string, parameterIndex?: number) => void}
  * @constructor
  */
-export function Inject<T>(name: string): (target: Target, propertyKey?: string,
-                                          parameterIndex?: number | TypedPropertyDescriptor<T>) => void
+export function Inject(name: string): (target: Target, propertyKey?: string,
+                                          parameterIndex?: number | TypedPropertyDescriptor<Object>) => void
 
 /**
  * Implementation
@@ -120,6 +149,13 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * If parameterIndex is a propertyDescriptor
              */
             if (typeof parameterIndex==='object') {
+                /**
+                 * test that parameterIndex has .set property and .set must be function
+                 *
+                 */
+                if(!parameterIndex.set && parameterIndex.get && typeof parameterIndex.get === 'function'){
+                    throw new FrameworkError(`${TAG} cannot be applied to getter. Was applied to getter ${propertyKey}`)
+                }
                 debug(TAG, 'called for setter for component=', name, ' propertyKey=', propertyKey);
             } else {
                 debug(`${TAG} called on "${name}.${propertyKey}"`);
@@ -165,7 +201,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * because typescript compiler will not
              * add a property if it does not have a value.
              *
-             * @todo whould we define property on .prototype or on .constructor instead of nameOrTarget?
+             * @todo would we define property on .prototype or on .constructor instead of nameOrTarget?
              */
             if (!nameOrTarget.hasOwnProperty(propertyKey)) {
                 debug(`${TAG} - defining property "${propertyKey}" for Injection on target="${name}"`);
@@ -181,7 +217,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 debug(`${TAG} added property ${propertyKey} to prototype of ${name}`);
             }
 
-            defineMetadata(_PROP_DEPENDENCY_, injectIdentity, nameOrTarget, propertyKey)();
+            defineMetadata(PROP_DEPENDENCY, injectIdentity, nameOrTarget, propertyKey)();
 
         } else {
 
@@ -207,34 +243,14 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  */
                 //debugger;
                 console.log('INJECT-92');
-                /**
-                 * @todo the whole if... block is for debugging.
-                 * Delete it when done
-                 */
-                if (ptypes && Array.isArray(ptypes)) {
-                    for (const p in ptypes) {
-                        /**
-                         * array members are objects (classes)
-                         * that themselves are components
-                         */
-                        console.log(ptypes[p].name);
-                        try {
-                            const meta = getComponentMeta(ptypes[p]);
-                            console.log('~~~~~~~~~~~~~~~~~');
-                            console.dir(meta);
-                        } catch (e) {
-                            console.error('@@@@@@');
-                        }
 
-                    }
-                }
 
                 if (Array.isArray(ptypes) && ptypes.length > 0) {
                     if (ptypes[parameterIndex]) {
                         const meta = getComponentMeta(ptypes[parameterIndex]);
                         addConstructorDependency(nameOrTarget, meta.identity, parameterIndex);
                     } else {
-                        throw new Error(`${TAG} array "ptypes" does not have index ${parameterIndex} target=""`);
+                        throw new FrameworkError(`${TAG} array "ptypes" does not have index ${parameterIndex} target=""`);
                     }
                 }
 
@@ -353,7 +369,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
                  */
-                defineMetadata(_PROP_DEPENDENCY_, Identity(injectName, rt), target, propertyKey)();
+                defineMetadata(PROP_DEPENDENCY, Identity(injectName, rt), target, propertyKey)();
 
                 /**
                  * The actual target object may not have this property defined because typescript compiler will not
@@ -432,7 +448,10 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
     let existingDepIndex: number = deps.findIndex(dep => dep.parameterIndex===parameterIndex);
 
     if (existingDepIndex > -1) {
-        debug('%s constructor dependencies for "%s" already has dependency at index="%d"', TAG, name, existingDepIndex );
+        debug('%s constructor dependencies for "%s" already has dependency at index="%d"', TAG, name, existingDepIndex);
+        /**
+         * Fill missing dependencies
+         */
         deps.splice(existingDepIndex, 1, {
             parameterIndex,
             dependency,
@@ -446,7 +465,6 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
     }
 
     Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
-
 }
 
 
@@ -487,9 +505,10 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
 
 
 export function getPropDependencies(target: Target): Array<IfComponentPropDependency> {
+
     const cName = String(getComponentName(target));
 
-    debug('Entered getPropDependencies for target=', cName);
+    debug('Entered getPropDependencies for target="%s"', cName);
 
     /**
      * getOwnPropertyNames is a problem when components extends another component
@@ -498,19 +517,12 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
      * @type {string[]}
      */
     let dependencies = [];
-    //let methods = Object.getOwnPropertyNames(target.prototype);//.filter(_ => _ !== 'constructor');
-
-    //debug(`${TAG} property names of target "${String(cName)}"`, methods);
-
-    //let dependencies = methods.filter(p => Reflect.hasMetadata(_PROP_DEPENDENCY_, target, p)).map(p => {
-    //    return {propertyName: p, dependency: Reflect.getMetadata(_PROP_DEPENDENCY_, target, p)}
-    //})
 
     /**
      * Child class may have dependency-injected property defined parent class
      * but redefined in child class
      *
-     * Expected behavior: consider property to be an auto-wired dependency
+     * Expected behavior: consider property to be an injected dependency
      * if it's annotated with @Inject in a parent class but if it's redefined
      * in child class with a different dependency then use dependency from child class
      * if child class redefined the property with no @Inject then the property should not
@@ -518,15 +530,13 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
      */
     for (const p in target.prototype) {
 
-
-        debug(`Checking for prop dependency. prop ${cName}.${p} `);
-
+        debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
 
         /**
          * First check if class has own property p
          */
-        if (Reflect.hasMetadata(_PROP_DEPENDENCY_, target.prototype, p)) {
-            debug(`Prop ${String(cName)}.${p} has dependency`);
+        if (Reflect.hasMetadata(PROP_DEPENDENCY, target.prototype, p)) {
+            debug('%s Prop "%s.%s" has dependency', TAG, cName, p);
             /**
              * dependency may already exist for the same property key if it was
              * defined on the parent class.
@@ -534,12 +544,12 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
              */
             dependencies.push({
                 propertyName: p,
-                dependency: Reflect.getMetadata(_PROP_DEPENDENCY_, target.prototype, p),
+                dependency: Reflect.getMetadata(PROP_DEPENDENCY, target.prototype, p),
             });
         }
     }
 
-    debug(`${TAG} returning prop dependencies for "${String(cName)}"=`, dependencies);
+    debug('%s returning prop dependencies for class "%s" dependencies=%o', TAG, cName, dependencies);
 
     return dependencies;
 }

@@ -9,7 +9,7 @@ import {
     PARAM_TYPES,
     getComponentMeta,
     IfCtorInject,
-    CONSTRUCTOR_DEPENDENCIES, StringOrSymbol,
+    CONSTRUCTOR_DEPENDENCIES, StringOrSymbol, getPropDependencies,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
@@ -132,6 +132,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
 
         setComponentIdentity(Identity(componentName, target), target);
         setConstructorDependencies(componentName, target);
+
         /**
          * @todo what's the purpose of adding DEFAULT_SCOPE if container
          * has a property defaultScope and will use its own default if scope is not
