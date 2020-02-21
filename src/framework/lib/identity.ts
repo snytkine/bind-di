@@ -1,4 +1,4 @@
-import { _UNNAMED_COMPONENT_,
+import { UNNAMED_COMPONENT,
     IfComponentIdentity,
     StringOrSymbol,
     Target } from '../../definitions';
@@ -29,7 +29,7 @@ export function Identity(component: Target | StringOrSymbol, clazz?:Target): IfC
     const cType = typeof component;
 
     if(cType === 'string' || cType === 'symbol'){
-        if(component === _UNNAMED_COMPONENT_ && !clazz){
+        if(component === UNNAMED_COMPONENT && !clazz){
             throw new Error('Identity factory. cannot create Identity for UNNAMED COMPONENT without clazz');
         }
 
@@ -43,7 +43,7 @@ export function Identity(component: Target | StringOrSymbol, clazz?:Target): IfC
      * called with single param Target.
      */
     return {
-        componentName: _UNNAMED_COMPONENT_,
+        componentName: UNNAMED_COMPONENT,
         clazz: component
     }
 }
@@ -60,9 +60,9 @@ export function _Identity({
                              clazz,
                          }: IfIdentityCtorArgs): IfComponentIdentity  {
 
-    componentName = componentName || _UNNAMED_COMPONENT_;
+    componentName = componentName || UNNAMED_COMPONENT;
 
-    if(componentName === _UNNAMED_COMPONENT_ && !clazz){
+    if(componentName === UNNAMED_COMPONENT && !clazz){
         throw new Error('cannot create Identity for UNNAMED COMPONENT without clazz');
     }
 

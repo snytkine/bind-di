@@ -1,7 +1,7 @@
 import {
     Target,
     PARAM_TYPES,
-    _CTOR_DEPENDENCIES_,
+    CONSTRUCTOR_DEPENDENCIES,
     _PROP_DEPENDENCY_,
     getComponentName,
     IfComponentPropDependency,
@@ -18,7 +18,7 @@ import { getComponentIdentity } from '../metadata/index';
 import { Identity } from '../framework/lib/identity';
 
 
-const debug = require('debug')('bind:decorator:inject');
+const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
 
 
@@ -48,7 +48,6 @@ const TAG = '@Inject';
  * @param target
  * @constructor
  */
-export function Inject(target: Target): void
 
 export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
 
@@ -79,7 +78,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
         /**
          * Unnamed @Inject
          * can be applied to
-         * 1) Constructor function
+         *
          * 2) Property
          * 3) Setter
          *
@@ -137,7 +136,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
              * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
              * and it must be an object that is itself a component
              *
-             * If its a decorated component then it will have a _COMPONENT_IDENTITY_ metadata
+             * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
              * But it may be non an annotated component in case if this component is not a regular class
              * but a component that is produced by a factory, in which case it does not have decorator at all
              *
@@ -336,7 +335,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 /**
                  * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
                  * and it must be an object that is itself a component
-                 * If its a decorated component then it will have a _COMPONENT_IDENTITY_ metadata
+                 * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
                  * But it may be non an annotated component in case if this component is not a regular class
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
@@ -349,7 +348,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                 /**
                  * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
                  * and it must be an object that is itself a component
-                 * If its a decorated component then it will have a _COMPONENT_IDENTITY_ metadata
+                 * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
                  * But it may be non an annotated component in case if this component is not a regular class
                  * but a component that is produced by a factory, in which case it does not have decorator at all
                  *
@@ -420,7 +419,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
  * @param {number} parameterIndex
  */
 export function addConstructorDependency(target: Target, dependency: IfComponentIdentity, parameterIndex: number) {
-    let deps = <Array<IfCtorInject>>Reflect.getMetadata(_CTOR_DEPENDENCIES_, target) || [];
+    let deps = <Array<IfCtorInject>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
     const name = String(getComponentName(target));
     debug('Adding Constructor dependency at index=', parameterIndex, ' dependency=', dependency, ` for component="${name}". className="${getClassName(target)}" Existing dependencies=${JSON.stringify(deps)}`);
 
@@ -446,16 +445,16 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
         });
     }
 
-    Reflect.defineMetadata(_CTOR_DEPENDENCIES_, deps, target);
+    Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
 
 }
 
 
 export function getConstructorDependencies(target: Target): Array<IfComponentIdentity> {
 
-    let ret: Array<IfCtorInject> = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
+    let ret: Array<IfCtorInject> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
     if (ret) {
-        debug('%s Found component _CTOR_DEPENDENCIES_ for componentName="%s" className="" deps="%o"', TAG, String(getComponentName(target)), getClassName(target), ret);
+        debug('%s Found component CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="" deps="%o"', TAG, String(getComponentName(target)), getClassName(target), ret);
         let sorted = [];
         /**
          * Need to perform a check to make sure that
@@ -477,7 +476,7 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
 
         sorted = sorted.map(_ => _.dependency);
 
-        debug('%s Returning _CTOR_DEPENDENCIES_ for componentName="%s" className="%s" sorted="%o"', TAG, String(getComponentName(target)), getClassName(target), sorted);
+        debug('%s Returning CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="%s" sorted="%o"', TAG, String(getComponentName(target)), getClassName(target), sorted);
 
         return sorted;
     } else {

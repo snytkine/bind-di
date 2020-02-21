@@ -1,6 +1,6 @@
 import {
     _COMPONENT_SCOPE_,
-    _DEFAULT_SCOPE_,
+    DEFAULT_SCOPE,
     defineMetadata,
     getComponentName,
     StringOrSymbol,
@@ -45,7 +45,7 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): Componen
 
     if (!scope) {
 
-        scope = Reflect.getMetadata(_DEFAULT_SCOPE_, target, propertyKey);
+        scope = Reflect.getMetadata(DEFAULT_SCOPE, target, propertyKey);
         /**
          *
          */

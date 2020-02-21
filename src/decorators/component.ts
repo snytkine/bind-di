@@ -1,19 +1,15 @@
 import 'reflect-metadata';
 import {
     Target,
-    _COMPONENT_IDENTITY_,
-    _UNNAMED_COMPONENT_,
-    _COMPONENT_TYPE_,
-    _DEFAULT_SCOPE_,
+    COMPONENT_IDENTITY,
+    UNNAMED_COMPONENT,
+    DEFAULT_SCOPE,
     RETURN_TYPE,
-    IocComponentType,
     IfComponentFactoryMethod,
-    DESIGN_TYPE,
     PARAM_TYPES,
     getComponentMeta,
-    getConstructorDependencies,
     IfCtorInject,
-    _CTOR_DEPENDENCIES_,
+    CONSTRUCTOR_DEPENDENCIES, StringOrSymbol,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
@@ -23,49 +19,211 @@ import {
     defineMetadata,
     setComponentIdentity,
 } from '../metadata/index';
-import { randomBytes } from 'crypto';
 import { getComponentName } from '../index';
 import { Identity } from '../framework/lib/identity';
+import { DecoratorError } from '../exceptions/decoratorerror';
 
-
-/**
- * When @Component or @Factory is added to class
- * Component name is added to class as a hidden non-enumerable property (with Symbol as name)
- * Component scope is added to class as hidden non-enumerable property (with Symbol as name)
- * Component type (Component or ComponentFactory is added to class as hidden non-enumerable hidded property (with
- * Symbol as name) A Scope property must NOT be added ONLY if explicitly set with @Scope or @Singleton decorator,
- * cannot be set to initial default value. But what about decorating controller? Controller in not Singleton by default
- * but generic component IS singleton! A component must also have _DEFAULT_SCOPE_ This way when a new component type
- * needs to add component meta data (like controller) it must call the addComponentDecoration with own _DEFAULT_SCOPE_
- * value.
- *
- *
- * When @Component is added to method or get accessor:
- *
- *
- * @type {debug.IDebugger | any}
- */
-
-const debug = require('debug')('bind:decorator:component');
+const debug = require('debug')('bind:decorate:component');
 const TAG = '@Component';
 
 /**
- export type _Target = {
-    new? (...args: any[]): any
-    constructor: (...args: any[]) => any
-    name?: string
-    //constructor: any
-    prototype?: any
-}
- **/
-
-/**
- * Get component metadata from class or object instance
+ * Look in Object constructor function to determine
+ * its constructor parameter types.
+ *
+ * Look at existing constructor dependencies that may have been set
+ * by @Inject decorators on constructor parameters
+ *
+ * Fill missing dependencies (for example of constructor has 3 parameters but
+ * only param 2 was decorated with @Inject then set the missing 1st and 3rd param.
+ *
+ * Check that parameter types are not reserved types (must not be build in class, no String, Number, Object)
+ *
  * @param target
  */
-//export function getComponentMeta(target: any): IfComponentDetails {
-//
-//}
+const setConstructorDependencies = (componentName: StringOrSymbol, target: Object): void => {
+    debug('%s Entered setConstructorDependencies for component="%s"', TAG, String(componentName));
+    /**
+     * ptypes is array of constructor property param types
+     */
+    const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
+
+    debugger;
+
+
+    /**
+     * Get possibly already defined constructor dependencies
+     * Some may have been defined using @Inject directly on
+     * constructor parameters.
+     */
+    const existingCtorDeps: Array<IfCtorInject> | undefined = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
+    console.log(componentName, '!!!!!!!!!!!!');
+    console.dir(existingCtorDeps);
+    console.log(componentName, '??????????????');
+    console.dir(ptypes);
+
+    /**
+     * ptypes array has all constructor parameters.
+     * existingCtopDeps has sorted array of dependencies
+     * If any of the ctor dependency properties were not
+     * decorated with @Inject then getConstructorDependencies would throw
+     * because it would detect a gap in array.
+     * We would not have a change to fill the missing elements.
+     *
+     * We need a function to get raw ctor dependencies.
+     *
+     * Loop over them and check that
+     */
+
+    /**
+     * mylogger !!!!!!!!!!!!
+     [
+     {
+    parameterIndex: 1,
+    dependency: {
+      componentName: Symbol(bind:component_unnamed),
+      clazz: [Function: Settings]
+    }
+  },
+     {
+    parameterIndex: 0,
+    dependency: {
+      componentName: Symbol(bind:component_unnamed),
+      clazz: [Function: Settings]
+    }
+  }
+     ]
+     mylogger ??????????????
+     [ [Function: Settings], [Function: Settings] ]
+     *
+     */
+    debugger;
+    console.log('++++++++++++++++');
+    if (ptypes && Array.isArray(ptypes)) {
+        for (const p in ptypes) {
+            /**
+             * array members are objects (classes)
+             * that themselves are components
+             */
+            console.log(ptypes[p].name);
+            try {
+                const meta = getComponentMeta(ptypes[p]);
+                console.log('~~~~~~~~~~~~~~~~~');
+                console.dir(meta);
+            } catch (e) {
+                console.error('@@@@@@');
+            }
+
+        }
+    }
+
+};
+
+/**
+ * Actual function that will set component metadata on component
+ * @param componentName
+ */
+export const applyComponentDecorator = (componentName: StringOrSymbol) => (target: Object, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void => {
+
+    if (typeof target==='function' && !propertyKey && target.prototype) {
+        /**
+         * Applying decorator to class
+         */
+        debug(`Defining ${TAG}('${String(componentName)}') for class ${target.name}`);
+
+        setComponentIdentity(Identity(componentName, target), target);
+        setConstructorDependencies(componentName, target);
+        /**
+         * @todo what's the purpose of adding DEFAULT_SCOPE if container
+         * has a property defaultScope and will use its own default if scope is not
+         * resolved?
+         * the function getScope uses this DEFAULT_SCOPE if SCOPE is not defined.
+         * this means that scope will always be resolved to at least the default scope
+         * and container will not have a chance to use own default scope.
+         *
+         * This concept of DEFAULT_SCOPE on component was designed for Controller or Middleware
+         * component. The idea was that DEFAULT_SCOPE would be set by @Controller decorator
+         * but could be overwritten by @Singleton decorator
+         * in that case the value of scope is computer value - SCOPE || DEFAULT_SCOPE
+         * But for regular component we should never set DEFAULT_SCOPE otherwise
+         * the container's own defaultScope can never be used.
+         */
+    } else {
+
+        const factoryClassName = target?.constructor?.name;
+        debug(`Defining named ${TAG}('${String(componentName)}') for class method "${String(factoryClassName)}.${propertyKey}"`);
+
+        /**
+         * Applying decorator to method of the class
+         * In this case the target is a prototype of the class for instance member
+         * or constructor function for a static member.
+         *
+         * We should not allow Component decorator on a static member.
+         *
+         * not allowing @Component decorator on member property?
+         *
+         * Problem is that initially the property will not be defined
+         * and then it will not be include in compiled JS class and that means
+         * that we will not be able to get its type. The function is always defined
+         * We may allow getter functions to be decorated at component but that will essentially
+         * be same as decorating methods.
+         *
+         * Also decorating a method makes it possible to do something like
+         * return new MyClass(somePropSetFromInit)
+         */
+        if (!descriptor || typeof descriptor.value!=='function') {
+            throw new DecoratorError(`Only class or class method can have a '${TAG}'decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`);
+        }
+
+        /**
+         * Decorating method with @Component but now need to extract component name based on return type.
+         * If return type is not declared in typescript then we cannot proceed.
+         *
+         * If unnamed @Component is applied to class method
+         * that class method must declared return type like this:
+         * getMyComponent(): MyComponent
+         *
+         * Here the @Component was applied to accessor method without providing component name
+         * so we must extract component name from return type.
+         * @Component
+         * getCollection(): Collection {
+         *  //return a collection instance.
+         * }
+         *
+         */
+        const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
+        const RT = typeof rettype;
+
+        if (componentName===UNNAMED_COMPONENT && (RT!='function' || !rettype.name)) {
+            throw new DecoratorError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and type is not an object: "${RT}"`);
+        }
+
+        /**
+         *
+         * Make sure that return type is user-defined class and not a build-in like String, Object, etc.
+         * but only in case of UNNAMED_COMPONENT
+         *
+         */
+        if (componentName===UNNAMED_COMPONENT && INVALID_COMPONENT_NAMES.includes(rettype.name)) {
+            throw new DecoratorError(`${TAG} Return type of method "${target.constructor.name}.${propertyKey}" 
+                is not a valid name for a component: "${rettype.name}". 
+                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`);
+        }
+
+        /**
+         * the rettype is actually a class that if usually declared in different file
+         * (not same file as factory class)
+         * And also that class itself does not have @Component decorator.
+         */
+        setComponentIdentity(Identity(componentName, rettype), target, propertyKey);
+
+        /**
+         * Components created by functions of factory have default scope SINGLETON
+         * In this case it makes sense to set DEFAULT_SCOPE to be SINGLETON for this component
+         */
+        defineMetadata(DEFAULT_SCOPE, ComponentScope.SINGLETON, target, propertyKey)(true);
+
+    }
+};
 
 /**
  * Component decorator can be a factory - like @Component("my_stuff")
@@ -85,275 +243,19 @@ export function Component(name: string): (target: any, propertyKey?: string,
 export function Component(nameOrTarget: string | Target, propertyKey?: string,
                           descriptor?: TypedPropertyDescriptor<Object>) {
 
-    let componentName: string;
-    let className: string;
-
-
     if (typeof nameOrTarget!=='string') {
-
-        className = nameOrTarget.name;
-
-        /**
-         * @todo do we need this random bytes in component name?
-         * What's the purpose of this?
-         * Just use className for componentName and we not going
-         * to use className since we passing clazz
-         */
-        //componentName = className + '.' + randomBytes(36).toString('hex');
-
-        debug(`Entered @Component for unnamed component propertyKey="${propertyKey}"`);
-
-        if (typeof nameOrTarget==='function' && !propertyKey && nameOrTarget['prototype']) {
-            /**
-             * Applying decorator to class
-             */
-
-            debug(`Defining unnamed ${TAG} for class ${className}`);
-            const ptypes = Reflect.getMetadata(PARAM_TYPES, nameOrTarget);
-
-            const rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget);
-
-
-            debugger;
-
-            setComponentIdentity(Identity(_UNNAMED_COMPONENT_, nameOrTarget), nameOrTarget);
-            /**
-             * @todo stop using this COMPONENT_TYPE, type not important for anything
-             * COMPONENT_META object may be used for marking special components like "Controllers" etc.
-             *
-             */
-            defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget)(); // used to be true
-            /**
-             * @todo what's the purpose of adding _DEFAULT_SCOPE_ if container
-             * has a property defaultScope and will use its own default if scope is not
-             * resolved?
-             * the function getScope uses this _DEFAULT_SCOPE_ if SCOPE is not defined.
-             * this means that scope will always be resolved to at least the default scope
-             * and container will not have a chance to use own default scope.
-             *
-             * This concept of _DEFAULT_SCOPE_ on component was designed for Controller or Middleware
-             * component. The idea was that _DEFAULT_SCOPE_ would be set by @Controller decorator
-             * but could be overwritten by @Singleton decorator
-             * in that case the value of scope is computer value - SCOPE || DEFAULT_SCOPE
-             * But for regular component we should never set _DEFAULT_SCOPE_ otherwise
-             * the container's own defaultScope can never be used.
-             */
-
-
-        } else {
-
-            debug(`Defining unnamed ${TAG} for property ${propertyKey} of class ${nameOrTarget['name']}`);
-
-            /**
-             * Applying decorator to method of the class
-             * In this case the target is a prototype of the class for instance member
-             * or constructor function for a static member.
-             *
-             * We should not allow Component decorator on a static member.
-             */
-            if (!descriptor || typeof descriptor.value!=='function') {
-                const ex1 = `Only class or class method can have a '${TAG}'decorator. ${nameOrTarget.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`;
-                throw new TypeError(ex1);
-            }
-
-            /**
-             * Decorating method with @Component but now need to extract component name based on return type.
-             * If return type is not declared in typescript then we cannot proceed.
-             *
-             * If @Component is applied to class method that class method must declared return type like this:
-             * Here the @Component was applied to accessor method without providing component name
-             * so we must extract component name from return type.
-             *
-             * getCollection(): Collection {
-             *  //return a collection instance.
-             * }
-             *
-             */
-            const rettype = Reflect.getMetadata(RETURN_TYPE, nameOrTarget, propertyKey);
-            const RT = typeof rettype;
-
-            if (RT!='function' || !rettype.name) {
-                throw new TypeError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and rettype is not an object: ${RT}`);
-            }
-
-            /**
-             *
-             * Make sure that return type is user-defined class and not a build-in like String, Object, etc.
-             */
-            if (INVALID_COMPONENT_NAMES.includes(rettype.name)) {
-                throw new TypeError(`${TAG} Return type of method "${nameOrTarget.constructor.name}.${propertyKey}" 
-                is not a valid name for a component: "${rettype.name}". 
-                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`);
-            }
-
-            className = rettype.name;
-            /**
-             * the rettype is actually a class that if usually declared in different file
-             * (not same file as factory class)
-             * And also that class itself does not have @Component decorator.
-             * So how can we get the file path of that file?
-             *
-             */
-            setComponentIdentity(Identity(_UNNAMED_COMPONENT_, rettype), nameOrTarget, propertyKey);
-
-            defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, nameOrTarget, propertyKey)(); // used to be true
-            /**
-             * Components created by functions of factory have default scope SINGLETON
-             * In this case it makes sense to set DEFAULT_SCOPE to be SINGLETON for this component
-             */
-            defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, nameOrTarget, propertyKey)(true);
-
-        }
-
-
+        applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);
     } else {
-        /**
-         * Named component
-         */
-        debug(`${TAG} decorator Called with component name="${nameOrTarget}"`);
-        componentName = nameOrTarget;
-        return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
-
-            if (typeof target==='function' && !propertyKey) {
-                /**
-                 * Named component applied at class level
-                 *
-                 */
-                className = target.name;
-
-                debug(`Defining named ${TAG} '${componentName}' for class ${target.name}`);
-                /**
-                 * ptypes is array of constructor property param types
-                 */
-                const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
-
-                /**
-                 * Get possibly already defined constructor dependencies
-                 * Some may have been defined using @Inject directly on
-                 * constructor parameters.
-                 */
-                //const existingCtorDeps = getConstructorDependencies(target);
-                const existingCtorDeps: Array<IfCtorInject> | undefined = Reflect.getMetadata(_CTOR_DEPENDENCIES_, target);
-                console.log(componentName, '!!!!!!!!!!!!')
-                console.dir(existingCtorDeps);
-                console.log(componentName, '??????????????')
-                console.dir(ptypes);
-
-                /**
-                 * ptypes array has all constructor parameters.
-                 * existingCtopDeps has sorted array of dependencies
-                 * If any of the ctor dependency properties were not
-                 * decorated with @Inject then getConstructorDependencies would throw
-                 * because it would detect a gap in array.
-                 * We would not have a change to fill the missing elements.
-                 *
-                 * We need a function to get raw ctor dependencies.
-                 *
-                 * Loop over them and check that
-                 */
-
-                /**
-                 * mylogger !!!!!!!!!!!!
-                 [
-                 {
-    parameterIndex: 1,
-    dependency: {
-      componentName: Symbol(bind:component_unnamed),
-      clazz: [Function: Settings]
-    }
-  },
-                 {
-    parameterIndex: 0,
-    dependency: {
-      componentName: Symbol(bind:component_unnamed),
-      clazz: [Function: Settings]
-    }
-  }
-                 ]
-                 mylogger ??????????????
-                 [ [Function: Settings], [Function: Settings] ]
-                 *
-                 */
-                debugger;
-                console.log('++++++++++++++++');
-                if (ptypes && Array.isArray(ptypes)) {
-                    for (const p in ptypes) {
-                        /**
-                         * array members are objects (classes)
-                         * that themselves are components
-                         */
-                        console.log(ptypes[p].name);
-                        try {
-                            const meta = getComponentMeta(ptypes[p]);
-                            console.log('~~~~~~~~~~~~~~~~~');
-                            console.dir(meta);
-                        } catch (e) {
-                            console.error('@@@@@@');
-                        }
-
-                    }
-                }
-
-
-                // Applying to target (without .prototype fails to get meta for the instance)
-                //defineMetadataUnique(_COMPONENT_IDENTITY_, name, target);
-
-                setComponentIdentity(Identity(componentName, target), target);
-                defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target)(); // used to be true
-
-            } else {
-                /**
-                 * This is a named component applied to method.
-                 */
-                const factoryClassName = target.constructor && target.constructor.name;
-
-                if (typeof descriptor.value!=='function') {
-                    throw new TypeError(`Only class or class method can have a '${TAG}' decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG}('${componentName}') is NOT a class or method`);
-                }
-
-                debug(`Defining named ${TAG} "${componentName}" for class method "${factoryClassName}.${propertyKey}"`);
-
-                /**
-                 * Get return type of component getter method
-                 */
-                const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
-
-                className = rettype && rettype.name;
-
-                setComponentIdentity(Identity(componentName, rettype), target, propertyKey);
-                defineMetadata(_COMPONENT_TYPE_, IocComponentType.COMPONENT, target, propertyKey)(); // used to be true
-                /**
-                 * Method component are components generated by factory
-                 * these components are always Singleton?
-                 */
-                defineMetadata(_DEFAULT_SCOPE_, ComponentScope.SINGLETON, target, propertyKey)(true);
-
-            }
-
-        };
+        return applyComponentDecorator(nameOrTarget);
     }
 }
 
-
-/**
- * @todo
- * Functions to create Component annotations
- * For example it will be possible to create
- * Controller annotation by calling
- * Controller = ComponentDecorator(_CONTROLLER_TYPE_) and it will return
- * Component function with value for _COMPONENT_TYPE_
- *
- * Then it can be used like this: Normally Component("myservice")
- * @makeComponentDecorator(_SPECIAL_TYPE_, ComponentScope.SINGLETON)("myservice")
- * or
- * @makeComponentDecorator(_SPECIAL_TYPE_, ComponentScope.SINGLETON)  for unnamed component
- */
-//const componentDecorator = (cType: IocComponentType, cMeta: Symbol):
-
-export const Factory = (target: Target): void => {
-    Component(target);
-    Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
-};
+// Example how to create custom component decorator
+/*
+ const MyFactory = (target: Target): void => {
+ Component(target);
+ Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
+ };*/
 
 
 /**
@@ -397,8 +299,8 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
 
     debug(`${TAG} property names of target "${cName}"`, methods);
 
-    let factoryMethods = methods.filter(m => Reflect.hasMetadata(_COMPONENT_IDENTITY_, target.prototype, m)).map(m => {
-        return { 'methodName': m, 'providesComponent': Reflect.getMetadata(_COMPONENT_IDENTITY_, target.prototype, m) };
+    let factoryMethods = methods.filter(m => Reflect.hasMetadata(COMPONENT_IDENTITY, target.prototype, m)).map(m => {
+        return { 'methodName': m, 'providesComponent': Reflect.getMetadata(COMPONENT_IDENTITY, target.prototype, m) };
     });
 
     debug(`${TAG} factory methods of "${cName}"=`, factoryMethods);

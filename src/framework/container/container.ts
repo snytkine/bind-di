@@ -10,7 +10,7 @@ import { StringOrSymbol } from '../../definitions/types';
 
 import { IfComponentIdentity } from '../../definitions/component';
 import { INVALID_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
-import { _UNNAMED_COMPONENT_ } from '../../definitions/symbols';
+import { UNNAMED_COMPONENT } from '../../definitions/symbols';
 import { stringifyIdentify } from './containerutils';
 import {
     initIterator,
@@ -241,7 +241,7 @@ export class Container implements IfIocContainer {
          * For unnamed component a match is by clazz
          *
          */
-        if (id.componentName!==_UNNAMED_COMPONENT_) {
+        if (id.componentName!==UNNAMED_COMPONENT) {
             ret = this.store_.find(_ => _.identity.componentName===id.componentName);
             /**
              * className check?
@@ -273,7 +273,7 @@ export class Container implements IfIocContainer {
              */
             ret = this.store_.find(
                     (component: IfComponentDetails) => {
-                        return component.identity.componentName===_UNNAMED_COMPONENT_ &&
+                        return component.identity.componentName===UNNAMED_COMPONENT &&
                                 component.identity.clazz===id.clazz;
                     });
 

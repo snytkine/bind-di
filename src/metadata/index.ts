@@ -2,8 +2,8 @@ import 'reflect-metadata';
 import {
     IfComponentIdentity,
     Target,
-    _COMPONENT_IDENTITY_,
-    _UNNAMED_COMPONENT_,
+    COMPONENT_IDENTITY,
+    UNNAMED_COMPONENT,
     StringOrSymbol,
 } from '../';
 
@@ -31,18 +31,18 @@ export interface IfIdentityCtorArgs {
  */
 export const isSameIdentity = (a: IfComponentIdentity, b: IfComponentIdentity): boolean => {
     /**
-     * Either one is NOT _UNNAMED_COMPONENT_
+     * Either one is NOT UNNAMED_COMPONENT
      * then compare by componentName
      */
-    if (a.componentName!==_UNNAMED_COMPONENT_ ||
-            b.componentName!==_UNNAMED_COMPONENT_) {
+    if (a.componentName!==UNNAMED_COMPONENT ||
+            b.componentName!==UNNAMED_COMPONENT) {
         return a.componentName===b.componentName;
     }
     /**
-     * Both are _UNNAMED_COMPONENT_
+     * Both are UNNAMED_COMPONENT
      * then both must have same clazz
      */
-    return b.componentName===_UNNAMED_COMPONENT_ && a.clazz===b.clazz;
+    return b.componentName===UNNAMED_COMPONENT && a.clazz===b.clazz;
 };
 
 export const copyIdentity = (identity: IfComponentIdentity): IfComponentIdentity => {
@@ -81,10 +81,10 @@ export class _Identity implements IfComponentIdentity {
 
         /!**
          * Named component match other component by name only
-         * This forces componentName to be unique except in cases of _UNNAMED_COMPONENT_
+         * This forces componentName to be unique except in cases of UNNAMED_COMPONENT
          * which is a special componentName
          *!/
-        if (this.componentName!==_UNNAMED_COMPONENT_) {
+        if (this.componentName!==UNNAMED_COMPONENT) {
             /!**
              * Just using componentName is enough for named components,
              * components that have been annotated with @Component('my_service-x')
@@ -97,7 +97,7 @@ export class _Identity implements IfComponentIdentity {
          * clazz must refer to the same object
          * and other component must also be unnamed
          *!/
-        return (other.componentName===_UNNAMED_COMPONENT_ &&
+        return (other.componentName===UNNAMED_COMPONENT &&
                 this.clazz===other.clazz);
 
     }*/
@@ -136,7 +136,7 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
 
 
 export function setComponentIdentity(identity: IfComponentIdentity, target: Object, propertyKey?: string): void {
-    return defineMetadata(_COMPONENT_IDENTITY_, identity, target, propertyKey)(); // used to be true but was causing
+    return defineMetadata(COMPONENT_IDENTITY, identity, target, propertyKey)(); // used to be true but was causing
                                                                                   // problems when component extended
                                                                                   // another decorated component
 }
@@ -148,14 +148,14 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
  }*/
 
 export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbol): IfComponentIdentity {
-    let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
+    let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
     let targetName: string;
 
     /**
      * Now get className
      * it it's different that found by Identity it could be a sub-class
      * or an annotated class. In such case the parent class since it had
-     * a Component decorator, will already have a _COMPONENT_IDENTITY_ meta
+     * a Component decorator, will already have a COMPONENT_IDENTITY meta
      * but a child-class if it's not decorated will not have own meta
      * In this edge-case we should generate an Identity for a child-class
      * and not use parent, otherwise it will not be possible
@@ -163,7 +163,7 @@ export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbo
      * have same Identity object
      */
     if (ret) {
-        debug('Found className from _COMPONENT_IDENTITY_ metadata ', ret);
+        debug('Found className from COMPONENT_IDENTITY metadata ', ret);
         if (target.name) {
             debug(`Found className in .name property "${target['name']}"`);
 
@@ -204,12 +204,12 @@ export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbo
 export function getComponentName(target: Target, propertyKey?: StringOrSymbol): StringOrSymbol {
 
     if (target) {
-        let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target, propertyKey);
+        let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
         if (ret) {
-            debug('Found component name from _COMPONENT_IDENTITY_ metadata ', String(ret.componentName));
+            debug('Found component name from COMPONENT_IDENTITY metadata ', String(ret.componentName));
             return ret.componentName;
         } else {
-            return _UNNAMED_COMPONENT_;
+            return UNNAMED_COMPONENT;
         }
     }
 }
@@ -218,9 +218,9 @@ export function getComponentName(target: Target, propertyKey?: StringOrSymbol): 
 export function getClassName(target: Target, propertyKey?: StringOrSymbol): string {
 
     if (target) {
-        let ret = Reflect.getMetadata(_COMPONENT_IDENTITY_, target);
+        let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target);
         if (ret) {
-            debug('Found className from _COMPONENT_IDENTITY_ metadata ', ret);
+            debug('Found className from COMPONENT_IDENTITY metadata ', ret);
             return ret.className;
         } else if (target['name']) {
             debug(`Found className in .name property "${target['name']}"`);
