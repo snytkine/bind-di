@@ -9,7 +9,8 @@ import {
     PARAM_TYPES,
     PROP_DEPENDENCY,
     StringOrSymbol,
-    Target, UNNAMED_COMPONENT,
+    Target,
+    UNNAMED_COMPONENT,
 } from '../';
 import { getComponentMeta } from '../framework/container/getcomponentmeta';
 import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
@@ -18,42 +19,54 @@ import { getComponentIdentity } from '../metadata/index';
 import { Identity } from '../framework/lib/identity';
 import { DependencyType } from '../consts/dependencytype';
 import { FrameworkError } from '../exceptions/frameworkerror';
-
+import { TargetStereoType } from '../consts/targettype';
 
 const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
 
+const getTargetStereotype = (target: Target): TargetStereoType => {
+
+    let ret = TargetStereoType.UNKNOWN;
+
+    if (target && target.constructor && target.constructor.length) {
+        ret = TargetStereoType.PROTOTYPE;
+    } else if (target && target.length && !target.constructor) {
+        ret = TargetStereoType.CONSTRUCTOR;
+    }
+
+    return ret;
+};
 
 const getInjectionType = (target: Target, propertyKey?: string,
                           parameterIndex?: number | TypedPropertyDescriptor<Object>): DependencyType => {
 
-    if (target &&
-            target.constructor &&
+    let ret: DependencyType = DependencyType.UNKNOWN;
+    const targetStereoType: TargetStereoType = getTargetStereotype(target);
+
+    if (TargetStereoType.PROTOTYPE===targetStereoType &&
             propertyKey &&
             typeof propertyKey==='string' &&
             parameterIndex===undefined) {
 
-        return DependencyType.PROPERTY;
+        ret = DependencyType.PROPERTY;
 
-    } else if (target &&
-            target.prototype &&
-            target.name &&
+    } else if (TargetStereoType.CONSTRUCTOR===targetStereoType &&
             propertyKey===undefined &&
             typeof parameterIndex==='number'
     ) {
 
-        return DependencyType.CONSTRUCTOR_PARAMETER;
+        ret = DependencyType.CONSTRUCTOR_PARAMETER;
 
-    } else if (target &&
-            target.constructor &&
+    } else if (TargetStereoType.PROTOTYPE===targetStereoType &&
             typeof propertyKey==='string' &&
             typeof parameterIndex==='object' &&
             parameterIndex.set &&
             typeof parameterIndex.set==='function'
     ) {
-        return DependencyType.SETTER;
+        ret = DependencyType.SETTER;
     }
 
+    return ret;
 };
 
 const applyInjectToProperty = (dependencyName: StringOrSymbol, target: Target, propertyKey: string): void => {
@@ -62,7 +75,9 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol, target: Target, p
     const name = String(getComponentName(target));
     const rt = Reflect.getMetadata(DESIGN_TYPE, target, propertyKey);
     debug('%s applyInjectToProperty::rt=%o', TAG, rt);
-    let injectName;
+    let injectName: StringOrSymbol;
+    let injectIdentity: IfComponentIdentity;
+    let injectClassName: string;
 
     /**
      * Different logic for named or unnamed dependencies
@@ -74,41 +89,41 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol, target: Target, p
      */
     if (dependencyName!==UNNAMED_COMPONENT) {
         injectName = dependencyName;
+        injectIdentity = Identity(injectName, target);
 
     } else {
 
         if (!rt) {
-            throw new FrameworkError(`Could not determine the dependency name for injected component propertyKey "${propertyKey}". Consider using named dependency using @Inject("some_name") instead of just @Inject`);
+            throw new FrameworkError(`applyInjectToProperty could not determine the dependency name for injected component propertyKey "${propertyKey}". Consider using named dependency using @Inject("some_name") instead of just @Inject`);
         }
 
+        /**
+         * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
+         * and it must be an object that is itself a component
+         *
+         * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
+         * But it may be non an annotated component in case if this component is not a regular class
+         * but a component that is produced by a factory, in which case it does not have decorator at all
+         *
+         */
+        injectIdentity = getComponentIdentity(rt);
+        injectName = injectIdentity.componentName;
+        injectClassName = injectIdentity?.clazz?.name;
+
+        debug('%s DESIGN_TYPE of property "%s.%s" is "%s" className="%s"', TAG, name, propertyKey, String(injectName), injectClassName);
+
+        /**
+         * If return type was not provided (same case when only Interface was provided)
+         * then injectName will be 'Object'
+         * This is not allowed.
+         */
+        if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
+
+            throw new TypeError(`Dependency class ${injectClassName} for property "${name}.${propertyKey}"  is not an allowed as dependency component. Consider using named dependency or more specific class type for this component`);
+        }
     }
 
-    /**
-     * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
-     * and it must be an object that is itself a component
-     *
-     * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
-     * But it may be non an annotated component in case if this component is not a regular class
-     * but a component that is produced by a factory, in which case it does not have decorator at all
-     *
-     */
-    let injectIdentity = getComponentIdentity(rt);
-    injectName = injectIdentity.componentName;
-    let injectClassName = injectIdentity?.clazz?.name;
-
-    debug(`${TAG} DESIGN_TYPE of property "${name}.${propertyKey}" is ${String(injectName)} className=${injectClassName}`);
-
-    if (dependencyName===UNNAMED_COMPONENT && INVALID_COMPONENT_NAMES.includes(injectClassName)) {
-
-        throw new TypeError(`Dependency name for property "${name}.${propertyKey}"  is not an allowed name for dependency component: "${String(injectName)}"`);
-    }
-
-    /**
-     * If return type was not provided (same case when only Interface was provided)
-     * then injectName will be 'Object'
-     * This is not allowed.
-     */
-    debug(`Adding ${TAG} metadata for propertyKey="${propertyKey}" dependencyName="${String(injectName)}" for target="${name}"`);
+    debug('Adding %s metadata for propertyKey="%s" dependencyName="%s" for target="%s"', TAG, propertyKey, String(injectName), name);
 
     /**
      * The actual target object may not have this property defined
@@ -123,10 +138,44 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol, target: Target, p
             enumerable: true,
         });
 
-        debug('%s added property "%s" to prototype of "%s"', propertyKey, name);
+        debug('%s added property "%s" to prototype of "%s"', TAG, propertyKey, name);
     }
 
     defineMetadata(PROP_DEPENDENCY, injectIdentity, target, propertyKey)();
+};
+
+const applyInjectToConstructorParam = (dependencyName: StringOrSymbol, target: Target, parameterIndex: number): void => {
+
+
+    const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
+
+    /**
+     * Applied to constructor method parameter
+     * ptypes = [class Settings] or in case of 2 injections it will be array of 2 classes!
+     * target: class Logger
+     * propertyKey: undefined
+     * parameterIndex: 0
+     */
+    //debugger;
+
+    /**
+     * ptypes is array of constructor parameters with types
+     * it must be an array with at least one value otherwite it means
+     * that constructor has no arguments which does not make sense because
+     * we are processing the @Inject for constructor param here.
+     * That would mean that something did not work as expected.
+     */
+    if (Array.isArray(ptypes) && ptypes.length > 0) {
+        if (ptypes[parameterIndex]) {
+            const meta = getComponentMeta(ptypes[parameterIndex]);
+            addConstructorDependency(target, meta.identity, parameterIndex);
+        } else {
+            throw new FrameworkError(`${TAG} array "ptypes" does not have index ${parameterIndex} target=""`);
+        }
+    } else {
+        throw new FrameworkError(`Failed to get constructor arguments details for class`);
+    }
+
 };
 
 export const applyInjectDecorator = (dependencyName: StringOrSymbol) => (target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void => {
@@ -141,7 +190,7 @@ export const applyInjectDecorator = (dependencyName: StringOrSymbol) => (target:
             break;
 
         case DependencyType.SETTER:
-
+            applyInjectToProperty(dependencyName, target, propertyKey);
             break;
 
         case DependencyType.PROPERTY:
@@ -564,7 +613,7 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
         for (let i = 0; i < ret.length; i += 1) {
             sorted.push(ret.find(it => it.parameterIndex===i));
             if (!sorted[i]) {
-                throw new TypeError(`Constructor is missing @Inject decorator for parameter ${i} for component ${target.name}`);
+                throw new FrameworkError(`Constructor is missing @Inject decorator for parameter ${i} for component ${target.name}`);
             }
         }
 

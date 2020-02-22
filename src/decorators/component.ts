@@ -9,7 +9,8 @@ import {
     PARAM_TYPES,
     getComponentMeta,
     IfCtorInject,
-    CONSTRUCTOR_DEPENDENCIES, StringOrSymbol, getPropDependencies,
+    CONSTRUCTOR_DEPENDENCIES,
+    StringOrSymbol,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
@@ -47,9 +48,6 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      */
     const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
 
-    //debugger;
-
-
     /**
      * Get possibly already defined constructor dependencies
      * Some may have been defined using @Inject directly on
@@ -63,7 +61,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
 
     /**
      * ptypes array has all constructor parameters.
-     * existingCtopDeps has sorted array of dependencies
+     * existingCtopDeps has array of dependencies
      * If any of the ctor dependency properties were not
      * decorated with @Inject then getConstructorDependencies would throw
      * because it would detect a gap in array.

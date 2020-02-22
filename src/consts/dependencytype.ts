@@ -2,5 +2,6 @@ export enum DependencyType {
     CONSTRUCTOR_PARAMETER,
     PROPERTY,
     SETTER,
-    METHOD_PARAMETER
+    METHOD_PARAMETER,
+    UNKNOWN
 }

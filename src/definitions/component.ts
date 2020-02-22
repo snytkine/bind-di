@@ -10,10 +10,10 @@ export type Target_ = ObjectConstructor;
 
 export type Target = {
     new? (...args: any[]): any
-    //new?(value?: any): Object;
     name?: string
-    constructor: any
+    constructor: Function
     prototype?: any
+    length?: number
 }
 
 /**
@@ -114,7 +114,7 @@ export interface IfComponentDetails {
      * 'provides' to see if Component provides any components
      * then it will be treated as factory as well as actual component.
      */
-    componentType?: IocComponentType
+    //componentType?: IocComponentType
 
     /**
      * Optional field may be used by consumer of this framework

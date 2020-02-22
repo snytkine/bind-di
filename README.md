@@ -10,6 +10,12 @@ minimal validation. Do not validate that factory must be singleton, etc
 unannotated componets is not a good one.
 
 ###TODOS
+- Update signature for Component and Inject function to allow
+component name to be StringOrSymbol instead of just string and
+also update the check for type === string to IsStringOrSymbol
+and also throw error when empty string is used as component name
+or in named injection.
+
 - Don't allow @Inject on whole class. Instead add function to 
 check for possible constructor dependencies when adding @Component decorator
 This will simplify @Inject function and will reduce noise because
