@@ -8,6 +8,7 @@ import {
 } from '../';
 
 import { Identity } from '../framework/lib/identity';
+import { FrameworkError } from '../exceptions/frameworkerror';
 
 
 const debug = require('debug')('bind:decorator');
@@ -50,68 +51,13 @@ export const copyIdentity = (identity: IfComponentIdentity): IfComponentIdentity
     return Identity(identity.componentName, identity.clazz);
 }
 
-export class _Identity implements IfComponentIdentity {
-
-    public componentName: StringOrSymbol;
-
-    /**
-     * clazz is the Class, which is actually constructor Function object
-     * it's already unique, so if two classes have the same name
-     * their className will be the same but clazz will be different using === equality test
-     * That basically means we don't need to use filePath for class equality test.
-     */
-    public clazz: any;
-
-    constructor({
-                    componentName,
-                    clazz,
-                }: IfIdentityCtorArgs) {
-        this.componentName = componentName;
-        this.clazz = clazz;
-    }
-
-    /*copy() {
-        return new Identity({
-            clazz: this.clazz,
-            componentName: this.componentName,
-        });
-    }*/
-/*
-    equals(other: IfComponentIdentity) {
-
-        /!**
-         * Named component match other component by name only
-         * This forces componentName to be unique except in cases of UNNAMED_COMPONENT
-         * which is a special componentName
-         *!/
-        if (this.componentName!==UNNAMED_COMPONENT) {
-            /!**
-             * Just using componentName is enough for named components,
-             * components that have been annotated with @Component('my_service-x')
-             *!/
-            return this.componentName===other.componentName;
-        }
-
-        /!**
-         * In case of unnamed component
-         * clazz must refer to the same object
-         * and other component must also be unnamed
-         *!/
-        return (other.componentName===UNNAMED_COMPONENT &&
-                this.clazz===other.clazz);
-
-    }*/
-
-}
-
-
 export const defineMetadata = (metadataKey: any, metadataValue: any, target: Object,
                                propertyKey?: StringOrSymbol) => (isUnique: boolean = false) => {
 
     if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
         const className = getClassName(target);
         const err = `Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${String(propertyKey)}"`;
-        throw new TypeError(err);
+        throw new FrameworkError(err);
     }
 
     Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
@@ -121,16 +67,16 @@ export const defineMetadata = (metadataKey: any, metadataValue: any, target: Obj
     // Why adding metadata of prototype of constructor?
     // Has something to do with factory component? When commented these out got
     // exception Factory component componentName ... is not providing any components
-    if (target['prototype']) {
+    //if (target['prototype']) {
         //Reflect.defineMetadata(metadataKey, metadataValue, target["prototype"], propertyKey);
-    } else if (target.constructor) {
+    //} else if (target.constructor) {
         // Need for decorating properties on properties of a prototype
         // without adding metadata on target.constructor getting this exception
         //exception Factory component componentName ... is not providing any components
         // this is because in case of decorator applied to class properties and methods
         // the target is a prototype and not a constructor like in case of decorating class
-        Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
-    }
+        //Reflect.defineMetadata(metadataKey, metadataValue, target.constructor, propertyKey);
+    //}
 
 };
 
@@ -141,14 +87,8 @@ export function setComponentIdentity(identity: IfComponentIdentity, target: Obje
                                                                                   // another decorated component
 }
 
-/*
- export interface IfGetComponentIdentityArg {
- target: Target
- propertyKey?: StringOrSymbol
- }*/
-
 export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbol): IfComponentIdentity {
-    let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
+    let ret = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
     let targetName: string;
 
     /**
@@ -175,8 +115,8 @@ export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbo
             targetName = target.constructor.name;
         }
 
-        if (targetName && targetName!==ret.className) {
-            debug(`Different className from Identity and class name. className=${ret.className} name=${targetName}`);
+        if (targetName && ret.clazz && targetName!==ret.clazz.name) {
+            debug(`Different className from Identity and class name. className=${ret?.clazz?.name} name=${targetName}`);
             if (target!==ret.clazz) {
                 return Identity(target);
             }
@@ -186,6 +126,8 @@ export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbo
         /**
          * Maybe a raw class unannotated.
          * In this case create clazz-based identity
+         *
+         * @todo we will not have unannotated classes.
          */
         const className = getClassName(target, propertyKey);
         debug('Returning unnamed component className=', className);
@@ -204,7 +146,7 @@ export function getComponentIdentity(target: Target, propertyKey?: StringOrSymbo
 export function getComponentName(target: Target, propertyKey?: StringOrSymbol): StringOrSymbol {
 
     if (target) {
-        let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
+        let ret = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
         if (ret) {
             debug('Found component name from COMPONENT_IDENTITY metadata ', String(ret.componentName));
             return ret.componentName;
@@ -218,14 +160,14 @@ export function getComponentName(target: Target, propertyKey?: StringOrSymbol): 
 export function getClassName(target: Target, propertyKey?: StringOrSymbol): string {
 
     if (target) {
-        let ret = Reflect.getMetadata(COMPONENT_IDENTITY, target);
-        if (ret) {
+        let ret = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target);
+        if (ret && ret.clazz) {
             debug('Found className from COMPONENT_IDENTITY metadata ', ret);
-            return ret.className;
-        } else if (target['name']) {
-            debug(`Found className in .name property "${target['name']}"`);
+            return ret.clazz.name;
+        } else if (target.name) {
+            debug(`Found className in .name property "${target.name}"`);
 
-            return target['name'];
+            return target.name;
 
         } else if (target.constructor && target.constructor.name) {
             debug(`Found className in constructor.name "${target.constructor.name}"`);

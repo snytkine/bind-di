@@ -1,5 +1,4 @@
 import {
-    PROP_DEPENDENCY,
     CONSTRUCTOR_DEPENDENCIES,
     defineMetadata,
     getClassName,
@@ -8,7 +7,9 @@ import {
     IfComponentPropDependency,
     IfCtorInject,
     PARAM_TYPES,
-    Target,
+    PROP_DEPENDENCY,
+    StringOrSymbol,
+    Target, UNNAMED_COMPONENT,
 } from '../';
 import { getComponentMeta } from '../framework/container/getcomponentmeta';
 import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
@@ -23,8 +24,8 @@ const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
 
 
-const getDependencyType = (target: Target, propertyKey?: string,
-                           parameterIndex?: number | TypedPropertyDescriptor<Object>): DependencyType => {
+const getInjectionType = (target: Target, propertyKey?: string,
+                          parameterIndex?: number | TypedPropertyDescriptor<Object>): DependencyType => {
 
     if (target &&
             target.constructor &&
@@ -33,62 +34,137 @@ const getDependencyType = (target: Target, propertyKey?: string,
             parameterIndex===undefined) {
 
         return DependencyType.PROPERTY;
+
     } else if (target &&
             target.prototype &&
             target.name &&
             propertyKey===undefined &&
             typeof parameterIndex==='number'
     ) {
+
         return DependencyType.CONSTRUCTOR_PARAMETER;
+
+    } else if (target &&
+            target.constructor &&
+            typeof propertyKey==='string' &&
+            typeof parameterIndex==='object' &&
+            parameterIndex.set &&
+            typeof parameterIndex.set==='function'
+    ) {
+        return DependencyType.SETTER;
     }
 
 };
-/**
- * Named @Inject
- * on constructor argument
- * nameOrTarget = string - name of component
- * parameterIndex undefined
- * propertyKey undefined
- */
+
+const applyInjectToProperty = (dependencyName: StringOrSymbol, target: Target, propertyKey: string): void => {
+
+    debug('%s Entered applyInjectToProperty dependencyName="%s" target="%s" propertyKey="%s"', TAG, dependencyName, String(getComponentName(target)), propertyKey);
+    const name = String(getComponentName(target));
+    const rt = Reflect.getMetadata(DESIGN_TYPE, target, propertyKey);
+    debug('%s applyInjectToProperty::rt=%o', TAG, rt);
+    let injectName;
+
+    /**
+     * Different logic for named or unnamed dependencies
+     *
+     * 1. Named dependencies allowed not to have DESIGN_TYPE at all.
+     *    also allowed to have generic DESIGN_TYPE
+     *
+     * 2. UNNAMED dependencies MUST have valid DESIGN_TYPE
+     */
+    if (dependencyName!==UNNAMED_COMPONENT) {
+        injectName = dependencyName;
+
+    } else {
+
+        if (!rt) {
+            throw new FrameworkError(`Could not determine the dependency name for injected component propertyKey "${propertyKey}". Consider using named dependency using @Inject("some_name") instead of just @Inject`);
+        }
+
+    }
+
+    /**
+     * In case of unnamed Inject on a property the property must have a DESIGN_TYPE
+     * and it must be an object that is itself a component
+     *
+     * If its a decorated component then it will have a COMPONENT_IDENTITY metadata
+     * But it may be non an annotated component in case if this component is not a regular class
+     * but a component that is produced by a factory, in which case it does not have decorator at all
+     *
+     */
+    let injectIdentity = getComponentIdentity(rt);
+    injectName = injectIdentity.componentName;
+    let injectClassName = injectIdentity?.clazz?.name;
+
+    debug(`${TAG} DESIGN_TYPE of property "${name}.${propertyKey}" is ${String(injectName)} className=${injectClassName}`);
+
+    if (dependencyName===UNNAMED_COMPONENT && INVALID_COMPONENT_NAMES.includes(injectClassName)) {
+
+        throw new TypeError(`Dependency name for property "${name}.${propertyKey}"  is not an allowed name for dependency component: "${String(injectName)}"`);
+    }
+
+    /**
+     * If return type was not provided (same case when only Interface was provided)
+     * then injectName will be 'Object'
+     * This is not allowed.
+     */
+    debug(`Adding ${TAG} metadata for propertyKey="${propertyKey}" dependencyName="${String(injectName)}" for target="${name}"`);
+
+    /**
+     * The actual target object may not have this property defined
+     * because typescript compiler will not
+     * add a property if it does not have a value.
+     */
+    if (!target.hasOwnProperty(propertyKey)) {
+        debug(`${TAG} - defining property "${propertyKey}" for Injection on target="${name}"`);
+        Object.defineProperty(target, propertyKey, {
+            value: void 0,
+            writable: true,
+            enumerable: true,
+        });
+
+        debug('%s added property "%s" to prototype of "%s"', propertyKey, name);
+    }
+
+    defineMetadata(PROP_DEPENDENCY, injectIdentity, target, propertyKey)();
+};
+
+export const applyInjectDecorator = (dependencyName: StringOrSymbol) => (target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void => {
+    const injectionType = getInjectionType(target);
+
+    debug('%s applyInjectDecorator for dependencyName="%s" injectionType=%s', TAG, dependencyName, injectionType);
+
+    switch (injectionType) {
+
+        case DependencyType.CONSTRUCTOR_PARAMETER:
+
+            break;
+
+        case DependencyType.SETTER:
+
+            break;
+
+        case DependencyType.PROPERTY:
+            applyInjectToProperty(dependencyName, target, propertyKey);
+            break;
+
+        default:
+            throw new FrameworkError(`${TAG} decorator applied in unsupported way in "${getClassName(target)}" component. Can only be applied to constructor parameter, property or property setter.`);
+
+    }
+};
+
 
 /**
- * Named inject: has unique component name
- * In this case may omit the type, and then the target will be 'object'
- * So for named inject we need to check the className of injected type.... but cannot
- * rely on them for anything.
- * Better to not use componentName and clazz at all for named injects.
+ * @Inject decorator can be applied to class property, setter, or to constructor parameter
  *
  */
-
-
-/**
- * @Inject decorator can be applied to class property or to constructor parameter
- *
- */
-
-/**
- * @Inject can be applied to class
- * in which case should add constructor dependencies
- * for all constructor args but only
- * if all args are components. Cannot have some constructor
- * args as non-components like string, number, etc
- * Cannot have optional components like arg1?: Something
- * and cannot have arguments with default values like arg2 = 'Something Default'
- * @param target
- * @constructor
- */
-
 export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
 
 export function Inject(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
-/**
- * Named Inject
- * @param {string} name
- * @returns {(target: Target, propertyKey?: string, parameterIndex?: number) => void}
- * @constructor
- */
+
 export function Inject(name: string): (target: Target, propertyKey?: string,
-                                          parameterIndex?: number | TypedPropertyDescriptor<Object>) => void
+                                       parameterIndex?: number | TypedPropertyDescriptor<Object>) => void
 
 /**
  * Implementation
@@ -102,7 +178,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
     let name: string;
     let rt;
     console.log('ENTERED INJECT');
-    debugger;
+    //debugger;
     if (typeof nameOrTarget!=='string') {
         /**
          * Unnamed @Inject
@@ -117,7 +193,7 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
          */
 
         if (propertyKey) {
-            name = nameOrTarget.constructor.name;
+            name = nameOrTarget?.constructor?.name;
 
             rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget);
             console.log('INJECT-92', name);
@@ -153,15 +229,15 @@ export function Inject(nameOrTarget: string | Target, propertyKey?: string,
                  * test that parameterIndex has .set property and .set must be function
                  *
                  */
-                if(!parameterIndex.set && parameterIndex.get && typeof parameterIndex.get === 'function'){
-                    throw new FrameworkError(`${TAG} cannot be applied to getter. Was applied to getter ${propertyKey}`)
+                if (!parameterIndex.set && parameterIndex.get && typeof parameterIndex.get==='function') {
+                    throw new FrameworkError(`${TAG} cannot be applied to getter. Was applied to getter ${propertyKey}`);
                 }
                 debug(TAG, 'called for setter for component=', name, ' propertyKey=', propertyKey);
             } else {
                 debug(`${TAG} called on "${name}.${propertyKey}"`);
             }
 
-            rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget, propertyKey); // rt is class Classname{}
+            rt = Reflect.getMetadata(DESIGN_TYPE, nameOrTarget, propertyKey);
             debug(TAG, '[70] rt=', rt);
 
             if (!rt) {
@@ -486,13 +562,13 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
          * Need to turn it into  array of ordered dependency components
          */
         for (let i = 0; i < ret.length; i += 1) {
-            sorted.push(ret.find(_ => _.parameterIndex===i));
+            sorted.push(ret.find(it => it.parameterIndex===i));
             if (!sorted[i]) {
                 throw new TypeError(`Constructor is missing @Inject decorator for parameter ${i} for component ${target.name}`);
             }
         }
 
-        sorted = sorted.map(_ => _.dependency);
+        sorted = sorted.map(it => it.dependency);
 
         debug('%s Returning CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="%s" sorted="%o"', TAG, String(getComponentName(target)), getClassName(target), sorted);
 
@@ -504,19 +580,47 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
 }
 
 
+export const getClassSetters = (target: Target): Array<string> => {
+    const ret = [];
+    if (!target || !target.prototype) {
+        return ret;
+    }
+    const descriptors = Object.getOwnPropertyDescriptors(target.prototype);
+
+    for (const k in descriptors) {
+        if (descriptors[k] &&
+                descriptors[k].set &&
+                typeof descriptors[k].set==='function') {
+            ret.push(k);
+        }
+    }
+
+    return ret;
+};
+
+
 export function getPropDependencies(target: Target): Array<IfComponentPropDependency> {
 
     const cName = String(getComponentName(target));
 
-    debug('Entered getPropDependencies for target="%s"', cName);
+    debug('%s Entered getPropDependencies for target="%s"', TAG, cName);
 
     /**
-     * getOwnPropertyNames is a problem when components extends another component
-     * in which case parent's dependencies will be missing!
-     *
-     * @type {string[]}
+     * If class extends other class May not get props of parent class
      */
     let dependencies = [];
+    let keys = [];
+    if (target && target.prototype) {
+        keys = Object.keys(target.prototype);
+    }
+    /**
+     * Now look for setters properties. These do not show up in Object.keys
+     * but @Inject can be applied to setters so we must look for setter props separately.
+     *
+     * @important this method only finds setters of own class, never of parent class
+     */
+    const getters = getClassSetters(target);
+    keys = keys.concat(getters);
 
     /**
      * Child class may have dependency-injected property defined parent class
@@ -528,7 +632,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
      * if child class redefined the property with no @Inject then the property should not
      * be considered a dependency
      */
-    for (const p in target.prototype) {
+    for (const p of keys) {
 
         debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
 
@@ -548,6 +652,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
             });
         }
     }
+
 
     debug('%s returning prop dependencies for class "%s" dependencies=%o', TAG, cName, dependencies);
 

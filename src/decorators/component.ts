@@ -47,7 +47,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      */
     const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
 
-    debugger;
+    //debugger;
 
 
     /**
@@ -96,7 +96,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      [ [Function: Settings], [Function: Settings] ]
      *
      */
-    debugger;
+    //debugger;
     console.log('++++++++++++++++');
     if (ptypes && Array.isArray(ptypes)) {
         for (const p in ptypes) {
