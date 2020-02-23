@@ -2,8 +2,8 @@ import {
     Target,
     LifecycleCallback,
     defineMetadata,
-    _INIT_METHOD_,
-    _DESTRUCTOR_
+    INIT_METHOD,
+    PRE_DESTROY
 } from "../";
 import {getComponentName} from "../index";
 
@@ -15,14 +15,14 @@ export function PostConstruct(target: Target, propertyKey: string,
 
     //console.log(`Adding PostConstruct decorator to ?? for method ${propertyKey}`);
 
-    console.log("BOO!!!!!");
+    //console.log("BOO!!!!!");
     //exit(1)
 
     // Object.defineProperty(target, propertyKey, {
     //     enumerable: true
     // });
 
-    defineMetadata(_INIT_METHOD_, propertyKey, target.constructor)();
+    defineMetadata(INIT_METHOD, propertyKey, target.constructor)();
 
 }
 
@@ -30,14 +30,14 @@ export function PostConstruct(target: Target, propertyKey: string,
 export function PreDestroy(target: Target, propertyKey: string,
                            descriptor: TypedPropertyDescriptor<LifecycleCallback>) {
     debug(`Adding @PreDestroy decorator to ${target.name} for method ${propertyKey}`);
-    defineMetadata(_DESTRUCTOR_, propertyKey, target)();
+    defineMetadata(PRE_DESTROY, propertyKey, target)();
     /**
      * target is a prototype of class in this case
      * we also need to define this on constructor method
      * to be able to get the value of this meta by passing just a class
      * (in which case it actually is passing a constructor)
      */
-    //defineMetadata(_DESTRUCTOR_, propertyKey, target.constructor);
+    defineMetadata(PRE_DESTROY, propertyKey, target.constructor);
 
 }
 
@@ -45,7 +45,7 @@ export function PreDestroy(target: Target, propertyKey: string,
 export function getPredestroy(target: Target): string {
 
 
-    return Reflect.getMetadata(_DESTRUCTOR_, target);
+    return Reflect.getMetadata(PRE_DESTROY, target);
 }
 
 /**
@@ -61,7 +61,7 @@ export function getPostConstruct(target: Target): string {
 
     debug("Entered getPostConstruct for target=", cName);
 
-    const ret = Reflect.getMetadata(_INIT_METHOD_, target);
+    const ret = Reflect.getMetadata(INIT_METHOD, target);
 
     if (ret) {
         debug("Found method of postConstruct on ", cName, "method=", ret);
@@ -76,7 +76,7 @@ export function getPostConstruct(target: Target): string {
     for (const p in target.prototype) {
 
         console.log("Checking postConstruct of ", cName + "." + p);
-        if (Reflect.hasMetadata(_INIT_METHOD_, target.prototype, p)) {
+        if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
             //throw new Error("");
             //debug("FOUND postConstruct=", p);
             console.log("############### p #############");
@@ -85,5 +85,5 @@ export function getPostConstruct(target: Target): string {
     }
 
     return "";
-    //return Reflect.getMetadata(_INIT_METHOD_, target);
+    //return Reflect.getMetadata(INIT_METHOD, target);
 }

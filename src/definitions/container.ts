@@ -1,4 +1,4 @@
-import { Try, StringOrSymbol, IfComponentIdentity } from '../';
+import { StringOrSymbol, IfComponentIdentity } from '../';
 import { IfComponentDetails } from './component';
 import { ComponentScope } from '../enums/componentscope';
 
@@ -40,14 +40,6 @@ export type IocComponentGetter = (container: IfIocContainer,
  * These methods don't take any arguments must return a Promise<Boolean>
  */
 export type LifecycleCallback = () => Promise<Boolean>
-
-/**
- * @todo remove when no longer using ComponentType
- */
-export enum IocComponentType {
-    COMPONENT = 1,
-    FACTORY
-}
 
 
 export interface IfComponentFactoryMethod {
@@ -126,7 +118,6 @@ export interface IfIocContainer {
      * @returns any
      */
     getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any
-
 
     /**
      * Adds component to container

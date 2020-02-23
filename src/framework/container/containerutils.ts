@@ -1,9 +1,10 @@
 import {
-    IfIocContainer,
+    IComponentStorage,
     IfComponentDetails,
-    IocComponentType,
+    IfComponentIdentity,
+    IfIocContainer,
+    IScopedComponentStorage,
     Target,
-    IfComponentIdentity, IScopedComponentStorage, IComponentStorage,
 } from '../../';
 import { getComponentMeta } from './getcomponentmeta';
 import { IfComponentFactoryMethod } from '../../definitions/container';
@@ -91,26 +92,27 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
              * The instance that was set via close will get its props set
              * and will also be returned
              */
-            return meta.propDependencies.reduce((prev, curr) => {
+            return meta.propDependencies.reduce(
+                    (prev, curr) => {
 
-                /**
-                 * Don't add if instance already has property with the same name
-                 * it could be the case with class inheritance where child class
-                 * redefined property but parent class has same property is annotated with @Inject
-                 *
-                 * @type {any}
-                 */
-                if (!prev[curr.propertyName]) {
-                    prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
-                } else {
-                    debug(name, 'Singleton component already has property=', curr.propertyName);
-                }
+                        /**
+                         * Don't add if instance already has property with the same name
+                         * it could be the case with class inheritance where child class
+                         * redefined property but parent class has same property is annotated with @Inject
+                         *
+                         * @type {any}
+                         */
+                        if (!prev[curr.propertyName]) {
+                            prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
+                        } else {
+                            debug(name, 'Singleton component already has property=', curr.propertyName);
+                        }
 
-                return prev;
-            }, instance);
+                        return prev;
+                    }, instance);
         };
 
-    };
+    }();
 
 
     const component = {
@@ -155,35 +157,66 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
 
                 let instance;
 
-                return function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
-                    debug(TAG, 'Getter called on Factory-Provided componentName=', String(providedComponent?.identity?.componentName), ' className=', providedComponent?.identity?.clazz?.name, ' of factory componentName=', stringifyIdentify(meta.identity), ' factory=', stringifyIdentify(meta.identity));
+                return function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>): Object {
+                    debug(`%s Getter called on Factory-Provided componentName="%s" 
+                    className="%"  
+                    of factory componentName="%s"  factory="%s"`,
+                            TAG,
+                            String(providedComponent?.identity?.componentName),
+                            providedComponent?.identity?.clazz?.name,
+                            stringifyIdentify(meta.identity),
+                            stringifyIdentify(meta.identity));
 
-                    if (instance) {
-                        debug('%S Factory-Provided component="%s" already created. Returning same instance', TAG, stringifyIdentify(providedComponent.identity));
+                    let ret: Object;
 
-                        return instance;
+                    const getFactoryProvidedComponent = () => {
+                        const factory = ctnr.getComponent(meta.identity, scopedComponentStorage);
+                        debug('%s Calling factory method="%s" of factory component="%s" factory className="%s"',
+                                TAG,
+                                curr.methodName,
+                                stringifyIdentify(meta.identity),
+                                meta?.identity?.clazz?.name);
+
+                        /**
+                         * Now we have the instance of factory component
+                         * just call the method that provides this component
+                         * to get the actual provided component.
+                         */
+                        return factory[curr.methodName]();
+                    };
+
+                    /**
+                     * Depending on ComponentScope may use singlton pattern, newInstance or
+                     * scopeCache pattern
+                     */
+                    switch (providedComponent.scope) {
+
+                        case ComponentScope.NEWINSTANCE:
+                            /**
+                             * Call component getter method every time
+                             */
+                            ret = getFactoryProvidedComponent();
+                            break;
+
+                        case ComponentScope.SINGLETON:
+                            /**
+                             * Look for instance first
+                             */
+                            instance = instance || getFactoryProvidedComponent();
+                            ret = instance;
+                            break;
+
+                        default:
+                            /**
+                             * Look in scopedComponentStorage that matches
+                             * ComponentScope
+                             *
+                             * @todo Implement
+                             */
+
                     }
 
-                    /**
-                     * Factory Component is always singleton? Yes for now
-                     * but not sure if there is any possibility to have ContextScoped factory
-                     * Maybe in the future there could be a SessionScoped factory, then
-                     * we will have to pass ctx param since it will contain means to get
-                     * session-scoped objects
-                     * @type {any}
-                     */
-                    const factory = ctnr.getComponent(meta.identity, scopedComponentStorage);
-                    debug('%s Calling factory method="%s" of factory component="%s" factory className="%s"', TAG, curr.methodName, stringifyIdentify(meta.identity), meta?.identity?.clazz?.name);
-
-                    /**
-                     * Now we have the instance of factory component
-                     * just call the method that provides this component
-                     * to get the actual provided component.
-                     */
-                    instance = factory[curr.methodName]();
-
-                    return instance;
-
+                    return ret;
                 };
 
             }();
@@ -204,6 +237,68 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
     }
 }
 
+/**
+ * Given array of IScopedComponentStorage
+ * attempt to find storage that has same scope as component's scope
+ * then attempt to find component in that scoped storage
+ * If found return instance from storage
+ * If not found then create new instance with all dependencies found in container
+ * then add to storage and return instance
+ *
+ * @param container
+ * @param meta
+ * @param arrStorages
+ */
+export const getComponentFromScopedStorages =
+        (container: IfIocContainer,
+         meta: IfComponentDetails,
+         arrStorages?: Array<IScopedComponentStorage>): Object | void => {
+            let componentStorage: IComponentStorage;
+            let ret: Object | undefined;
+
+            if (arrStorages) {
+                const scopedStorage = arrStorages.find(storage => storage.scope===meta.scope);
+                if (scopedStorage) {
+                    componentStorage = scopedStorage.storage;
+                    let storedComponent = componentStorage.getComponent(meta.identity);
+                    if (storedComponent) {
+                        debug('Component "%s" found in componentStorage', stringifyIdentify(meta.identity));
+
+                        ret = storedComponent;
+                    }
+                }
+            }
+
+            if (!ret) {
+                /**
+                 * Create new instance
+                 */
+                const constructorArgs = meta.constructorDependencies.map(
+                        dependincyIdentity => container.getComponent(dependincyIdentity, arrStorages));
+                const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
+
+                debug('%s Adding %d dependencies to NewInstance component="%s"',
+                        meta.propDependencies.length,
+                        stringifyIdentify(meta.identity));
+
+                ret = meta.propDependencies.reduce(
+                        (prev, curr) => {
+                            prev[curr.propertyName] = container.getComponent(curr.dependency, arrStorages);
+
+                            return prev;
+
+                        }, instance);
+
+
+                /**
+                 * Now add ret to componentStorage and also return it
+                 */
+                componentStorage.setComponent(meta.identity, ret);
+            }
+
+            return ret;
+
+        };
 
 export function addScopedComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
@@ -218,63 +313,9 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
 
     debug('%s Adding scoped component="%s" scope="%s"', TAG, stringifyIdentify(meta.identity), meta.scope);
 
-    const getter = function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
+    const getter = (container: IfIocContainer, arrStorages?: Array<IScopedComponentStorage>) => {
 
-        let componentStorage: IComponentStorage;
-        /**
-         * Check if scopedComponentStorage is passed
-         * then find the one with .scope === meta.scope
-         * otherwise create new one using deps from ctnr
-         * and set result in that scopedComponentStorage using .setComponent on it.
-         * and also return component of cause
-         */
-        if (scopedComponentStorage) {
-            const scopedStorage = scopedComponentStorage.find(_ => _.scope===meta.scope);
-            if (scopedStorage) {
-                componentStorage = scopedStorage.storage;
-                let storedComponent = componentStorage.getComponent(meta.identity);
-                if (storedComponent) {
-                    debug('Component "%s" found in componentStorage', stringifyIdentify(meta.identity));
-                    return storedComponent;
-                }
-            }
-        }
-
-
-        /**
-         * Create new instance
-         */
-        const constructorArgs = meta.constructorDependencies.map(
-                _ => ctnr.getComponent(_, scopedComponentStorage));
-        const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
-
-        debug('%s Adding %d dependencies to NewInstance component="%s"', meta.propDependencies.length, stringifyIdentify(meta.identity));
-        const ret = meta.propDependencies.reduce((prev, curr) => {
-
-            /**
-             * Add prop dependency but ONLY if this property is not already set
-             * It would be set if sub-class overrides parent where in parent
-             * this property is auto-wired with @Inject but sub-class overrides it
-             * with own value.
-             */
-            if (!prev[curr.propertyName]) {
-                prev[curr.propertyName] = ctnr.getComponent(curr.dependency, scopedComponentStorage);
-            } else {
-                debug('%s Component "%s" Instance component already has own property "%s', TAG, stringifyIdentify(meta.identity), curr.propertyName);
-            }
-
-            return prev;
-
-        }, instance);
-
-
-        /**
-         * Now add ret to componentStorage and also return it
-         */
-        componentStorage.setComponent(meta.identity, ret);
-
-        return ret;
-
+        return getComponentFromScopedStorages(container, meta, arrStorages);
     };
 
     const component = {
@@ -283,6 +324,8 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
     };
 
     container.addComponent(component);
+
+    return undefined;
 }
 
 
@@ -308,7 +351,7 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
 
         debug(TAG, 'Creating new instance of componentName=\'', name, '\' className=', meta.identity?.clazz?.name, ', with constructor args', meta.constructorDependencies, ' with scopedComponentStorage=', !!scopedComponentStorage);
         const constructorArgs = meta.constructorDependencies.map(
-                _ => ctnr.getComponent(_, scopedComponentStorage));
+                depIdentity => ctnr.getComponent(depIdentity, scopedComponentStorage));
         const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
         debug(TAG, 'Adding dependencies to NewInstance componentName=\'', name, '\' className=', meta.identity?.clazz?.name, '\' ', meta.propDependencies);
@@ -352,16 +395,16 @@ export function addComponent(container: IfIocContainer, clazz: Target): void {
 
     const meta = getComponentMeta(clazz);
 
-    meta.scope = meta.scope || container.defaultScope;
+    const scope = meta?.scope || container.defaultScope;
 
-    if (meta.scope===ComponentScope.SINGLETON) {
+    if (scope===ComponentScope.SINGLETON) {
         return addSingletonComponent(container, meta);
-    } else if (meta.scope===ComponentScope.NEWINSTANCE) {
+    } else if (scope===ComponentScope.NEWINSTANCE) {
         return addPrototypeComponent(container, meta);
-    } else if (meta.scope) {
+    } else if (scope) {
         return addScopedComponent(container, meta);
     } else {
-        throw new TypeError(`UNSUPPORTED_SCOPE_ERROR. Unable to add component. ${stringifyIdentify(meta.identity)} with scope=${String(meta.scope)}`);
+        throw new TypeError(`UNSUPPORTED_SCOPE_ERROR. Unable to add component. ${meta && stringifyIdentify(meta.identity)} with scope=${String(scope)}`);
     }
 }
 

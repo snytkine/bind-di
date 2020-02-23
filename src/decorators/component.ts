@@ -23,6 +23,7 @@ import {
 import { getComponentName } from '../index';
 import { Identity } from '../framework/lib/identity';
 import { DecoratorError } from '../exceptions/decoratorerror';
+import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
 
 const debug = require('debug')('bind:decorate:component');
 const TAG = '@Component';
@@ -236,16 +237,16 @@ export function Component(target: Target): void
 
 export function Component(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
 
-export function Component(name: string): (target: any, propertyKey?: string,
+export function Component(name: StringOrSymbol): (target: any, propertyKey?: string,
                                           descriptor?: TypedPropertyDescriptor<Object>) => void
 
-export function Component(nameOrTarget: string | Target, propertyKey?: string,
+export function Component(nameOrTarget: StringOrSymbol | Target, propertyKey?: string,
                           descriptor?: TypedPropertyDescriptor<Object>) {
 
-    if (typeof nameOrTarget!=='string') {
-        applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);
+    if(isStringOrSymbol(nameOrTarget)){
+        return applyComponentDecorator(<StringOrSymbol>nameOrTarget);
     } else {
-        return applyComponentDecorator(nameOrTarget);
+        applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);
     }
 }
 
@@ -253,7 +254,7 @@ export function Component(nameOrTarget: string | Target, propertyKey?: string,
 /*
  const MyFactory = (target: Target): void => {
  Component(target);
- Reflect.defineMetadata(_COMPONENT_TYPE_, IocComponentType.FACTORY, target);
+ // Here define additional metadata using Reflect.defineMetadata
  };*/
 
 

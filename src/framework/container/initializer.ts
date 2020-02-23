@@ -1,9 +1,7 @@
 import { copyIdentity, IfIocComponent, isSameIdentity } from '../..';
 import { IfComponentDetails } from '../../definitions/component';
 import {
-    IfComponentIdentity,
     IfIocContainer,
-    IocComponentType,
 } from '../../definitions';
 import { stringifyIdentify } from './containerutils';
 import {

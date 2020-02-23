@@ -1,5 +1,5 @@
 import {
-    _COMPONENT_SCOPE_,
+    COMPONENT_SCOPE,
     DEFAULT_SCOPE,
     defineMetadata,
     getComponentName,
@@ -23,7 +23,7 @@ export function Scope(scope: ComponentScope) {
      */
     return function (target: Object, propertyKey?: StringOrSymbol) {
         debug(`Adding ${TAG} to component ${String(getComponentName(target))} className=${getClassName(target)}`);
-        defineMetadata(_COMPONENT_SCOPE_, scope, target, propertyKey)();
+        defineMetadata(COMPONENT_SCOPE, scope, target, propertyKey)();
     };
 }
 
@@ -33,15 +33,15 @@ export const RequestScoped = Scope(ComponentScope.REQUEST);
 
 export function getScope(target: Object, propertyKey?: StringOrSymbol): ComponentScope {
 
-
     const cid = getComponentIdentity(target, propertyKey);
     const cName = String(cid.componentName);
     const className = cid?.clazz?.name;
 
+    let scope = Reflect.getMetadata(COMPONENT_SCOPE, target, propertyKey);
 
-    let scope = Reflect.getMetadata(_COMPONENT_SCOPE_, target, propertyKey);
-
-    debug(`${TAG} getScope for componentName "${cName}" className="${className}" ${String(scope)}, propertyKey=${String(propertyKey)}`);
+    debug(`${TAG} getScope for componentName "${cName}" 
+    className="${className}" ${String(scope)}, 
+    propertyKey=${String(propertyKey)}`);
 
     if (!scope) {
 
@@ -49,7 +49,8 @@ export function getScope(target: Object, propertyKey?: StringOrSymbol): Componen
         /**
          *
          */
-        scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" for "${String(cName)}" propertyKey=${String(propertyKey)}`);
+        scope && debug(`Scope not found but found Default Scope="${ComponentScope[scope]}" 
+        for "${String(cName)}" propertyKey=${String(propertyKey)}`);
     }
 
     return scope;

@@ -19,6 +19,7 @@ import { Identity } from '../framework/lib/identity';
 import { DependencyType } from '../consts/dependencytype';
 import { FrameworkError } from '../exceptions/frameworkerror';
 import { TargetStereoType } from '../consts/targettype';
+import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
 
 const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
@@ -158,7 +159,6 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
 };
 
 /**
- *
  * @param dependencyName
  * @param target target will be a Function here - a constructor
  * @param parameterIndex
@@ -172,7 +172,6 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
     }
 
     const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
-    const deps = <Array<IfCtorInject>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
     let injectIdentity: IfComponentIdentity;
 
     /**
@@ -182,7 +181,6 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
      * propertyKey: undefined
      * parameterIndex: 0
      */
-    //debugger;
 
     /**
      * ptypes is array of constructor parameters with types
@@ -238,36 +236,7 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
     }
 
 
-    /**
-     * Now push to deps array and set deps back as CONSTRUCTOR_DEPENDENCIES on target.
-     * But first check to see if there is already an object with
-     * same .parameterIndex because it may have been added before in parent class constructor
-     * in which case must replace it.
-     * If dependency with same parameterIndex not found then just push to deps.
-     */
-
-    const existingDependencyIndex = deps.findIndex(dep => dep.parameterIndex===paramIndex);
-    if (existingDependencyIndex > -1) {
-
-        debug('% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
-                TAG,
-                getClassName(target),
-                paramIndex,
-        );
-
-        delete (deps[existingDependencyIndex]);
-    }
-
-    deps.push({
-        parameterIndex: paramIndex,
-        dependency: injectIdentity,
-    });
-
-    /**
-     * Now set deps as metadata on target
-     */
-    Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
-
+    return addConstructorDependency(target, injectIdentity, paramIndex);
 };
 
 
@@ -312,7 +281,7 @@ export function Inject(target: Target, propertyKey: string, parameterIndex?: num
 
 export function Inject(target: Target, propertyKey: string, descriptor: PropertyDescriptor): void
 
-export function Inject(name: string): (target: Target,
+export function Inject(name: StringOrSymbol): (target: Target,
                                        propertyKey?: string,
                                        parameterIndex?: NumberOrPropertyDescriptor) => void
 
@@ -329,8 +298,8 @@ export function Inject(nameOrTarget: StringOrTarget,
 
     debug('%s Entered Inject with', TAG);
     //debugger;
-    if (typeof nameOrTarget==='string') {
-        return applyInject(nameOrTarget);
+    if (isStringOrSymbol(nameOrTarget)) {
+        return applyInject(<StringOrSymbol>nameOrTarget);
     } else {
         applyInject(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, parameterIndex);
     }
@@ -340,16 +309,26 @@ export function Inject(nameOrTarget: StringOrTarget,
  * @todo deal with inheritance. If parent already has ctor dependencies
  * a child can have co-variant types for same dependencies
  *
- * @todo delete?
- *
  * @param {Target} target
  * @param {IfComponentIdentity} dependency
  * @param {number} parameterIndex
  */
-export function addConstructorDependency(target: Target, dependency: IfComponentIdentity, parameterIndex: number) {
+export const addConstructorDependency = (target: Target,
+                                         dependency: IfComponentIdentity,
+                                         parameterIndex: number): void => {
     let deps = <Array<IfCtorInject>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
     const name = String(getComponentName(target));
-    debug('Adding Constructor dependency at index=', parameterIndex, ' dependency=', dependency, ` for component="${name}". className="${getClassName(target)}" Existing dependencies=${JSON.stringify(deps)}`);
+    debug(`%s Adding Constructor dependency at index="%d" dependency="%o"
+    for component="%s"
+    className="%s"
+     Existing dependencies="%o"`,
+            TAG,
+            parameterIndex,
+            dependency,
+            name,
+            getClassName(target),
+            deps,
+    );
 
     /**
      * In case of inheritance deps array may already have dependency at the same index
@@ -357,27 +336,26 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
      * just check if deps[parameterIndex] then replace value, else push as before.
      * Typescript compiler will allow to use only co-variant types in child constructor
      */
-    let existingDepIndex: number = deps.findIndex(dep => dep.parameterIndex===parameterIndex);
+    let existingDependencyIndex: number = deps.findIndex(dep => dep.parameterIndex===parameterIndex);
 
-    if (existingDepIndex > -1) {
-        debug('%s constructor dependencies for "%s" already has dependency at index="%d"', TAG, name, existingDepIndex);
-        /**
-         * Fill missing dependencies
-         */
-        deps.splice(existingDepIndex, 1, {
-            parameterIndex,
-            dependency,
-        });
-        debug('%s Updated deps after splice="%o"', TAG, deps);
-    } else {
-        deps.push({
-            parameterIndex,
-            dependency,
-        });
+    if (existingDependencyIndex > -1) {
+
+        debug('% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
+                TAG,
+                getClassName(target),
+                parameterIndex,
+        );
+
+        delete (deps[existingDependencyIndex]);
     }
 
+    deps.push({
+        parameterIndex,
+        dependency,
+    });
+
     Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
-}
+};
 
 /**
  * Returns array of IfComponentIdentity in sorted order of
@@ -386,7 +364,7 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
  * @param target
  * @throws if dependency is missing for constructor parameter
  */
-export function getConstructorDependencies(target: Target): Array<IfComponentIdentity> {
+export const getConstructorDependencies = (target: Target): Array<IfComponentIdentity> => {
 
     let ret: Array<IfCtorInject> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
     if (ret) {
@@ -406,7 +384,8 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
         for (let i = 0; i < ret.length; i += 1) {
             sorted.push(ret.find(it => it.parameterIndex===i));
             if (!sorted[i]) {
-                throw new FrameworkError(`Constructor is missing @Inject decorator for parameter ${i} for component ${target.name}`);
+                throw new FrameworkError(`Constructor is missing @Inject decorator 
+                for parameter ${i} for component ${target.name}`);
             }
         }
 
@@ -419,7 +398,7 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
         debug('%s NOT FOUND constructor dependencies for component="%s"', TAG, String(getComponentName(target)));
         return [];
     }
-}
+};
 
 
 export const getClassSetters = (target: Target): Array<string> => {
