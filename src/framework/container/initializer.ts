@@ -53,7 +53,6 @@ const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails>
             propDependencies: componentDetails.propDependencies.map(copyPropDependency),
             constructorDependencies: componentDetails.constructorDependencies.map(dependentyIdentity => copyIdentity(dependentyIdentity)),
             componentMetaData: componentDetails.componentMetaData,
-            componentType: componentDetails.componentType,
             preDestroy: componentDetails.preDestroy,
             postConstruct: componentDetails.postConstruct,
             provides: componentDetails.provides.map(copyFactoryMethod),

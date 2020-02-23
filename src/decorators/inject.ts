@@ -117,6 +117,12 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
 
         debug('%s DESIGN_TYPE of property "%s.%s" is "%s" className="%s"', TAG, name, propertyKey, String(injectName), injectClassName);
 
+        if (!injectClassName) {
+            throw new FrameworkError(`${TAG} Failed to get class name 
+            of injected component for "${name}.${propertyKey}"
+            Consider using named dependency or more specific class type for this component`);
+        }
+
         /**
          * If return type was not provided (same case when only Interface was provided)
          * then injectName will be 'Object'
@@ -124,7 +130,9 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
          */
         if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
 
-            throw new TypeError(`Dependency class ${injectClassName} for property "${name}.${propertyKey}"  is not an allowed as dependency component. Consider using named dependency or more specific class type for this component`);
+            throw new TypeError(`Dependency class ${injectClassName} 
+            for property "${name}.${propertyKey}"  is not an allowed as dependency component. 
+            Consider using named dependency or more specific class type for this component`);
         }
     }
 
@@ -165,7 +173,7 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
 
     const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
     const deps = <Array<IfCtorInject>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
-    let dependency: IfComponentIdentity;
+    let injectIdentity: IfComponentIdentity;
 
     /**
      * Applied to constructor method parameter
@@ -189,11 +197,76 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
     }
 
     if (!ptypes[paramIndex]) {
-        throw new FrameworkError(`${TAG} array "ptypes" does not have index ${paramIndex}`);
+        throw new FrameworkError(`${TAG} Cannot add dependency ${String(dependencyName)} 
+        because array of constructor arguments types does not have index ${paramIndex} 
+        on class ${getClassName(target)}`);
     }
 
-    dependency = getComponentIdentity(ptypes[paramIndex]);
+    if (dependencyName===UNNAMED_COMPONENT) {
+        /**
+         * For unnamed @Inject get identity from ptypes[paramIndex]
+         * make sure class type is not reserved type.
+         */
+        injectIdentity = getComponentIdentity(ptypes[paramIndex]);
+        let injectClassName = injectIdentity?.clazz?.name;
 
+        if (!injectClassName) {
+            throw new FrameworkError(`${TAG} Failed to get class name 
+            of injected component for "${String(target)} constructor at position ${paramIndex}"
+            Consider using named dependency or more specific class type for this component`);
+        }
+
+        /**
+         * If return type was not provided (same case when only Interface was provided)
+         * then injectName will be 'Object'
+         * This is not allowed.
+         */
+        if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
+
+            throw new TypeError(`Dependency class ${injectClassName} 
+            for "${String(target)}"  constructor at position ${paramIndex} 
+            is not an allowed as dependency component. 
+            Consider using named dependency or more specific class type for this component`);
+        }
+
+    } else {
+        /**
+         * For named dependency just generate identity using dependencyName
+         * and ptypes[paramIndex] for clazz
+         */
+        injectIdentity = Identity(dependencyName, ptypes[paramIndex]);
+    }
+
+
+    /**
+     * Now push to deps array and set deps back as CONSTRUCTOR_DEPENDENCIES on target.
+     * But first check to see if there is already an object with
+     * same .parameterIndex because it may have been added before in parent class constructor
+     * in which case must replace it.
+     * If dependency with same parameterIndex not found then just push to deps.
+     */
+
+    const existingDependencyIndex = deps.findIndex(dep => dep.parameterIndex===paramIndex);
+    if (existingDependencyIndex > -1) {
+
+        debug('% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
+                TAG,
+                getClassName(target),
+                paramIndex,
+        );
+
+        delete (deps[existingDependencyIndex]);
+    }
+
+    deps.push({
+        parameterIndex: paramIndex,
+        dependency: injectIdentity,
+    });
+
+    /**
+     * Now set deps as metadata on target
+     */
+    Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
 
 };
 
@@ -254,7 +327,7 @@ export function Inject(nameOrTarget: StringOrTarget,
                        propertyKey?: string,
                        parameterIndex?: NumberOrPropertyDescriptor) {
 
-    debug('%s Inject with %s', TAG);
+    debug('%s Entered Inject with', TAG);
     //debugger;
     if (typeof nameOrTarget==='string') {
         return applyInject(nameOrTarget);
@@ -266,6 +339,8 @@ export function Inject(nameOrTarget: StringOrTarget,
 /**
  * @todo deal with inheritance. If parent already has ctor dependencies
  * a child can have co-variant types for same dependencies
+ *
+ * @todo delete?
  *
  * @param {Target} target
  * @param {IfComponentIdentity} dependency
@@ -304,7 +379,13 @@ export function addConstructorDependency(target: Target, dependency: IfComponent
     Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
 }
 
-
+/**
+ * Returns array of IfComponentIdentity in sorted order of
+ * constructor parameters.
+ *
+ * @param target
+ * @throws if dependency is missing for constructor parameter
+ */
 export function getConstructorDependencies(target: Target): Array<IfComponentIdentity> {
 
     let ret: Array<IfCtorInject> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
@@ -343,6 +424,10 @@ export function getConstructorDependencies(target: Target): Array<IfComponentIde
 
 export const getClassSetters = (target: Target): Array<string> => {
     const ret = [];
+    /**
+     * @todo make it work with Constructor function and with prototype
+     * Right now only works with constructor.
+     */
     if (!target || !target.prototype) {
         return ret;
     }

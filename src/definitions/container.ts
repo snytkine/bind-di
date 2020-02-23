@@ -29,7 +29,8 @@ export interface IScopedComponentStorage {
  * Framework provides these helper functions for singleton and context-scoped
  * components
  */
-export type IocComponentGetter = (container: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) => any
+export type IocComponentGetter = (container: IfIocContainer,
+                                  scopedComponentStorage?: Array<IScopedComponentStorage>) => any
 
 /**
  * Lifecycle callbacks are made by container after

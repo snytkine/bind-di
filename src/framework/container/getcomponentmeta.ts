@@ -1,6 +1,5 @@
 import {
     COMPONENT_META_DATA,
-    _COMPONENT_TYPE_,
     getComponentIdentity,
     getScope,
     getFactoryMethods,

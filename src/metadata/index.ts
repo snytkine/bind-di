@@ -10,13 +10,7 @@ import {
 import { Identity } from '../framework/lib/identity';
 import { FrameworkError } from '../exceptions/frameworkerror';
 
-
 const debug = require('debug')('bind:decorator');
-
-export interface IfIdentityCtorArgs {
-    componentName?: StringOrSymbol
-    clazz?: Target
-}
 
 /**
  * Compare 2 component identities

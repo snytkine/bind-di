@@ -129,18 +129,30 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
         debug('Singleton component "%s" provides "%d" components. Adding them', String(name), meta.provides.length);
 
         meta.provides.reduce((prev: IfIocContainer, curr: IfComponentFactoryMethod) => {
-
+            /**
+             * Can provided component have own dependencies?
+             * Here we just basically hard-coding the fact that provided component
+             * does not have any dependencies.
+             * Basically provided component is returned from a factory
+             * component's method, so it's factory component's job
+             * to instantiate the provided component and return it.
+             */
             const providedComponent: IfComponentDetails = {
                 identity: curr.providesComponent,
-                componentType: IocComponentType.COMPONENT,
                 scope: getScope(meta.identity.clazz, curr.methodName),
                 propDependencies: [],
                 constructorDependencies: [],
                 provides: [],
             };
 
-
+            /**
+             * Here we always treat provided component as singleton
+             *
+             * @todo in the future if provided component can be of other scopes
+             * then we need to update this logic - cannot always return instance.
+             */
             const getter = function () {
+
                 let instance;
 
                 return function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
@@ -162,6 +174,12 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
                      */
                     const factory = ctnr.getComponent(meta.identity, scopedComponentStorage);
                     debug('%s Calling factory method="%s" of factory component="%s" factory className="%s"', TAG, curr.methodName, stringifyIdentify(meta.identity), meta?.identity?.clazz?.name);
+
+                    /**
+                     * Now we have the instance of factory component
+                     * just call the method that provides this component
+                     * to get the actual provided component.
+                     */
                     instance = factory[curr.methodName]();
 
                     return instance;

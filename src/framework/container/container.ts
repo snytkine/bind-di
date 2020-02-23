@@ -106,7 +106,6 @@ const checkDependencies = (container: IfIocContainer) => {
  * An example of a loop: A depends on B, B depends on C, C depends on A
  * This type of loop cannot be allowed
  *
- * @param {Array<IfIocComponent<T>>} components
  *
  * @todo this is old implementation, uses component names.
  * Should instead use Identify and equals method of Identify class
