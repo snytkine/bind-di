@@ -31,11 +31,20 @@ const getTargetStereotype = (target: Target): TargetStereoType => {
 
     let ret = TargetStereoType.UNKNOWN;
 
+    if (target) {
+        if (target.prototype && typeof target=='function') {
+            ret = TargetStereoType.CONSTRUCTOR;
+        } else if (target.constructor && target.constructor.length) {
+            ret = TargetStereoType.PROTOTYPE;
+        }
+
+    }
+    /*
     if (target && target.constructor && target.constructor.length) {
         ret = TargetStereoType.PROTOTYPE;
     } else if (target && target.length && !target.constructor) {
         ret = TargetStereoType.CONSTRUCTOR;
-    }
+    }*/
 
     return ret;
 };
@@ -43,6 +52,7 @@ const getTargetStereotype = (target: Target): TargetStereoType => {
 const getInjectionType = (target: Target,
                           propertyKey?: string,
                           parameterIndex?: NumberOrPropertyDescriptor): DependencyType => {
+
 
     let ret: DependencyType = DependencyType.UNKNOWN;
     const targetStereoType: TargetStereoType = getTargetStereotype(target);
@@ -246,7 +256,10 @@ const applyInject = (depName: StringOrSymbol) => (target: Target,
 
     const injectionType = getInjectionType(target, propertyKey, paramIndex);
 
-    debug('%s applyInjectDecorator for dependencyName="%s" injectionType=%s', TAG, depName, injectionType);
+    debug('%s applyInjectDecorator for dependencyName="%s" injectionType=%s',
+            TAG,
+            depName,
+            injectionType);
 
     switch (injectionType) {
 
@@ -282,8 +295,8 @@ export function Inject(target: Target, propertyKey: string, parameterIndex?: num
 export function Inject(target: Target, propertyKey: string, descriptor: PropertyDescriptor): void
 
 export function Inject(name: StringOrSymbol): (target: Target,
-                                       propertyKey?: string,
-                                       parameterIndex?: NumberOrPropertyDescriptor) => void
+                                               propertyKey?: string,
+                                               parameterIndex?: NumberOrPropertyDescriptor) => void
 
 /**
  * Implementation

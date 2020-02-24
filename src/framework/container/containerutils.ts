@@ -3,8 +3,9 @@ import {
     IfComponentDetails,
     IfComponentIdentity,
     IfIocContainer,
+    IocComponentGetter,
     IScopedComponentStorage,
-    Target,
+    Target, UNNAMED_COMPONENT,
 } from '../../';
 import { getComponentMeta } from './getcomponentmeta';
 import { IfComponentFactoryMethod } from '../../definitions/container';
@@ -39,6 +40,26 @@ export const stringifyIdentify = (identity: IfComponentIdentity): string => {
     return `componentName=${String(identity?.componentName)} className=${identity?.clazz?.name}`;
 };
 
+
+const getComponentNameFromIdentity = (identity: IfComponentIdentity): string => {
+    if (identity.componentName!==UNNAMED_COMPONENT) {
+        return String(identity.componentName);
+    }
+
+    if (identity.clazz) {
+
+        if (identity.clazz.name) {
+            return identity.clazz.name;
+        }
+
+        if (identity.constructor && identity.constructor.name) {
+            return identity.constructor.name;
+        }
+    }
+
+    return String(UNNAMED_COMPONENT);
+};
+
 /**
  * RequestLogger depends on Logger and on Request object
  * Request is RequestScoped
@@ -57,8 +78,8 @@ export const stringifyIdentify = (identity: IfComponentIdentity): string => {
  */
 export function addSingletonComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
-    debug(TAG, 'Adding singleton componentName=', stringifyIdentify(meta.identity));
-    const name = meta.identity.componentName;
+    debug('%s addSingletonComponent componentName=', getComponentNameFromIdentity(meta.identity));
+    const name = getComponentNameFromIdentity(meta.identity);
     const className = meta.identity?.clazz?.name;
 
     /**
@@ -70,20 +91,29 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
         let instance: any;
 
         return function (ctnr: IfIocContainer) {
-            debug(TAG, 'Getter called for Singleton componentName=', String(name), 'className=', className);
+            debug('%s Getter called for Singleton componentName=', TAG, name);
 
             if (instance) {
-                debug(TAG, 'Returning same instance of componentName=', String(name), 'className=', className);
+                debug('%s Returning same instance of componentName="%s"', TAG, name);
 
                 return instance;
             }
 
-            debug(TAG, 'Creating new instance of Singleton componentName=', String(name), ' className=', className, ' with constructor args', meta.constructorDependencies);
-            const constructorArgs = meta.constructorDependencies.map(dependency => ctnr.getComponent(dependency));
+            debug(`%s Creating new instance of Singleton componentName="%s" with constructor args="%o"`,
+                    TAG,
+                    name,
+                    meta.constructorDependencies);
+
+            const constructorArgs = meta.constructorDependencies.map(dependency => {
+                return ctnr.getComponent(dependency);
+            });
 
             instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
-            debug(TAG, 'Adding dependencies to Singleton component\' ', name, '\' ', meta.propDependencies);
+            debug('%s Adding dependencies to Singleton component "%s", dependencies="%o"',
+                    TAG,
+                    name,
+                    meta.propDependencies);
 
             /**
              * Have instance object
@@ -105,7 +135,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
                         if (!prev[curr.propertyName]) {
                             prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
                         } else {
-                            debug(name, 'Singleton component already has property=', curr.propertyName);
+                            debug('%s Singleton component "%s" already has property="%s"', TAG, name, curr.propertyName);
                         }
 
                         return prev;
@@ -122,111 +152,109 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
 
     container.addComponent(component);
 
-
     /**
-     * Now if this component also provides any components
-     * also add provided components
+     * This singleton component may also have component getters
      */
-    if (meta.provides.length > 0) {
-        debug('Singleton component "%s" provides "%d" components. Adding them', String(name), meta.provides.length);
+    addFactoryProvidedComponents(meta, container);
+}
 
-        meta.provides.reduce((prev: IfIocContainer, curr: IfComponentFactoryMethod) => {
+
+const addFactoryProvidedComponents = (factoryComponentMeta: IfComponentDetails,
+                                      container: IfIocContainer): void => {
+    if (factoryComponentMeta.provides.length > 0) {
+        debug('%s Singleton component "%s" provides "%d" components. Adding them',
+                TAG,
+                getComponentNameFromIdentity(factoryComponentMeta.identity),
+                factoryComponentMeta.provides.length);
+
+        factoryComponentMeta.provides.reduce((prev: IfIocContainer, curr: IfComponentFactoryMethod) => {
             /**
-             * Can provided component have own dependencies?
-             * Here we just basically hard-coding the fact that provided component
-             * does not have any dependencies.
-             * Basically provided component is returned from a factory
+             * Provided component is returned from a factory
              * component's method, so it's factory component's job
              * to instantiate the provided component and return it.
+             * This means that factory provided component cannot have own
+             * dependencies
              */
             const providedComponent: IfComponentDetails = {
                 identity: curr.providesComponent,
-                scope: getScope(meta.identity.clazz, curr.methodName),
+                scope: getScope(factoryComponentMeta.identity.clazz, curr.methodName),
                 propDependencies: [],
                 constructorDependencies: [],
                 provides: [],
             };
 
+
+            const getFactoryProvidedComponent = (container: IfIocContainer) => {
+                /**
+                 * Utilize the getter of factory component
+                 * That getter function is in scope so can be used here
+                 */
+                const factory = container.getComponent(factoryComponentMeta.identity);
+                debug('%s Calling factory method="%s" of factory component="%s"',
+                        TAG,
+                        curr.methodName,
+                        getComponentNameFromIdentity(factoryComponentMeta.identity),
+                );
+
+                /**
+                 * Now we have the instance of factory component
+                 * just call the method that provides this component
+                 * to get the actual provided component.
+                 */
+                return factory[curr.methodName]();
+            };
+
+            let providedComponentGetter: IocComponentGetter;
+
             /**
-             * Here we always treat provided component as singleton
-             *
-             * @todo in the future if provided component can be of other scopes
-             * then we need to update this logic - cannot always return instance.
+             * providedComponentGetter function
+             * will be different depending on
+             * provided component's scope
              */
-            const getter = function () {
-
-                let instance;
-
-                return function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>): Object {
-                    debug(`%s Getter called on Factory-Provided componentName="%s" 
-                    className="%"  
-                    of factory componentName="%s"  factory="%s"`,
-                            TAG,
-                            String(providedComponent?.identity?.componentName),
-                            providedComponent?.identity?.clazz?.name,
-                            stringifyIdentify(meta.identity),
-                            stringifyIdentify(meta.identity));
-
-                    let ret: Object;
-
-                    const getFactoryProvidedComponent = () => {
-                        const factory = ctnr.getComponent(meta.identity, scopedComponentStorage);
-                        debug('%s Calling factory method="%s" of factory component="%s" factory className="%s"',
-                                TAG,
-                                curr.methodName,
-                                stringifyIdentify(meta.identity),
-                                meta?.identity?.clazz?.name);
-
-                        /**
-                         * Now we have the instance of factory component
-                         * just call the method that provides this component
-                         * to get the actual provided component.
-                         */
-                        return factory[curr.methodName]();
-                    };
-
-                    /**
-                     * Depending on ComponentScope may use singlton pattern, newInstance or
-                     * scopeCache pattern
-                     */
-                    switch (providedComponent.scope) {
-
-                        case ComponentScope.NEWINSTANCE:
-                            /**
-                             * Call component getter method every time
-                             */
-                            ret = getFactoryProvidedComponent();
-                            break;
-
-                        case ComponentScope.SINGLETON:
-                            /**
-                             * Look for instance first
-                             */
-                            instance = instance || getFactoryProvidedComponent();
-                            ret = instance;
-                            break;
-
-                        default:
-                            /**
-                             * Look in scopedComponentStorage that matches
-                             * ComponentScope
-                             *
-                             * @todo Implement
-                             */
-
+            switch (providedComponent.scope) {
+                case ComponentScope.NEWINSTANCE:
+                    providedComponentGetter = (container: IfIocContainer) => {
+                        return getFactoryProvidedComponent(container);
                     }
+                    break;
 
-                    return ret;
-                };
+                case ComponentScope.SINGLETON:
+                    providedComponentGetter = function () {
+                        let instance: Object;
 
-            }();
+                        return (container: IfIocContainer) => {
+                            instance = instance || getFactoryProvidedComponent(container);
+                            return instance;
+                        };
+                    }();
+                    break;
+
+                default:
+                    /**
+                     * Look in scopedComponentStorage that matches
+                     * ComponentScope
+                     */
+                    providedComponentGetter = function (componentDetails) {
+
+                        return (container: IfIocContainer,
+                                arrStorages?: Array<IScopedComponentStorage>) => {
+                            return getComponentFromScopedStorages(container,
+                                    componentDetails,
+                                    arrStorages);
+                        };
+                    }(providedComponent);
+
+            }
 
             const component = {
                 ...providedComponent,
-                get: getter,
+                get: providedComponentGetter,
             };
 
-            debug('%s Adding factory-provided component="%s" scope="%s"', TAG, stringifyIdentify(component.identity), component.scope);
+            debug('%s Adding factory-provided component="%s" scope="%s"',
+                    TAG,
+                    stringifyIdentify(component.identity),
+                    component.scope);
 
             prev.addComponent(component);
 
@@ -235,7 +263,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
         }, container);
 
     }
-}
+};
 
 /**
  * Given array of IScopedComponentStorage

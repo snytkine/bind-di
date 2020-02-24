@@ -1,12 +1,12 @@
 import {
-    IfComponentFactoryMethod, IfComponentPropDependency
-} from "./container";
+    IfComponentFactoryMethod, IfComponentPropDependency,
+} from './container';
 
-import {ComponentScope} from '../enums/componentscope'
+import { ComponentScope } from '../enums/componentscope';
 import { StringOrSymbol, StringToAny } from './types';
 
 export type Target = {
-    new? (...args: any[]): any
+    new?(...args: any[]): any
     name?: string
     constructor: Function
     prototype?: any
@@ -28,6 +28,7 @@ export interface IfComponentIdentity {
     componentName: StringOrSymbol
     clazz?: Target
 }
+
 
 export interface IfComponentDetails {
 

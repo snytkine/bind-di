@@ -10,7 +10,7 @@ import {
     getComponentMeta,
     IfCtorInject,
     CONSTRUCTOR_DEPENDENCIES,
-    StringOrSymbol,
+    StringOrSymbol, getClassName,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
@@ -38,7 +38,8 @@ const TAG = '@Component';
  * Fill missing dependencies (for example of constructor has 3 parameters but
  * only param 2 was decorated with @Inject then set the missing 1st and 3rd param.
  *
- * Check that parameter types are not reserved types (must not be build in class, no String, Number, Object)
+ * Check that parameter types are not reserved types
+ * (must not be build in class, no String, Number, Object)
  *
  * @param target
  */
@@ -47,7 +48,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
     /**
      * ptypes is array of constructor property param types
      */
-    const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
+    const constructorParamTypes = Reflect.getMetadata(PARAM_TYPES, target);
 
     /**
      * Get possibly already defined constructor dependencies
@@ -55,13 +56,15 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      * constructor parameters.
      */
     const existingCtorDeps: Array<IfCtorInject> | undefined = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
+
     console.log(componentName, '!!!!!!!!!!!!');
+    console.log(getClassName(target));
     console.dir(existingCtorDeps);
     console.log(componentName, '??????????????');
-    console.dir(ptypes);
+    console.dir(constructorParamTypes);
 
     /**
-     * ptypes array has all constructor parameters.
+     * constructorParamTypes array has all constructor parameters.
      * existingCtopDeps has array of dependencies
      * If any of the ctor dependency properties were not
      * decorated with @Inject then getConstructorDependencies would throw
@@ -73,6 +76,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      * Loop over them and check that
      */
 
+    //if(existingCtorDeps.length > 1 && existingCtorDeps.length !== constructorParamTypes.length){
     /**
      * mylogger !!!!!!!!!!!!
      [
@@ -97,19 +101,22 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      */
     //debugger;
     console.log('++++++++++++++++');
-    if (ptypes && Array.isArray(ptypes)) {
-        for (const p in ptypes) {
+    if (constructorParamTypes && Array.isArray(constructorParamTypes) &&
+            existingCtorDeps &&
+            existingCtorDeps.length !== constructorParamTypes.length) {
+        for (const i in constructorParamTypes) {
             /**
              * array members are objects (classes)
              * that themselves are components
              */
-            console.log(ptypes[p].name);
+            console.log(constructorParamTypes[i].name);
             try {
-                const meta = getComponentMeta(ptypes[p]);
-                console.log('~~~~~~~~~~~~~~~~~');
+                const meta = getComponentMeta(constructorParamTypes[i]);
+                console.log(`~~~~~~~ constructor param ${i} meta: ~~~~~~~~~~`);
                 console.dir(meta);
+                console.log('~~~~~~~~~~~~~~~~~');
             } catch (e) {
-                console.error('@@@@@@');
+                console.error(`Error getting component meta for constructor param ${i}`);
             }
 
         }
@@ -132,21 +139,6 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
         setComponentIdentity(Identity(componentName, target), target);
         setConstructorDependencies(componentName, target);
 
-        /**
-         * @todo what's the purpose of adding DEFAULT_SCOPE if container
-         * has a property defaultScope and will use its own default if scope is not
-         * resolved?
-         * the function getScope uses this DEFAULT_SCOPE if SCOPE is not defined.
-         * this means that scope will always be resolved to at least the default scope
-         * and container will not have a chance to use own default scope.
-         *
-         * This concept of DEFAULT_SCOPE on component was designed for Controller or Middleware
-         * component. The idea was that DEFAULT_SCOPE would be set by @Controller decorator
-         * but could be overwritten by @Singleton decorator
-         * in that case the value of scope is computer value - SCOPE || DEFAULT_SCOPE
-         * But for regular component we should never set DEFAULT_SCOPE otherwise
-         * the container's own defaultScope can never be used.
-         */
     } else {
 
         const factoryClassName = target?.constructor?.name;

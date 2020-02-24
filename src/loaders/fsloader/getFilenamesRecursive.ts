@@ -91,11 +91,12 @@ export const getExportsFromFile = (file: string) => {
  * and we don't want to auto-load test files since that can lead to application startup error
  * because it will load duplicate components.
  *
- * @param f string full path to file
+ * @param filePath string full path to file
  * @returns {boolean} true if file should be loaded by application loader
  */
-export function isFileNameLoadable(f: string): boolean {
-    return (!f.startsWith('__')) && path.extname(f)==='.js';
+export function isFileNameLoadable(filePath: string): boolean {
+
+    return (!filePath.match(/'\/__'/)) && path.extname(filePath)==='.js';
 }
 
 
@@ -112,13 +113,13 @@ export function isFileNameLoadable(f: string): boolean {
  * @param f string full path to file to check
  * @returns {boolean} true if file exists and contains one of the component annotations|false otherwise
  */
-export function fileContainsComponent(f: string): boolean {
+export function fileContainsComponent(filePath: string): boolean {
 
-    const fileContents = fs.existsSync(f) && fs.readFileSync(f, 'utf-8');
+    const fileContents = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8');
 
-    let match = !!(fileContents && fileContents.match(/__decorate/) && fileContents.match(/\.Middleware|\.Controller|\.Component|\.ControllerMiddleware|\.ErrorHandler|\.ContextService/));
+    let match = !!(fileContents && fileContents.match(/__decorate/) && fileContents.match(/\.Component|\.Inject/));
 
-    debug(TAG, 'fileContents of ', f, ' match component: ', match);
+    debug('%s fileContents of "%s" will be loaded="%s"', TAG, filePath, match);
 
     return match;
 
@@ -128,11 +129,10 @@ export function fileContainsComponent(f: string): boolean {
 export const load = (container: IfIocContainer, dirs: string[]) => {
 
     const files = getFilenamesRecursive(dirs)
-            .filter(file => isFileNameLoadable(file));
-    /**
-     * @todo filter our only files that has __decorate, some files may be just util functions.
-     */
-    debug(`${TAG}, loading from files: ${JSON.stringify(files, null, '\t')}`);
+            .filter(isFileNameLoadable)
+            .filter(fileContainsComponent);
+
+    debug('%s loading from files: %s', TAG, JSON.stringify(files, null, '\t'));
 
     files.map(file => {
         const fileexports = getExportsFromFile(file);

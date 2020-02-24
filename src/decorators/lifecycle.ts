@@ -3,11 +3,11 @@ import {
     LifecycleCallback,
     defineMetadata,
     INIT_METHOD,
-    PRE_DESTROY
-} from "../";
-import {getComponentName} from "../index";
+    PRE_DESTROY,
+} from '../';
+import { getComponentName } from '../index';
 
-const debug = require("debug")("bind:decorator:lifecycle");
+const debug = require('debug')('bind:decorator:lifecycle');
 
 
 export function PostConstruct(target: Target, propertyKey: string,
@@ -59,31 +59,32 @@ export function getPostConstruct(target: Target): string {
 
     const cName = String(getComponentName(target));
 
-    debug("Entered getPostConstruct for target=", cName);
+    debug('Entered getPostConstruct for target=%s', cName);
 
     const ret = Reflect.getMetadata(INIT_METHOD, target);
 
     if (ret) {
-        debug("Found method of postConstruct on ", cName, "method=", ret);
+        debug('Found method of postConstruct on %s method=%s', cName, ret);
 
         return ret;
     }
 
 
     const a = Object.getOwnPropertyNames(target);
-    debug("Property names of ", cName, "are=", JSON.stringify(a));
+    debug('Property names of %s are %o', cName, a);
 
-    for (const p in target.prototype) {
+    if (target.prototype) {
+        for (const p in target.prototype) {
 
-        console.log("Checking postConstruct of ", cName + "." + p);
-        if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
-            //throw new Error("");
-            //debug("FOUND postConstruct=", p);
-            console.log("############### p #############");
-            return p;
+            console.log('Checking postConstruct of ', cName + '.' + p);
+            if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
+                //throw new Error("");
+                //debug("FOUND postConstruct=", p);
+                console.log('############### p #############');
+                return p;
+            }
         }
     }
 
-    return "";
-    //return Reflect.getMetadata(INIT_METHOD, target);
+    return undefined;
 }
