@@ -48,7 +48,7 @@ export interface IfComponentFactoryMethod {
 }
 
 
-export interface IfCtorInject {
+export interface IfConstructorDependency {
     parameterIndex: number
     dependency: IfComponentIdentity
 }

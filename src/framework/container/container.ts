@@ -1,7 +1,7 @@
 import {
     IfIocComponent,
     IfIocContainer,
-    IfCtorInject,
+    IfConstructorDependency,
     IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails,
 
 } from '../../';
@@ -9,7 +9,7 @@ import { ComponentScope } from '../../enums/componentscope';
 import { StringOrSymbol } from '../../definitions/types';
 
 import { IfComponentIdentity } from '../../definitions/component';
-import { INVALID_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
+import { RESERVED_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
 import { UNNAMED_COMPONENT } from '../../definitions/symbols';
 import { stringifyIdentify } from './containerutils';
 import {
@@ -79,7 +79,7 @@ const checkDependencies = (container: IfIocContainer) => {
                 className=${dep.dependency?.clazz?.name}`);
             }
 
-            if (dep.dependency?.clazz?.name && !INVALID_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.name) {
+            if (dep.dependency?.clazz?.name && !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.name) {
                 throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
             }
 

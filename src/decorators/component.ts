@@ -8,13 +8,12 @@ import {
     IfComponentFactoryMethod,
     PARAM_TYPES,
     getComponentMeta,
-    IfCtorInject,
+    IfConstructorDependency,
     CONSTRUCTOR_DEPENDENCIES,
-    StringOrSymbol, getClassName,
+    StringOrSymbol, getClassName, IfComponentIdentity, getComponentIdentity,
 } from '../';
 
 import { ComponentScope } from '../enums/componentscope';
-import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 
 import {
     defineMetadata,
@@ -24,9 +23,24 @@ import { getComponentName } from '../index';
 import { Identity } from '../framework/lib/identity';
 import { DecoratorError } from '../exceptions/decoratorerror';
 import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
+import { assertNotReservedType } from '../framework/lib/assertnotreservedtype';
 
 const debug = require('debug')('bind:decorate:component');
 const TAG = '@Component';
+
+/**
+ * Factory method to create IfConstructorDependency object
+ * @param parameterIndex
+ * @param dependency
+ * @constructor
+ */
+export const ConstructorDependency = (parameterIndex: number,
+                                      dependency: IfComponentIdentity): IfConstructorDependency => {
+    return {
+        parameterIndex,
+        dependency,
+    };
+};
 
 /**
  * Look in Object constructor function to determine
@@ -45,8 +59,9 @@ const TAG = '@Component';
  */
 const setConstructorDependencies = (componentName: StringOrSymbol, target: Object): void => {
     debug('%s Entered setConstructorDependencies for component="%s"', TAG, String(componentName));
+
     /**
-     * ptypes is array of constructor property param types
+     * constructorParamTypes is array of constructor property param types
      */
     const constructorParamTypes = Reflect.getMetadata(PARAM_TYPES, target);
 
@@ -55,7 +70,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      * Some may have been defined using @Inject directly on
      * constructor parameters.
      */
-    const existingCtorDeps: Array<IfCtorInject> | undefined = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
+    const existingCtorDeps: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
 
     console.log(componentName, '!!!!!!!!!!!!');
     console.log(getClassName(target));
@@ -76,50 +91,38 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
      * Loop over them and check that
      */
 
-    //if(existingCtorDeps.length > 1 && existingCtorDeps.length !== constructorParamTypes.length){
-    /**
-     * mylogger !!!!!!!!!!!!
-     [
-     {
-    parameterIndex: 1,
-    dependency: {
-      componentName: Symbol(bind:component_unnamed),
-      clazz: [Function: Settings]
-    }
-  },
-     {
-    parameterIndex: 0,
-    dependency: {
-      componentName: Symbol(bind:component_unnamed),
-      clazz: [Function: Settings]
-    }
-  }
-     ]
-     mylogger ??????????????
-     [ [Function: Settings], [Function: Settings] ]
-     *
-     */
-    //debugger;
-    console.log('++++++++++++++++');
     if (constructorParamTypes && Array.isArray(constructorParamTypes) &&
-            existingCtorDeps &&
-            existingCtorDeps.length !== constructorParamTypes.length) {
-        for (const i in constructorParamTypes) {
-            /**
-             * array members are objects (classes)
-             * that themselves are components
-             */
-            console.log(constructorParamTypes[i].name);
-            try {
-                const meta = getComponentMeta(constructorParamTypes[i]);
-                console.log(`~~~~~~~ constructor param ${i} meta: ~~~~~~~~~~`);
-                console.dir(meta);
-                console.log('~~~~~~~~~~~~~~~~~');
-            } catch (e) {
-                console.error(`Error getting component meta for constructor param ${i}`);
-            }
+            existingCtorDeps.length!==constructorParamTypes.length) {
+        const targetClassName = getClassName(target);
 
-        }
+        debug(`%s setConstructorDependencies 
+        Adding additional constructor dependencies to component "%s" class="%s"`,
+                TAG,
+                String(componentName),
+                targetClassName);
+
+        const updatedCtorDependencies: Array<IfConstructorDependency> = constructorParamTypes.map(
+                (dep, i) => {
+                    let res = existingCtorDeps.find(dep => dep.parameterIndex===i);
+
+                    res = res || ConstructorDependency(i, getComponentIdentity(dep));
+                    /**
+                     * @todo
+                     * For UNNAMED dependency do not allow generic return types
+                     */
+                    assertNotReservedType(res.dependency.componentName, res.dependency.clazz);
+
+                    return res;
+                });
+
+        /**
+         * Now set updated constructor dependencies as metadata for constructor
+         */
+        debug(`%s setConstructorDependencies updated "%s" constructor dependencies=%o`,
+                targetClassName,
+                updatedCtorDependencies);
+
+        Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, updatedCtorDependencies, target);
     }
 
 };
@@ -195,11 +198,12 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
          * but only in case of UNNAMED_COMPONENT
          *
          */
-        if (componentName===UNNAMED_COMPONENT && INVALID_COMPONENT_NAMES.includes(rettype.name)) {
-            throw new DecoratorError(`${TAG} Return type of method "${target.constructor.name}.${propertyKey}" 
+        assertNotReservedType(componentName, rettype, `
+        ${TAG} Return type of method "${target.constructor.name}.${propertyKey}" 
                 is not a valid name for a component: "${rettype.name}". 
-                Possibly return type was not explicitly defined or the Interface name was used for return type instead of class name`);
-        }
+                Possibly return type was not explicitly defined or the 
+                Interface name was used for return type instead of class name`);
+
 
         /**
          * the rettype is actually a class that if usually declared in different file
@@ -230,12 +234,12 @@ export function Component(target: Target): void
 export function Component(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
 
 export function Component(name: StringOrSymbol): (target: any, propertyKey?: string,
-                                          descriptor?: TypedPropertyDescriptor<Object>) => void
+                                                  descriptor?: TypedPropertyDescriptor<Object>) => void
 
 export function Component(nameOrTarget: StringOrSymbol | Target, propertyKey?: string,
                           descriptor?: TypedPropertyDescriptor<Object>) {
 
-    if(isStringOrSymbol(nameOrTarget)){
+    if (isStringOrSymbol(nameOrTarget)) {
         return applyComponentDecorator(<StringOrSymbol>nameOrTarget);
     } else {
         applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);

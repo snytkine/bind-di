@@ -5,14 +5,14 @@ import {
     getComponentName,
     IfComponentIdentity,
     IfComponentPropDependency,
-    IfCtorInject,
+    IfConstructorDependency,
     PARAM_TYPES,
     PROP_DEPENDENCY,
     StringOrSymbol,
     Target,
     UNNAMED_COMPONENT,
 } from '../';
-import { INVALID_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
+import { RESERVED_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
 import { DESIGN_TYPE } from '../definitions/consts';
 import { getComponentIdentity } from '../metadata/index';
 import { Identity } from '../framework/lib/identity';
@@ -139,7 +139,7 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
          * then injectName will be 'Object'
          * This is not allowed.
          */
-        if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
+        if (RESERVED_COMPONENT_NAMES.includes(injectClassName)) {
 
             throw new TypeError(`Dependency class ${injectClassName} 
             for property "${name}.${propertyKey}"  is not an allowed as dependency component. 
@@ -229,7 +229,7 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
          * then injectName will be 'Object'
          * This is not allowed.
          */
-        if (INVALID_COMPONENT_NAMES.includes(injectClassName)) {
+        if (RESERVED_COMPONENT_NAMES.includes(injectClassName)) {
 
             throw new TypeError(`Dependency class ${injectClassName} 
             for "${String(target)}"  constructor at position ${paramIndex} 
@@ -329,7 +329,7 @@ export function Inject(nameOrTarget: StringOrTarget,
 export const addConstructorDependency = (target: Target,
                                          dependency: IfComponentIdentity,
                                          parameterIndex: number): void => {
-    let deps = <Array<IfCtorInject>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
+    let deps = <Array<IfConstructorDependency>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
     const name = String(getComponentName(target));
     debug(`%s Adding Constructor dependency at index="%d" dependency="%o"
     for component="%s"
@@ -379,7 +379,7 @@ export const addConstructorDependency = (target: Target,
  */
 export const getConstructorDependencies = (target: Target): Array<IfComponentIdentity> => {
 
-    let ret: Array<IfCtorInject> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
+    let ret: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
     if (ret) {
         debug('%s Found component CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="" deps="%o"', TAG, String(getComponentName(target)), getClassName(target), ret);
         let sorted = [];
