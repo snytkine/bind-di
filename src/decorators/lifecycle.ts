@@ -7,18 +7,10 @@ import { defineMetadata, getComponentName } from '../metadata';
 
 const debug = require('debug')('bind:decorator:lifecycle');
 
+const TAG = 'LIFECYCLE';
 
 export function PostConstruct(target: Target, propertyKey: string,
                               descriptor: TypedPropertyDescriptor<LifecycleCallback>) {
-
-    //console.log(`Adding PostConstruct decorator to ?? for method ${propertyKey}`);
-
-    //console.log("BOO!!!!!");
-    //exit(1)
-
-    // Object.defineProperty(target, propertyKey, {
-    //     enumerable: true
-    // });
 
     defineMetadata(INIT_METHOD, propertyKey, target.constructor)();
 
@@ -27,7 +19,7 @@ export function PostConstruct(target: Target, propertyKey: string,
 
 export function PreDestroy(target: Target, propertyKey: string,
                            descriptor: TypedPropertyDescriptor<LifecycleCallback>) {
-    debug(`Adding @PreDestroy decorator to ${target.name} for method ${propertyKey}`);
+    debug('%s Adding @PreDestroy decorator to "%s" for method "%s"',TAG,  String(target.name), propertyKey);
     defineMetadata(PRE_DESTROY, propertyKey, target)();
     /**
      * target is a prototype of class in this case
@@ -57,28 +49,25 @@ export function getPostConstruct(target: Target): string {
 
     const cName = String(getComponentName(target));
 
-    debug('Entered getPostConstruct for target=%s', cName);
+    debug('%s Entered getPostConstruct for target=%s', TAG, cName);
 
     const ret = Reflect.getMetadata(INIT_METHOD, target);
 
     if (ret) {
-        debug('Found method of postConstruct on %s method=%s', cName, ret);
+        debug('%s Found method of postConstruct on %s method=%s', TAG, cName, ret);
 
         return ret;
     }
 
 
     const a = Object.getOwnPropertyNames(target);
-    debug('Property names of %s are %o', cName, a);
+    debug('%s Property names of %s are %o', TAG, cName, a);
 
     if (target.prototype) {
         for (const p in target.prototype) {
 
-            console.log('Checking postConstruct of ', cName + '.' + p);
+            debug('%s Checking postConstruct of %s.%s', TAG, cName, p);
             if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
-                //throw new Error("");
-                //debug("FOUND postConstruct=", p);
-                console.log('############### p #############');
                 return p;
             }
         }

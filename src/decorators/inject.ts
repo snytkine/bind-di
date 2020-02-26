@@ -138,7 +138,7 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
      * add a property if it does not have a value.
      */
     if (!target.hasOwnProperty(propertyKey)) {
-        debug(`${TAG} - defining property "${propertyKey}" for Injection on target="${name}"`);
+        debug('%s defining property "%s" for Injection on target="%s"', TAG, propertyKey, name);
         Object.defineProperty(target, propertyKey, {
             value: void 0,
             writable: true,
@@ -292,8 +292,7 @@ export function Inject(nameOrTarget: StringOrTarget,
                        propertyKey?: string,
                        parameterIndex?: NumberOrPropertyDescriptor) {
 
-    debug('%s Entered Inject with', TAG);
-    //debugger;
+    debug('%s Entered Inject', TAG);
     if (isStringOrSymbol(nameOrTarget)) {
         return applyInject(<StringOrSymbol>nameOrTarget);
     } else {

@@ -6,7 +6,7 @@ import {
     IocComponentGetter,
     IScopedComponentStorage,
     Target,
-    IfComponentFactoryMethod
+    IfComponentFactoryMethod,
 } from '../../definitions';
 
 import { getComponentMeta } from './getcomponentmeta';
@@ -80,7 +80,7 @@ const getComponentNameFromIdentity = (identity: IfComponentIdentity): string => 
  */
 export function addSingletonComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
-    debug('%s addSingletonComponent componentName=', getComponentNameFromIdentity(meta.identity));
+    debug('%s %s addSingletonComponent componentName=', TAG, getComponentNameFromIdentity(meta.identity));
     const name = getComponentNameFromIdentity(meta.identity);
     const className = meta.identity?.clazz?.name;
 
@@ -93,7 +93,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
         let instance: any;
 
         return function (ctnr: IfIocContainer) {
-            debug('%s Getter called for Singleton componentName=', TAG, name);
+            debug('%s Getter called for Singleton componentName="%s"', TAG, name);
 
             if (instance) {
                 debug('%s Returning same instance of componentName="%s"', TAG, name);
@@ -217,7 +217,7 @@ const addFactoryProvidedComponents = (factoryComponentMeta: IfComponentDetails,
                 case ComponentScope.NEWINSTANCE:
                     providedComponentGetter = (container: IfIocContainer) => {
                         return getFactoryProvidedComponent(container);
-                    }
+                    };
                     break;
 
                 case ComponentScope.SINGLETON:
@@ -292,7 +292,9 @@ export const getComponentFromScopedStorages =
                     componentStorage = scopedStorage.storage;
                     let storedComponent = componentStorage.getComponent(meta.identity);
                     if (storedComponent) {
-                        debug('Component "%s" found in componentStorage', stringifyIdentify(meta.identity));
+                        debug('%s Component "%s" found in componentStorage',
+                                TAG,
+                                stringifyIdentify(meta.identity));
 
                         ret = storedComponent;
                     }
@@ -308,6 +310,7 @@ export const getComponentFromScopedStorages =
                 const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 
                 debug('%s Adding %d dependencies to NewInstance component="%s"',
+                        TAG,
                         meta.propDependencies.length,
                         stringifyIdentify(meta.identity));
 
@@ -341,7 +344,10 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
     assertNoPostConstruct(meta);
     assertNoPreDestroy(meta);
 
-    debug('%s Adding scoped component="%s" scope="%s"', TAG, stringifyIdentify(meta.identity), meta.scope);
+    debug('%s Adding scoped component="%s" scope="%s"',
+            TAG,
+            stringifyIdentify(meta.identity),
+            meta.scope);
 
     const getter = (container: IfIocContainer, arrStorages?: Array<IScopedComponentStorage>) => {
 
@@ -375,7 +381,12 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
     assertNoPostConstruct(meta);
     assertNoProvides(meta);
 
-    debug(TAG, 'Adding prototype component=', String(meta.identity.componentName), ' className=', meta.identity?.clazz?.name);
+    debug('%s Adding prototype component="%s" className="%s"',
+            TAG,
+            String(meta.identity.componentName),
+            meta.identity?.clazz?.name,
+    );
+
     const name = String(meta.identity.componentName);
     const getter = function (ctnr: IfIocContainer, scopedComponentStorage?: Array<IScopedComponentStorage>) {
 
@@ -396,7 +407,11 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
             if (!prev[curr.propertyName]) {
                 prev[curr.propertyName] = ctnr.getComponent(curr.dependency, scopedComponentStorage);
             } else {
-                debug(name, 'Instance component already has own property', curr.propertyName);
+                debug('%s Instance component "%s" already has own property "%s"',
+                        TAG,
+                        name,
+                        curr.propertyName,
+                );
             }
 
             return prev;

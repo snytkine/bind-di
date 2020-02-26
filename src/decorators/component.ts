@@ -304,13 +304,13 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
     const cName = String(getComponentName(target));
 
 
-    debug(`${TAG} property names of target "${cName}"`, methods);
+    debug('%s property names of target "%s" "%o"', TAG, cName, methods);
 
     let factoryMethods = methods.filter(m => Reflect.hasMetadata(COMPONENT_IDENTITY, target.prototype, m)).map(m => {
         return { 'methodName': m, 'providesComponent': Reflect.getMetadata(COMPONENT_IDENTITY, target.prototype, m) };
     });
 
-    debug(`${TAG} factory methods of "${cName}"=`, factoryMethods);
+    debug('%s factory methods of componentName="%s" "%o"', TAG, cName, factoryMethods);
 
     return factoryMethods;
 }

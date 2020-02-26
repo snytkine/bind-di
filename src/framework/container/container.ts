@@ -32,7 +32,7 @@ const checkDependencies = (container: IfIocContainer) => {
 
     const components = container.components;
 
-    debug(TAG, 'entered checkDependencies');
+    debug('%s entered checkDependencies', TAG);
     components.forEach((component, i, arr) => {
 
         /**
@@ -65,7 +65,7 @@ const checkDependencies = (container: IfIocContainer) => {
             try {
                 found = container.getComponentDetails(dep.dependency);
             } catch (e) {
-                console.error('Container error63', e);
+                debug('%s Container error63 %o', TAG, e);
 
             }
 
@@ -137,13 +137,13 @@ const checkDependencyLoop = (container: IfIocContainer) => {
         };
     });
 
-    debug(TAG, `namedComponents: ${JSON.stringify(namedComponents)}`);
+    debug('%s namedComponents: %o', TAG, namedComponents);
 
     let check = (component, parents: string[] = []) => {
 
         debug(TAG, `Entered ${TAG}.check with component ${component.name}`);
         if (component.visited) {
-            debug(TAG, `Component ${component.name} already visited`);
+            debug('%s Component "%s" already visited', TAG, component.name);
             return;
         }
 
@@ -351,14 +351,14 @@ export class Container implements IfIocContainer {
          */
         const initializable = sorted.filter(_ => _.postConstruct);
         if (initializable.length > 0) {
-            debug(TAG, 'HAS initializable components', initializable.length);
+            debug('%s HAS %d initializable components', TAG, initializable.length);
 
             for await(const initialized of initIterator(this, initializable)) {
-                debug(TAG, 'Initialized component', initialized);
+                debug('%s Initialized component %s', TAG, initialized);
             }
 
         } else {
-            debug(TAG, 'NO initilizable components');
+            debug('%s NO initilizable components', TAG);
         }
 
         return this;
