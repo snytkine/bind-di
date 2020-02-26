@@ -24,6 +24,8 @@ import { Identity } from '../framework/lib/identity';
 import { DecoratorError } from '../exceptions/decoratorerror';
 import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
 import { assertNotReservedType } from '../framework/lib/assertnotreservedtype';
+import { TargetStereoType } from '../consts/targettype';
+import { getTargetStereotype } from '../framework/lib/gettargetstereotype';
 
 const debug = require('debug')('bind:decorate:component');
 const TAG = '@Component';
@@ -133,11 +135,11 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
  */
 export const applyComponentDecorator = (componentName: StringOrSymbol) => (target: Object, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void => {
 
-    if (typeof target==='function' && !propertyKey && target.prototype) {
+    if (getTargetStereotype(target)===TargetStereoType.CONSTRUCTOR && !propertyKey) {
         /**
          * Applying decorator to class
          */
-        debug(`Defining ${TAG}('${String(componentName)}') for class ${target.name}`);
+        debug(`Defining ${TAG}('${String(componentName)}') for class ${getClassName(target)}`);
 
         setComponentIdentity(Identity(componentName, target), target);
         setConstructorDependencies(componentName, target);

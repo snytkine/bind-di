@@ -1,5 +1,5 @@
 import { Target, UNNAMED_COMPONENT } from '../../definitions';
-import { RESERVED_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
+import { RESERVED_COMPONENT_NAMES } from '../../consts/reservedcomponentnames';
 import { FrameworkError } from '../../exceptions/frameworkerror';
 
 export const assertNotReservedType = (componentName,

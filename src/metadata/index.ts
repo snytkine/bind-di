@@ -43,7 +43,7 @@ export const isSameIdentity = (a: IfComponentIdentity, b: IfComponentIdentity): 
 export const copyIdentity = (identity: IfComponentIdentity): IfComponentIdentity => {
 
     return Identity(identity.componentName, identity.clazz);
-}
+};
 
 export const defineMetadata = (metadataKey: any, metadataValue: any, target: Object,
                                propertyKey?: StringOrSymbol) => (isUnique: boolean = false) => {

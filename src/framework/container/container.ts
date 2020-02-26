@@ -9,7 +9,7 @@ import { ComponentScope } from '../../enums/componentscope';
 import { StringOrSymbol } from '../../definitions/types';
 
 import { IfComponentIdentity } from '../../definitions/component';
-import { RESERVED_COMPONENT_NAMES } from '../../consts/invalidcomponentnames';
+import { RESERVED_COMPONENT_NAMES } from '../../consts/reservedcomponentnames';
 import { UNNAMED_COMPONENT } from '../../definitions/symbols';
 import { stringifyIdentify } from './containerutils';
 import {

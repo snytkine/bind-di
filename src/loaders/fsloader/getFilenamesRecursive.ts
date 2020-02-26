@@ -3,8 +3,9 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { IfIocContainer } from '../../index';
+import { COMPONENT_IDENTITY, getClassName, getComponentName, IfIocContainer, Target } from '../../index';
 import { addComponent } from '../../framework/container';
+import { FrameworkError } from '../../exceptions/frameworkerror';
 
 const debug = require('debug')('bind:loader');
 
@@ -13,6 +14,8 @@ const TAG = 'FILE_LOADER';
 export type FileExports = {
     [key: string]: any
 }
+
+export type ObjectEntry = [string, any];
 
 /**
  * Get array of paths to files in all sub-directories in the directory
@@ -59,12 +62,12 @@ export function getFilenamesRecursive(dirs: string[]): Array<string> {
  *    default: [Function: Song] } }
  *
  */
-export const getExportsFromFile = (file: string) => {
-    let exports = {};
+export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
+    let myExports = {};
     try {
         const loaded = require.cache;
 
-        exports = require(file);
+        myExports = require(file);
 
     } catch (e) {
         /**
@@ -78,16 +81,20 @@ export const getExportsFromFile = (file: string) => {
         console.error(`${TAG} failed to require file '${file}' error: ${e}`);
     }
 
-    debug('getExportsFromFile() returning export for file "%s" exports="%O"', file, exports);
+    const ret = Object.entries(myExports);
 
-    return exports;
+    debug('%s getExportsFromFile() returning export for file "%s" exports="%O"', TAG, file, ret);
+
+    return ret;
 
 };
 
+
 /**
  * Check file name
- * If filename contains 2 underscore or not ends with .js then return false
- * We don't load files with 2 underscores because this is the pattern of test files
+ * If file path (including directories in its path)
+ * starts with 2 underscore or not ends with .js then return false
+ * Files that start with 2 underscores is the pattern of test files
  * and we don't want to auto-load test files since that can lead to application startup error
  * because it will load duplicate components.
  *
@@ -113,11 +120,11 @@ export function isFileNameLoadable(filePath: string): boolean {
  * @param f string full path to file to check
  * @returns {boolean} true if file exists and contains one of the component annotations|false otherwise
  */
-export function fileContainsComponent(filePath: string): boolean {
+export function fileContainsDecorators(filePath: string): boolean {
 
     const fileContents = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8');
 
-    let match = !!(fileContents && fileContents.match(/__decorate/) && fileContents.match(/\.Component|\.Inject/));
+    let match = !!(fileContents && fileContents.match(/__decorate/));
 
     debug('%s fileContents of "%s" will be loaded="%s"', TAG, filePath, match);
 
@@ -125,45 +132,50 @@ export function fileContainsComponent(filePath: string): boolean {
 
 }
 
+/**
+ * Given ObjectEntry test to see if Object has been decorated
+ * with @Component or other decorator that added COMPONENT_IDENTITY
+ * metadata
+ *
+ * @param entry
+ * @returns boolean true if Object in ObjectEntry has COMPONENT_IDENTITY
+ */
+export const isComponentEntry = (entry: ObjectEntry): boolean => {
+    return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
+};
 
 export const load = (container: IfIocContainer, dirs: string[]) => {
 
     const files = getFilenamesRecursive(dirs)
             .filter(isFileNameLoadable)
-            .filter(fileContainsComponent);
+            .filter(fileContainsDecorators);
 
     debug('%s loading from files: %s', TAG, JSON.stringify(files, null, '\t'));
 
-    files.map(file => {
-        const fileexports = getExportsFromFile(file);
+    files.forEach(file => {
+        const fileExports: Array<ObjectEntry> = getExportsFromFile(file);
+        /**
+         *
+         * Filter array of ObjectEntry to contain only ObjectEntry of Component
+         * Now targetEntries is array of ObjectEntries where each ObjectEntry holds
+         * a decorated component
+         */
+        const targetEntries: Array<ObjectEntry> = fileExports.filter(isComponentEntry);
+        const components = targetEntries.map(entry => entry[1]);
 
-        for (const fe in fileexports) {
+        components.forEach(component => {
+            debug('%s Adding component className="%s" from file "%s"',
+                    TAG,
+                    getClassName,
+                    file);
             try {
-                /**
-                 * Filter by name?
-                 */
-                /**
-                 * @todo not all exports may be the actual Components
-                 * Must check that export is a class with at least one @Component decorator
-                 * do something like if(isComponent(fileexports[fe]) addComponent else debug('not a component')
-                 */
-                debug(`Adding export ${fe} from file ${file}`);
-
-                /**
-                 * The class in fileexports[fe] already had @Component decorator applied to it
-                 * so it will already have Identity set on it.
-                 *
-                 */
-                addComponent(container, fileexports[fe]);
+                addComponent(container, component);
             } catch (e) {
-                /**
-                 * Here we know the export name and filename where it came from
-                 */
-                debug(`Failed to load component from file ${file}. Error=${e.message}`);
-                throw e;
+                const error = `Failed to load component ${String(getComponentName(component))} from file ${file}`;
 
+                throw new FrameworkError(error, e);
             }
-        }
+        });
     });
 
 };

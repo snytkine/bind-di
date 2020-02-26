@@ -1,5 +1,5 @@
 export class FrameworkError extends Error {
-    constructor(message: string) {
+    constructor(message: string, public nestedError?: Error) {
         super(message);
     }
 }

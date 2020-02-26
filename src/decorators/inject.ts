@@ -12,7 +12,7 @@ import {
     Target,
     UNNAMED_COMPONENT,
 } from '../';
-import { RESERVED_COMPONENT_NAMES } from '../consts/invalidcomponentnames';
+import { RESERVED_COMPONENT_NAMES } from '../consts/reservedcomponentnames';
 import { DESIGN_TYPE } from '../definitions/consts';
 import { getComponentIdentity } from '../metadata/index';
 import { Identity } from '../framework/lib/identity';
@@ -20,34 +20,13 @@ import { DependencyType } from '../consts/dependencytype';
 import { FrameworkError } from '../exceptions/frameworkerror';
 import { TargetStereoType } from '../consts/targettype';
 import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
+import { getTargetStereotype } from '../framework/lib/gettargetstereotype';
 
 const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';
 
 export type NumberOrPropertyDescriptor = number | PropertyDescriptor;
 export type StringOrTarget = string | Target;
-
-const getTargetStereotype = (target: Target): TargetStereoType => {
-
-    let ret = TargetStereoType.UNKNOWN;
-
-    if (target) {
-        if (target.prototype && typeof target=='function') {
-            ret = TargetStereoType.CONSTRUCTOR;
-        } else if (target.constructor && target.constructor.length) {
-            ret = TargetStereoType.PROTOTYPE;
-        }
-
-    }
-    /*
-    if (target && target.constructor && target.constructor.length) {
-        ret = TargetStereoType.PROTOTYPE;
-    } else if (target && target.length && !target.constructor) {
-        ret = TargetStereoType.CONSTRUCTOR;
-    }*/
-
-    return ret;
-};
 
 const getInjectionType = (target: Target,
                           propertyKey?: string,
