@@ -5,13 +5,15 @@ import {
     IfIocContainer,
     IocComponentGetter,
     IScopedComponentStorage,
-    Target, UNNAMED_COMPONENT,
-} from '../../';
+    Target,
+    IfComponentFactoryMethod
+} from '../../definitions';
+
 import { getComponentMeta } from './getcomponentmeta';
-import { IfComponentFactoryMethod } from '../../definitions/container';
 import { ComponentScope } from '../../enums/componentscope';
 
 import { getScope } from '../../decorators/scope';
+import { UNNAMED_COMPONENT } from '../../consts';
 
 const TAG = 'CONTAINER_UTILS';
 const debug = require('debug')('bind:container');

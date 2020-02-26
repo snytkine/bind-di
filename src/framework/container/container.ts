@@ -5,23 +5,21 @@ import {
     IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails,
 
 } from '../../';
-import { ComponentScope } from '../../enums/componentscope';
-import { StringOrSymbol } from '../../definitions/types';
+import { ComponentScope } from '../../enums';
+import { IfComponentIdentity } from '../../definitions';
+import {
+    RESERVED_COMPONENT_NAMES,
+    UNNAMED_COMPONENT
+} from '../../consts';
 
-import { IfComponentIdentity } from '../../definitions/component';
-import { RESERVED_COMPONENT_NAMES } from '../../consts/reservedcomponentnames';
-import { UNNAMED_COMPONENT } from '../../definitions/symbols';
 import { stringifyIdentify } from './containerutils';
 import {
     initIterator,
     sortComponents,
 } from './initializer';
 
-
-
 const debug = require('debug')('bind:container');
-
-export const TAG = 'Container';
+const TAG = 'Container';
 
 
 /**

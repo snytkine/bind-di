@@ -1,6 +1,9 @@
-import { Target, UNNAMED_COMPONENT } from '../../definitions';
-import { RESERVED_COMPONENT_NAMES } from '../../consts/reservedcomponentnames';
-import { FrameworkError } from '../../exceptions/frameworkerror';
+import { Target } from '../../definitions';
+import {
+    UNNAMED_COMPONENT,
+    RESERVED_COMPONENT_NAMES
+} from '../../consts';
+import { FrameworkError } from '../../exceptions';
 
 export const assertNotReservedType = (componentName,
                                       clazz: Target, message?: string): boolean => {

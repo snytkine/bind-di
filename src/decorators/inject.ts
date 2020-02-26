@@ -1,26 +1,30 @@
 import {
-    CONSTRUCTOR_DEPENDENCIES,
-    defineMetadata,
-    getClassName,
-    getComponentName,
     IfComponentIdentity,
     IfComponentPropDependency,
     IfConstructorDependency,
-    PARAM_TYPES,
-    PROP_DEPENDENCY,
     StringOrSymbol,
     Target,
+} from '../definitions';
+import {
+    DESIGN_TYPE,
     UNNAMED_COMPONENT,
-} from '../';
-import { RESERVED_COMPONENT_NAMES } from '../consts/reservedcomponentnames';
-import { DESIGN_TYPE } from '../definitions/consts';
-import { getComponentIdentity } from '../metadata/index';
-import { Identity } from '../framework/lib/identity';
-import { DependencyType } from '../consts/dependencytype';
-import { FrameworkError } from '../exceptions/frameworkerror';
-import { TargetStereoType } from '../consts/targettype';
-import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
-import { getTargetStereotype } from '../framework/lib/gettargetstereotype';
+    RESERVED_COMPONENT_NAMES,
+    DependencyType,
+    TargetStereoType, PROP_DEPENDENCY, CONSTRUCTOR_DEPENDENCIES, PARAM_TYPES,
+} from '../consts';
+import {
+    defineMetadata,
+    getClassName,
+    getComponentIdentity,
+    getComponentName
+} from '../metadata';
+import {
+    Identity,
+    isStringOrSymbol,
+    getTargetStereotype
+} from '../framework/lib';
+import { FrameworkError } from '../exceptions';
+
 
 const debug = require('debug')('bind:decorate:inject');
 const TAG = '@Inject';

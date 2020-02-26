@@ -1,8 +1,10 @@
-import { UNNAMED_COMPONENT,
+import {
     IfComponentIdentity,
     StringOrSymbol,
-    Target } from '../../definitions';
-import { FrameworkError } from '../../exceptions/frameworkerror';
+    Target,
+} from '../../definitions';
+import { FrameworkError } from '../../exceptions';
+import { UNNAMED_COMPONENT } from '../../consts';
 
 
 /**
@@ -25,11 +27,11 @@ export function Identity(component: StringOrSymbol, clazz?: Target): IfComponent
  * @param clazz
  * @constructor
  */
-export function Identity(component: Target | StringOrSymbol, clazz?:Target): IfComponentIdentity {
+export function Identity(component: Target | StringOrSymbol, clazz?: Target): IfComponentIdentity {
     const cType = typeof component;
 
-    if(cType === 'string' || cType === 'symbol'){
-        if(component === UNNAMED_COMPONENT && !clazz){
+    if (cType==='string' || cType==='symbol') {
+        if (component===UNNAMED_COMPONENT && !clazz) {
             throw new FrameworkError('Identity factory. cannot create Identity for UNNAMED COMPONENT without clazz');
         }
 
@@ -44,6 +46,6 @@ export function Identity(component: Target | StringOrSymbol, clazz?:Target): IfC
      */
     return {
         componentName: UNNAMED_COMPONENT,
-        clazz: component
-    }
+        clazz: component,
+    };
 }

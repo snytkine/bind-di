@@ -1,12 +1,13 @@
-import { COMPONENT_IDENTITY, IfIocContainer } from '../../definitions';
+import { IfIocContainer } from '../../definitions';
 import { getClassName, getComponentName } from '../../metadata';
 import { addComponent } from '../../framework/container';
-import { FrameworkError } from '../../exceptions/frameworkerror';
+import { FrameworkError } from '../../exceptions';
 import {
     getFilenamesRecursive,
 } from './getFilenamesRecursive';
 import * as path from "path";
 import * as fs from "fs";
+import { COMPONENT_IDENTITY } from '../../consts';
 
 const TAG = 'LOAD_FROM_FS';
 
@@ -91,6 +92,7 @@ export function fileContainsDecorators(filePath: string): boolean {
  */
 export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
     let myExports:FileExports = {};
+
     try {
         const loaded = require.cache;
 

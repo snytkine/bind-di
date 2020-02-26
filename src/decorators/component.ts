@@ -1,31 +1,40 @@
 import 'reflect-metadata';
 import {
-    Target,
     COMPONENT_IDENTITY,
     UNNAMED_COMPONENT,
     DEFAULT_SCOPE,
     RETURN_TYPE,
-    IfComponentFactoryMethod,
     PARAM_TYPES,
-    getComponentMeta,
-    IfConstructorDependency,
     CONSTRUCTOR_DEPENDENCIES,
-    StringOrSymbol, getClassName, IfComponentIdentity, getComponentIdentity,
-} from '../';
-
-import { ComponentScope } from '../enums/componentscope';
+    TargetStereoType,
+} from '../consts';
 
 import {
-    defineMetadata,
+    ComponentScope
+} from '../enums';
+
+import {
+    defineMetadata, getClassName, getComponentIdentity, getComponentName,
     setComponentIdentity,
-} from '../metadata/index';
-import { getComponentName } from '../index';
-import { Identity } from '../framework/lib/identity';
-import { DecoratorError } from '../exceptions/decoratorerror';
-import { isStringOrSymbol } from '../framework/lib/isstringorsymbol';
-import { assertNotReservedType } from '../framework/lib/assertnotreservedtype';
-import { TargetStereoType } from '../consts/targettype';
-import { getTargetStereotype } from '../framework/lib/gettargetstereotype';
+} from '../metadata/';
+
+import {
+    DecoratorError
+} from '../exceptions/decoratorerror';
+import {
+    Identity,
+    assertNotReservedType,
+    isStringOrSymbol,
+    getTargetStereotype
+} from '../framework/lib';
+
+
+import {
+    IfComponentFactoryMethod,
+    IfComponentIdentity,
+    IfConstructorDependency,
+    StringOrSymbol, Target,
+} from '../definitions';
 
 const debug = require('debug')('bind:decorate:component');
 const TAG = '@Component';

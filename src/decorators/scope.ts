@@ -1,16 +1,15 @@
 import {
     COMPONENT_SCOPE,
     DEFAULT_SCOPE,
-    defineMetadata,
-    getComponentName,
-    StringOrSymbol,
-} from '../';
+} from '../consts';
 import {
+    defineMetadata,
     getClassName,
-    getComponentIdentity,
-} from '../metadata/index';
+    getComponentIdentity, getComponentName,
+} from '../metadata';
 
-import { ComponentScope } from '../enums/componentscope';
+import { ComponentScope } from '../enums';
+import { StringOrSymbol } from '../definitions';
 
 const debug = require('debug')('bind:decorator:scope');
 const TAG = '@Scope';
