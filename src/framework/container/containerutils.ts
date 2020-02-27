@@ -80,9 +80,8 @@ const getComponentNameFromIdentity = (identity: IfComponentIdentity): string => 
  */
 export function addSingletonComponent(container: IfIocContainer, meta: IfComponentDetails): void {
 
-    debug('%s %s addSingletonComponent componentName=', TAG, getComponentNameFromIdentity(meta.identity));
     const name = getComponentNameFromIdentity(meta.identity);
-    const className = meta.identity?.clazz?.name;
+    debug('%s addSingletonComponent "%s"', TAG, stringifyIdentify(meta.identity));
 
     /**
      * Getter of Singleton component

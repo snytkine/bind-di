@@ -67,7 +67,7 @@ export type unsorted_sorted<T> = {
 
 const depsResolved = <T>(component: IfComponentDetails, aComponents: Array<IfComponentDetails>): boolean => {
 
-    debug(TAG, 'entered depsResolved for component=', stringifyIdentify(component.identity));
+    debug('%s entered depsResolved for component="%s"', TAG, stringifyIdentify(component.identity));
     /**
      * Every propDependency and every Constructor Dependency must be provided by
      * components in the aComponents
@@ -160,8 +160,8 @@ export const sortComponents = <T>(input: unsorted_sorted<T>): unsorted_sorted<T>
 
     if (!resolvedOne) {
 
-        debug(TAG, `Dependencies not satisfied. 
-        Check the following components for missing or circular dependencies `);
+        debug(`%s Dependencies not satisfied. 
+        Check the following components for missing or circular dependencies`, TAG);
 
         return ret;
     }

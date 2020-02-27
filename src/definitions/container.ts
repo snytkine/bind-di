@@ -100,7 +100,7 @@ export interface IfIocContainer {
     has(name: IfComponentIdentity): boolean
 
     /**
-     * Get a record for the component by name
+     * Get a record for the component by identity
      * The result is NOT a component, but a component details like scope,
      * constructorDependencies, provides, as well as component getter function
      *

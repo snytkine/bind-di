@@ -2,14 +2,14 @@ import {
     IfIocComponent,
     IfIocContainer,
     IfConstructorDependency,
-    IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails,
+    IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails, FrameworkError,
 
 } from '../../';
 import { ComponentScope } from '../../enums';
 import { IfComponentIdentity } from '../../definitions';
 import {
     RESERVED_COMPONENT_NAMES,
-    UNNAMED_COMPONENT
+    UNNAMED_COMPONENT,
 } from '../../consts';
 
 import { stringifyIdentify } from './containerutils';
@@ -38,13 +38,14 @@ const checkDependencies = (container: IfIocContainer) => {
         /**
          * Check constructor dependencies
          */
-        component.constructorDependencies.forEach((dep: IfComponentIdentity) => {
+        component.constructorDependencies.forEach((dep: IfComponentIdentity, index) => {
 
-            let found;
+            let found: IfComponentDetails;
             try {
                 found = container.getComponentDetails(dep);
             } catch (e) {
-                throw new ReferenceError(`Component ${stringifyIdentify(component.identity)} has unsatisfied constructor dependency on dependency ${stringifyIdentify(dep)}`);
+                throw new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+                has unsatisfied constructor dependency for argument "${i}" on dependency ${stringifyIdentify(dep)}`, e);
             }
 
             /**
@@ -52,8 +53,15 @@ const checkDependencies = (container: IfIocContainer) => {
              * Most specific - prototype scoped component cannot be a dependency of a singleton
              */
             if (component.scope > found.scope) {
-                throw new ReferenceError(`Component "${stringifyIdentify(component.identity)}" has a scope ${ComponentScope[component.scope]} but has constructor dependency on component "${String(found.identity.componentName)}" className=${found.identity.className} with a smaller scope "${ComponentScope[found.scope]}"`);
+                throw new FrameworkError(`Component "${stringifyIdentify(component.identity)}" 
+                has a scope ${ComponentScope[component.scope]} but has constructor 
+                dependency on component "${stringifyIdentify(found.identity)}" 
+                with a smaller scope "${ComponentScope[found.scope]}"`);
             }
+
+            /**
+             * @todo validate dependency class reference
+             */
         });
 
 
@@ -61,24 +69,37 @@ const checkDependencies = (container: IfIocContainer) => {
          * Check property dependencies
          */
         component.propDependencies.forEach((dep: IfComponentPropDependency) => {
-            let found;
+            let found: IfComponentDetails;
             try {
                 found = container.getComponentDetails(dep.dependency);
             } catch (e) {
-                debug('%s Container error63 %o', TAG, e);
-
+                debug('%s Container error propDependency Exception %o', TAG, e);
             }
 
             if (!found) {
 
                 throw new ReferenceError(`Component "${String(component.identity.componentName)} 
-                className=${component.identity?.clazz?.name}" has unsatisfied property dependency for propertyName="${String(dep.propertyName)}" 
+                className=${component.identity?.clazz?.name}" has unsatisfied property dependency 
+                for propertyName="${String(dep.propertyName)}" 
                 dependency="${String(dep.dependency.componentName)}" 
-                className=${dep.dependency?.clazz?.name}`);
+                dependency className=${dep.dependency?.clazz?.name}`);
             }
 
-            if (dep.dependency?.clazz?.name && !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) && found.identity.className!==dep.dependency?.clazz?.name) {
-                throw new ReferenceError(`Component "${String(component.identity.componentName)}" has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" for propertyName="${String(dep.propertyName)}" but dependency component has className="${found.identity.className}"`);
+            /**
+             * Validate found dependency must match class
+             * @todo right now only matching by class name, not by
+             * class reference. Should match be done by class reference?
+             *
+             * @todo use an option in container settings to enable/disable this validation
+             */
+            if (dep.dependency?.clazz?.name &&
+                    found?.identity?.clazz?.name &&
+                    !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
+                    found?.identity?.clazz?.name!==dep.dependency?.clazz?.name) {
+                throw new ReferenceError(`Component "${String(component.identity.componentName)}" 
+                has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" 
+                for propertyName="${String(dep.propertyName)}" but dependency component 
+                has className="${found?.identity?.clazz?.name}"`);
             }
 
             /**
@@ -89,9 +110,10 @@ const checkDependencies = (container: IfIocContainer) => {
                 const err = `Component ${stringifyIdentify(component.identity)}
                  has a scope "${ComponentScope[component.scope]}"
                  but has property dependency for
-                 propertyName="${String(dep.propertyName)}" on component "${String(found.identity.componentName)} className="${found.identity.className}" with a smaller scope
+                 propertyName="${String(dep.propertyName)}" on component 
+                 "${stringifyIdentify(found.identity)}" with a smaller scope
                 "${ComponentScope[found.scope]}"`;
-                throw new ReferenceError(err);
+                throw new FrameworkError(err);
             }
         });
 
@@ -110,8 +132,8 @@ const checkDependencies = (container: IfIocContainer) => {
  */
 const checkDependencyLoop = (container: IfIocContainer) => {
 
-    const TAG = 'checkDependencyLoop';
-    debug(TAG, 'Entered checkDependencyLoop');
+    const FUNC_NAME = 'checkDependencyLoop';
+    debug('%s Entered checkDependencyLoop', FUNC_NAME);
 
     let components: Array<IfIocComponent> = container.components;
 
@@ -129,10 +151,10 @@ const checkDependencyLoop = (container: IfIocContainer) => {
      *
      * @type {{name: string; dependencies: string[], visited: boolean}[]}
      */
-    const namedComponents = components.map(_ => {
+    const namedComponents = components.map(component => {
         return {
-            name: _.identity.componentName,
-            dependencies: _.constructorDependencies.concat(_.propDependencies.map(pd => pd.dependency)),
+            name: component.identity.componentName,
+            dependencies: component.constructorDependencies.concat(component.propDependencies.map(pd => pd.dependency)),
             visited: false,
         };
     });
@@ -141,7 +163,7 @@ const checkDependencyLoop = (container: IfIocContainer) => {
 
     let check = (component, parents: string[] = []) => {
 
-        debug(TAG, `Entered ${TAG}.check with component ${component.name}`);
+        debug('Entered %s.check with component "%s"', FUNC_NAME, component.name);
         if (component.visited) {
             debug('%s Component "%s" already visited', TAG, component.name);
             return;
@@ -152,7 +174,7 @@ const checkDependencyLoop = (container: IfIocContainer) => {
          * @todo should not be checking by name, should instead check by Identity
          */
         if (parents.includes(component.name)) {
-            throw new ReferenceError(`Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(' -> ')} -> ${String(component.name)}`);
+            throw new FrameworkError(`Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(' -> ')} -> ${String(component.name)}`);
         }
 
         /**
@@ -201,11 +223,11 @@ export class Container implements IfIocContainer {
          * Polyfill Symbol.asyncIterator
          * @type {any | symbol}
          */
-        if(!Symbol){
-            throw new Error('Symbol not defined. Most likely you are using an old version on Node.js')
+        if (!Symbol) {
+            throw new FrameworkError('Symbol not defined. Most likely you are using an old version on Node.js');
         }
-        if(!Symbol.asyncIterator){
-            Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'))
+        if (!Symbol.asyncIterator) {
+            Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
         }
         //(Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for('Symbol.asyncIterator');
         this.store_ = [];
@@ -278,7 +300,7 @@ export class Container implements IfIocContainer {
 
 
         if (!ret) {
-            throw new ReferenceError(`Container Component Not found by name="${String(id.componentName)}" (className=${id?.clazz?.name})`);
+            throw new FrameworkError(`Container Component Not found by name="${stringifyIdentify(id)}"`);
         }
 
         return ret;
@@ -286,10 +308,9 @@ export class Container implements IfIocContainer {
 
     getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
 
-        debug(TAG, 'Entered Container.getComponent Requesting component=', String(id.componentName), 'className=', id?.clazz?.name, ' With scopedStorage=', !!scopedStorage);
+        debug('%s Entered Container.getComponent Requesting component="%s" With scopedStorage="%s"', TAG, stringifyIdentify(id), !!scopedStorage);
 
-        return this.getComponentDetails(id)
-                .get(this, scopedStorage);
+        return this.getComponentDetails(id).get(this, scopedStorage);
     }
 
 
@@ -297,9 +318,9 @@ export class Container implements IfIocContainer {
 
         const name = String(component.identity.componentName);
 
-        debug(TAG, 'Entered Container.addComponent with component name=', name, ' className=', component.identity?.clazz?.name);
+        debug('%s Entered Container.addComponent with component="%s"', stringifyIdentify(component.identity));
         if (this.has(component.identity)) {
-            throw new ReferenceError(`Container already has component with name="${name}" className=${component.identity?.clazz?.name}`);
+            throw new FrameworkError(`Container already has component "${stringifyIdentify(component.identity)}"`);
         }
 
         /**
@@ -309,7 +330,8 @@ export class Container implements IfIocContainer {
          * it does not have any metadata at all.
          */
         if (!component.scope) {
-            debug(TAG, 'Component className=', component.identity?.clazz?.name, ' componentName=', name, ' Does not have defined scope. Setting default scope=', ComponentScope[this.defaultScope]);
+            debug(TAG, 'Component className=', component.identity?.clazz?.name, ' componentName=', name, ' Does not have defined scope. ' +
+                    'Setting default scope=', ComponentScope[this.defaultScope]);
             component.scope = this.defaultScope;
         }
 
@@ -341,7 +363,7 @@ export class Container implements IfIocContainer {
 
             debug(TAG, error);
 
-            throw new Error(error);
+            throw new FrameworkError(error);
         }
 
         debug(TAG, 'sorted=', JSON.stringify(sorted, null, 2));
@@ -358,7 +380,7 @@ export class Container implements IfIocContainer {
             }
 
         } else {
-            debug('%s NO initilizable components', TAG);
+            debug('%s NO initializable components', TAG);
         }
 
         return this;
