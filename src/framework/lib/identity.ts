@@ -5,6 +5,7 @@ import {
 } from '../../definitions';
 import { FrameworkError } from '../../exceptions';
 import { UNNAMED_COMPONENT } from '../../consts';
+import { isStringOrSymbol } from './isstringorsymbol';
 
 
 /**
@@ -28,11 +29,10 @@ export function Identity(component: StringOrSymbol, clazz?: Target): IfComponent
  * @constructor
  */
 export function Identity(component: Target | StringOrSymbol, clazz?: Target): IfComponentIdentity {
-    const cType = typeof component;
 
-    if (cType==='string' || cType==='symbol') {
+    if (isStringOrSymbol(component)) {
         if (component===UNNAMED_COMPONENT && !clazz) {
-            throw new FrameworkError('Identity factory. cannot create Identity for UNNAMED COMPONENT without clazz');
+            throw new FrameworkError(`Cannot create Identity for UNNAMED_COMPONENT without clazz`);
         }
 
         return {

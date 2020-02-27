@@ -1,15 +1,15 @@
 import {
+    IfComponentIdentity,
     IfIocComponent,
     IfIocContainer,
-    IfConstructorDependency,
-    IfComponentPropDependency, IScopedComponentStorage, IfComponentDetails, FrameworkError,
+    IfComponentPropDependency,
+    IScopedComponentStorage,
+    IfComponentDetails,
 
-} from '../../';
+} from '../../definitions';
 import { ComponentScope } from '../../enums';
-import { IfComponentIdentity } from '../../definitions';
 import {
     RESERVED_COMPONENT_NAMES,
-    UNNAMED_COMPONENT,
 } from '../../consts';
 
 import { stringifyIdentify } from './containerutils';
@@ -17,8 +17,12 @@ import {
     initIterator,
     sortComponents,
 } from './initializer';
+import { FrameworkError } from '../../exceptions';
+import { isSameIdentity } from '../../metadata';
+import { jsonStringify } from '../lib';
 
 const debug = require('debug')('bind:container');
+
 const TAG = 'Container';
 
 
@@ -78,7 +82,7 @@ const checkDependencies = (container: IfIocContainer) => {
 
             if (!found) {
 
-                throw new ReferenceError(`Component "${String(component.identity.componentName)} 
+                throw new FrameworkError(`Component "${String(component.identity.componentName)} 
                 className=${component.identity?.clazz?.name}" has unsatisfied property dependency 
                 for propertyName="${String(dep.propertyName)}" 
                 dependency="${String(dep.dependency.componentName)}" 
@@ -96,7 +100,7 @@ const checkDependencies = (container: IfIocContainer) => {
                     found?.identity?.clazz?.name &&
                     !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
                     found?.identity?.clazz?.name!==dep.dependency?.clazz?.name) {
-                throw new ReferenceError(`Component "${String(component.identity.componentName)}" 
+                throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
                 has property dependency "${String(dep.dependency.componentName)}:${dep.dependency?.clazz?.name}" 
                 for propertyName="${String(dep.propertyName)}" but dependency component 
                 has className="${found?.identity?.clazz?.name}"`);
@@ -210,7 +214,7 @@ const checkDependencyLoop = (container: IfIocContainer) => {
 
 export class Container implements IfIocContainer {
 
-    private readonly store_: Array<IfIocComponent>;
+    private readonly componentsStore: Array<IfIocComponent>;
     /**
      * @todo this will be configurable by passing options to constructor
      * @type {ComponentScope}
@@ -230,15 +234,19 @@ export class Container implements IfIocContainer {
             Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
         }
         //(Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for('Symbol.asyncIterator');
-        this.store_ = [];
+        this.componentsStore = [];
     }
 
     get components(): Array<IfIocComponent> {
-        return Array.from(this.store_); //? was it causing any problems?
+        return Array.from(this.componentsStore);
     }
 
 
     /**
+     *
+     * @todo consider not throwing exception but instead return something like a Try object
+     * where it may have value or Error.
+     *
      * 2 named components can have same clazz and className
      * example: 2 different mongo Collection instances will both have same className and class
      * or 2 or more instances of same object produced by component factory always have same className and class
@@ -248,56 +256,25 @@ export class Container implements IfIocContainer {
      *
      * @param {IfComponentIdentity} id
      * @returns {IfIocComponent<T>}
+     * @throws FrameworkError if component is not found by id
      */
     getComponentDetails(id: IfComponentIdentity): IfIocComponent {
 
-        let ret;
+        let ret: IfIocComponent;
 
-        debug(TAG, 'Entered Container.getComponentDetails Requesting componentName=', String(id.componentName), ' className=', id?.clazz?.name);
+        debug('%s Entered Container.getComponentDetails Requesting component="%s"',
+                TAG,
+                stringifyIdentify(id));
 
         /**
          * For a named component a match is by name
          * For unnamed component a match is by clazz
-         *
+         * @todo use isSameIdentity instead.
          */
-        if (id.componentName!==UNNAMED_COMPONENT) {
-            ret = this.store_.find(_ => _.identity.componentName===id.componentName);
-            /**
-             * className check?
-             * if id contains className and it's not generic Object then
-             * compare className. Also provided component can in theory be a generic Object
-             * which will be the case if component factory does not define a type on
-             * component getter return.
-             *
-             * A special case may be when a component constructor returns an instance
-             * of totally different object for example MyLogger component has a constructor
-             * that returns instance of Winston's LoggerInstance
-             * In this case provided component's className will be MyLogger but it will actually
-             * be providing a LoggerInstance and another component may be injecting a LoggerInstance type
-             * in case like this one there will be a mismatch of className but only because
-             * developer made these decisions. If we force validation of className for named components
-             * then this scenario will result in Exception.
-             *
-             * @todo consider validating className for named components.
-             * @todo consider also validating clazz of named components.
-             */
-        } else {
-            /**
-             * Request for unnamed component
-             * Currently Named components must be injected only as named injections.
-             * and unnamed injection will find only unnamed components
-             *
-             * @todo consider allowing unnamed injection if actual
-             * component is named.
-             */
-            ret = this.store_.find(
-                    (component: IfComponentDetails) => {
-                        return component.identity.componentName===UNNAMED_COMPONENT &&
-                                component.identity.clazz===id.clazz;
-                    });
 
-        }
-
+        ret = this.componentsStore.find(
+                component => isSameIdentity(id, component.identity),
+        );
 
         if (!ret) {
             throw new FrameworkError(`Container Component Not found by name="${stringifyIdentify(id)}"`);
@@ -330,12 +307,17 @@ export class Container implements IfIocContainer {
          * it does not have any metadata at all.
          */
         if (!component.scope) {
-            debug(TAG, 'Component className=', component.identity?.clazz?.name, ' componentName=', name, ' Does not have defined scope. ' +
-                    'Setting default scope=', ComponentScope[this.defaultScope]);
+
+            debug('%s Component "%s" Does not have defined scope. Setting default scope="%s"',
+                    TAG,
+                    stringifyIdentify(component.identity),
+                    ComponentScope[this.defaultScope],
+            );
+
             component.scope = this.defaultScope;
         }
 
-        this.store_.push(component);
+        this.componentsStore.push(component);
 
         return true;
     }
@@ -344,11 +326,11 @@ export class Container implements IfIocContainer {
 
         const that = this;
 
-        debug(TAG, 'Entered initialize. components=', JSON.stringify(this.components, null, 2));
+        debug('%s Entered initialize. components="%s"', TAG, jsonStringify(this.components));
 
         checkDependencies(this);
 
-        const { sorted, unsorted } = sortComponents({
+        const { sorted, unsorted } = sortComponents<IfIocComponent>({
             unsorted: this.components,
             sorted: [],
         });
@@ -357,30 +339,28 @@ export class Container implements IfIocContainer {
             const error = `
                     Dependency sorting error. Following components have unresolved dependencies.
                     Check dependency loop.
-                    ${unsorted.map(_ => stringifyIdentify(_.identity))
+                    ${unsorted.map(component => stringifyIdentify(component.identity))
                     .join(',')}
                     `;
-
-            debug(TAG, error);
 
             throw new FrameworkError(error);
         }
 
-        debug(TAG, 'sorted=', JSON.stringify(sorted, null, 2));
+        debug('%s initialize sorted="%s"', TAG, jsonStringify(sorted));
 
         /**
          * Now initialize components that have initializer
          */
-        const initializable = sorted.filter(_ => _.postConstruct);
+        const initializable = sorted.filter(component => !!component.postConstruct);
         if (initializable.length > 0) {
-            debug('%s HAS %d initializable components', TAG, initializable.length);
+            debug('%s has %d initializable components', TAG, initializable.length);
 
             for await(const initialized of initIterator(this, initializable)) {
                 debug('%s Initialized component %s', TAG, initialized);
             }
 
         } else {
-            debug('%s NO initializable components', TAG);
+            debug('%s has no initializable components', TAG);
         }
 
         return this;
@@ -391,16 +371,15 @@ export class Container implements IfIocContainer {
     cleanup(): Promise<boolean> {
 
         const a: Array<Promise<Boolean>> = this.components
-                .filter(_ => !!_.preDestroy)
-                .map(_ => {
-                    const obj = _.get(this);
-                    const methodName = _.preDestroy;
+                .filter(component => !!component.preDestroy)
+                .map(component => {
+                    const obj = component.get(this);
+                    const methodName = component.preDestroy;
 
                     return obj[methodName]();
                 });
 
-        return Promise.all(a)
-                .then(_ => true);
+        return Promise.all(a).then(() => true);
     }
 
 
