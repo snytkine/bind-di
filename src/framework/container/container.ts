@@ -30,7 +30,7 @@ const TAG = 'Container';
  * Check that all components have a corresponding component available
  * for all its' dependencies
  *
- * @param IfIocContainer<T>
+ * @param IfIocContainer
  */
 const checkDependencies = (container: IfIocContainer) => {
 
@@ -49,7 +49,8 @@ const checkDependencies = (container: IfIocContainer) => {
                 found = container.getComponentDetails(dep);
             } catch (e) {
                 throw new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
-                has unsatisfied constructor dependency for argument "${i}" on dependency ${stringifyIdentify(dep)}`, e);
+                has unsatisfied constructor dependency for argument "${i}" 
+                on dependency ${stringifyIdentify(dep)}`, e);
             }
 
             /**
