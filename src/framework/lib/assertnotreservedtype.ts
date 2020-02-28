@@ -12,7 +12,7 @@ export const assertNotReservedType = (componentName,
             RESERVED_COMPONENT_NAMES.includes(clazz.name)) {
 
         const errorMessage = `Unnamed component must be a user defined class. 
-                A Generic class name ${clazz.name} cannot be a component`;
+                A Generic class "${clazz.name}" cannot be a component`;
 
         throw new FrameworkError(message || errorMessage);
     }

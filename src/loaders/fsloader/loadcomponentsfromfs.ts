@@ -3,18 +3,19 @@ import { getClassName, getComponentName } from '../../metadata';
 import { addComponent } from '../../framework/container';
 import { FrameworkError } from '../../exceptions';
 import {
-    getFilenamesRecursive,
+  getFilenamesRecursive,
 } from './getFilenamesRecursive';
-import * as path from "path";
-import * as fs from "fs";
+import * as path from 'path';
+import * as fs from 'fs';
 import { COMPONENT_IDENTITY } from '../../consts';
+import { jsonStringify } from '../../framework/lib';
 
 const TAG = 'LOAD_FROM_FS';
 
 const debug = require('debug')('bind:loader');
 
 export type FileExports = {
-    [key: string]: any
+  [key: string]: any
 }
 
 export type ObjectEntry = [string, any];
@@ -28,7 +29,7 @@ export type ObjectEntry = [string, any];
  * @returns boolean true if Object in ObjectEntry has COMPONENT_IDENTITY
  */
 export const isComponentEntry = (entry: ObjectEntry): boolean => {
-    return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
+  return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
 };
 
 
@@ -45,7 +46,7 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
  */
 export function isFileNameLoadable(filePath: string): boolean {
 
-    return (!filePath.match(/'\/__'/)) && path.extname(filePath)==='.js';
+  return (!filePath.match(/'\/__'/)) && path.extname(filePath)==='.js';
 }
 
 
@@ -64,13 +65,13 @@ export function isFileNameLoadable(filePath: string): boolean {
  */
 export function fileContainsDecorators(filePath: string): boolean {
 
-    const fileContents = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8');
+  const fileContents = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8');
 
-    let match = !!(fileContents && fileContents.match(/__decorate/));
+  let match = !!(fileContents && fileContents.match(/__decorate/));
 
-    debug('%s fileContents of "%s" will be loaded="%s"', TAG, filePath, match);
+  debug('%s fileContents of "%s" will be loaded="%s"', TAG, filePath, match);
 
-    return match;
+  return match;
 
 }
 
@@ -91,66 +92,86 @@ export function fileContainsDecorators(filePath: string): boolean {
  *
  */
 export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
-    let myExports:FileExports = {};
+  let myExports: FileExports = {};
 
-    try {
-        const loaded = require.cache;
-
-        myExports = require(file);
-
-    } catch (e) {
-        /**
-         * If Error came from one of the decorator functions it will have
-         * SyntaxError, ReferenceError or TypeError, in which case we need to stop loading rest of the files
-         * and rethrow it
-         */
-        if (e instanceof ReferenceError || e instanceof TypeError) {
-            throw e;
-        }
-        console.error(`${TAG} failed to require file '${file}' error: ${e}`);
+  try {
+    myExports = require(file);
+  } catch (e) {
+    /**
+     * If Error came from one of the decorator functions
+     * it will be of type FrameworkError
+     * in which case we need to stop loading rest of the files
+     * and rethrow it
+     */
+    if (e instanceof FrameworkError) {
+      throw e;
     }
 
-    const ret = Object.entries(myExports);
+    console.error(`${TAG} failed to require file '${file}' error: ${e.message}`);
+  }
 
-    debug('%s getExportsFromFile() returning export for file "%s" exports="%O"', TAG, file, ret);
+  const ret = Object.entries(myExports);
 
-    return ret;
+  debug('%s getExportsFromFile() returning export for file "%s" exports="%O"', TAG, file, ret);
+
+  return ret;
 
 };
 
-
+/**
+ * @param container
+ * @param dirs
+ * @throws FrameworkError if component cannot be loaded or
+ * cannot be added to container
+ */
 export const load = (container: IfIocContainer, dirs: string[]) => {
 
-    const files = getFilenamesRecursive(dirs)
-            .filter(isFileNameLoadable)
-            .filter(fileContainsDecorators);
+  const files = getFilenamesRecursive(dirs)
+    .filter(isFileNameLoadable)
+    .filter(fileContainsDecorators);
 
-    debug('%s loading from files: %s', TAG, JSON.stringify(files, null, '\t'));
+  debug('%s loading from files: %s', TAG, jsonStringify(files));
 
-    files.forEach(file => {
-        const fileExports: Array<ObjectEntry> = getExportsFromFile(file);
-        /**
-         *
-         * Filter array of ObjectEntry to contain only ObjectEntry of Component
-         * Now targetEntries is array of ObjectEntries where each ObjectEntry holds
-         * a decorated component
-         */
-        const targetEntries: Array<ObjectEntry> = fileExports.filter(isComponentEntry);
-        const components = targetEntries.map(entry => entry[1]);
+  files.forEach(file => {
 
-        components.forEach(component => {
-            debug('%s Adding component className="%s" from file "%s"',
-                    TAG,
-                    getClassName,
-                    file);
-            try {
-                addComponent(container, component);
-            } catch (e) {
-                const error = `Failed to load component ${String(getComponentName(component))} from file ${file}`;
+    let fileExports: Array<ObjectEntry>;
+    let targetEntries: Array<ObjectEntry>;
+    let components: Array<any>;
 
-                throw new FrameworkError(error, e);
-            }
-        });
-    });
+    try {
+      fileExports = getExportsFromFile(file);
+    } catch (e) {
+      const error = `Failed to load components from file ${file}
+      Caused by Error: ${e.message}`;
+
+      throw new FrameworkError(error, e);
+    }
+
+    if (fileExports) {
+      /**
+       * Filter array of ObjectEntry to contain only ObjectEntry of Component
+       * Now targetEntries is array of ObjectEntries where each ObjectEntry holds
+       * a decorated component
+       */
+      targetEntries = fileExports.filter(isComponentEntry);
+      components = targetEntries.map(entry => entry[1]);
+
+      components.forEach(component => {
+        debug('%s Adding component className="%s" from file "%s"',
+          TAG,
+          getClassName,
+          file);
+        try {
+          addComponent(container, component);
+        } catch (e) {
+          const error = `Failed to add component ${String(getComponentName(component))} 
+          to container from file ${file}
+          Caused by Error: ${e.message}`;
+
+          throw new FrameworkError(error, e);
+        }
+      });
+    }
+  });
 
 };

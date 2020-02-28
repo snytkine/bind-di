@@ -1,8 +1,7 @@
 export const PROP_DEPENDENCY = Symbol.for("bind:prop_dependency");
 export const CONSTRUCTOR_DEPENDENCIES = Symbol.for("bind:ctor_dependencies");
 export const COMPONENT_IDENTITY = Symbol.for("bind:component_name");
-export const _FACTORY_METHODS_ = Symbol.for("bind:componentfactory_methods");
-export const _COMPONENT_ENV_ = Symbol.for("bind:component_environment");
+export const COMPONENT_ENV = Symbol.for("bind:component_environment");
 export const INIT_METHOD = Symbol.for("bind:component_init");
 export const PRE_DESTROY = Symbol.for("bind:component_destruct");
 export const COMPONENT_META_DATA = Symbol.for("bind:component_meta_type");

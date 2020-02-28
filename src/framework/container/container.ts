@@ -277,7 +277,8 @@ export class Container implements IfIocContainer {
         );
 
         if (!ret) {
-            throw new FrameworkError(`Container Component Not found by name="${stringifyIdentify(id)}"`);
+            throw new FrameworkError(`
+            Container Component Not found by Identity="${stringifyIdentify(id)}"`);
         }
 
         return ret;
@@ -285,7 +286,11 @@ export class Container implements IfIocContainer {
 
     getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
 
-        debug('%s Entered Container.getComponent Requesting component="%s" With scopedStorage="%s"', TAG, stringifyIdentify(id), !!scopedStorage);
+        debug(`%s Entered Container.getComponent 
+        Requesting component="%s" With scopedStorage="%s"`,
+          TAG,
+          stringifyIdentify(id),
+          !!scopedStorage);
 
         return this.getComponentDetails(id).get(this, scopedStorage);
     }
@@ -293,11 +298,13 @@ export class Container implements IfIocContainer {
 
     addComponent(component: IfIocComponent): boolean {
 
-        const name = String(component.identity.componentName);
-
-        debug('%s Entered Container.addComponent with component="%s"', stringifyIdentify(component.identity));
+        debug('%s Entered Container.addComponent with component="%s"',
+          TAG,
+          stringifyIdentify(component.identity)
+        );
         if (this.has(component.identity)) {
-            throw new FrameworkError(`Container already has component "${stringifyIdentify(component.identity)}"`);
+            throw new FrameworkError(`
+            Container already has component "${stringifyIdentify(component.identity)}"`);
         }
 
         /**
