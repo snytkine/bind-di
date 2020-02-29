@@ -9,11 +9,13 @@ import {
 import { ComponentScope } from '../../enums';
 import { RESERVED_COMPONENT_NAMES } from '../../consts';
 
-import { initIterator, sortComponents } from './initializer';
+import { depsResolved, initIterator, sortComponents } from './initializer';
 import FrameworkError from '../../exceptions/frameworkerror';
 import isSameIdentity from '../../metadata/issameidentity';
 import jsonStringify from '../lib/jsonstringify';
 import stringifyIdentify from '../lib/stringifyidentity';
+import { IfComponentWithDependencies } from '../../definitions/componentwithdependencies';
+import { Try } from '../try';
 
 const debug = require('debug')('bind:container');
 
@@ -25,98 +27,123 @@ const TAG = 'Container';
  *
  * @param IfIocContainer
  */
-const checkDependencies = (container: IfIocContainer) => {
+const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> => {
   const { components } = container;
 
   debug('%s entered checkDependencies', TAG);
-  components.forEach((component, i) => {
+
+  const unresolved: Array<IfComponentIdentity> = components.reduce((acc: Array<IfComponentIdentity>, next, i, aComponents) => {
+
+    const componentsToCheck = [...aComponents].splice(i, 1);
+    const ret = [...acc];
+    if (!depsResolved(next, componentsToCheck)) {
+      ret.push(next.identity);
+    }
+    return ret;
+  }, []);
+
+  try {
     /**
-     * Check constructor dependencies
+     * Factor this out into 2 functions: checkConstructorDependencies
+     * checkPropDependencies and each one to return Promise<IfIocContainer>
      */
-    component.constructorDependencies.forEach((dep: IfComponentIdentity) => {
-      let found: IfComponentDetails;
-      try {
-        found = container.getComponentDetails(dep);
-      } catch (e) {
-        throw new FrameworkError(
-          `Component ${stringifyIdentify(component.identity)} 
+    components.forEach((component, i) => {
+      /**
+       * Check constructor dependencies
+       */
+      component.constructorDependencies.forEach((dep: IfComponentIdentity) => {
+        let found: IfComponentDetails;
+        try {
+          found = container.getComponentDetails(dep);
+        } catch (e) {
+          throw new FrameworkError(
+            `Component ${stringifyIdentify(component.identity)} 
                 has unsatisfied constructor dependency for argument "${i}" 
                 on dependency ${stringifyIdentify(dep)}`,
-          e,
-        );
-      }
+            e,
+          );
+        }
 
-      /**
-       * Smaller scope cannot be injected into broader scope
-       * Most specific - prototype scoped component cannot be a dependency of a singleton
-       */
-      if (component.scope > found.scope) {
-        throw new FrameworkError(`Component "${stringifyIdentify(component.identity)}" 
+        /**
+         * Smaller scope cannot be injected into broader scope
+         * Most specific - prototype scoped component cannot be a dependency of a singleton
+         */
+        if (component.scope > found.scope) {
+          throw new FrameworkError(`Component "${stringifyIdentify(component.identity)}" 
                 has a scope ${ComponentScope[component.scope]} but has constructor 
                 dependency on component "${stringifyIdentify(found.identity)}" 
                 with a smaller scope "${ComponentScope[found.scope]}"`);
-      }
+        }
+
+        /**
+         * @todo validate dependency class reference
+         * for this must allow class of dependency to be sub-class
+         * For example if dependency is on Animal the resolved dependency is Dog then it's OK
+         * but it's not OK for class to have dependency on Dog but resolved dependency to be
+         * supertype like Animal. Only Co-Variant dependency should be allowed.
+         */
+      });
 
       /**
-       * @todo validate dependency class reference
+       * Check property dependencies
        */
-    });
+      component.propDependencies.forEach((dep: IfComponentPropDependency) => {
+        let found: IfComponentDetails;
+        try {
+          found = container.getComponentDetails(dep.dependency);
+        } catch (e) {
+          debug('%s Container error propDependency Exception %o', TAG, e);
+        }
 
-    /**
-     * Check property dependencies
-     */
-    component.propDependencies.forEach((dep: IfComponentPropDependency) => {
-      let found: IfComponentDetails;
-      try {
-        found = container.getComponentDetails(dep.dependency);
-      } catch (e) {
-        debug('%s Container error propDependency Exception %o', TAG, e);
-      }
-
-      if (!found) {
-        throw new FrameworkError(`Component "${String(component.identity.componentName)} 
+        if (!found) {
+          throw new FrameworkError(`Component "${String(component.identity.componentName)} 
                 className=${component.identity?.clazz?.name}" has unsatisfied property dependency 
                 for propertyName="${String(dep.propertyName)}" 
                 dependency="${String(dep.dependency.componentName)}" 
                 dependency className=${dep.dependency?.clazz?.name}`);
-      }
+        }
 
-      /**
-       * Validate found dependency must match class
-       * @todo right now only matching by class name, not by
-       * class reference. Should match be done by class reference?
-       *
-       * @todo use an option in container settings to enable/disable this validation
-       */
-      if (
-        dep.dependency?.clazz?.name &&
-        found?.identity?.clazz?.name &&
-        !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
-        found?.identity?.clazz?.name !== dep.dependency?.clazz?.name
-      ) {
-        throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
+        /**
+         * Validate found dependency must match class
+         * @todo right now only matching by class name, not by
+         * class reference. Should match be done by class reference?
+         *
+         * @todo use an option in container settings to enable/disable this validation
+         */
+        if (
+          dep.dependency?.clazz?.name &&
+          found?.identity?.clazz?.name &&
+          !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
+          found?.identity?.clazz?.name!==dep.dependency?.clazz?.name
+        ) {
+          throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
                 has property dependency "${String(dep.dependency.componentName)}:${
-          dep.dependency?.clazz?.name
-        }" 
+            dep.dependency?.clazz?.name
+          }" 
                 for propertyName="${String(dep.propertyName)}" but dependency component 
                 has className="${found?.identity?.clazz?.name}"`);
-      }
+        }
 
-      /**
-       * Smaller scope cannot be injected into broader scope
-       * Most specific - prototype scoped component cannot be a dependency of a singleton
-       */
-      if (component.scope > found.scope) {
-        const err = `Component ${stringifyIdentify(component.identity)}
+        /**
+         * Smaller scope cannot be injected into broader scope
+         * Most specific - prototype scoped component cannot be a dependency of a singleton
+         */
+        if (component.scope > found.scope) {
+          const err = `Component ${stringifyIdentify(component.identity)}
                  has a scope "${ComponentScope[component.scope]}"
                  but has property dependency for
                  propertyName="${String(dep.propertyName)}" on component 
                  "${stringifyIdentify(found.identity)}" with a smaller scope
                 "${ComponentScope[found.scope]}"`;
-        throw new FrameworkError(err);
-      }
+          throw new FrameworkError(err);
+        }
+      });
     });
-  });
+
+    return Promise.resolve(container);
+  } catch (e) {
+    return Promise.reject(e);
+  }
 };
 
 /**
@@ -148,9 +175,9 @@ const checkDependencyLoop = (container: IfIocContainer) => {
    *
    * @type {{name: string; dependencies: string[], visited: boolean}[]}
    */
-  const namedComponents = components.map(component => {
+  const namedComponents: Array<IfComponentWithDependencies> = components.map(component => {
     return {
-      name: component.identity.componentName,
+      identity: component.identity,
       dependencies: component.constructorDependencies.concat(
         component.propDependencies.map(pd => pd.dependency),
       ),
@@ -190,7 +217,7 @@ const checkDependencyLoop = (container: IfIocContainer) => {
      * start to unwind.
      */
     component.dependencies
-      .map(cname => namedComponents.find(_ => _.name === cname))
+      .map(cname => namedComponents.find(_ => _.name===cname))
       .reduce((acc, child) => {
         check(child, acc);
         child.visited = true;
@@ -322,7 +349,13 @@ export default class Container implements IfIocContainer {
     debug('%s Entered initialize. components="%s"', TAG, jsonStringify(this.components));
 
     checkDependencies(this);
+    checkDependencyLoop(this);
 
+    /**
+     * @todo refactor into separate function getSortedComponents
+     * to return only one array of sorted OR Error
+     * In other words return Try<SortedComponents>
+     */
     const { sorted, unsorted } = sortComponents<IfIocComponent>({
       unsorted: this.components,
       sorted: [],

@@ -42,7 +42,7 @@ const copyFactoryMethod = (m: IfComponentFactoryMethod): IfComponentFactoryMetho
   };
 };
 
-const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails> => {
+export const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails> => {
   return a.map(componentDetails => {
     return {
       identity: copyIdentity(componentDetails.identity),
@@ -59,12 +59,22 @@ const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentDetails>
   });
 };
 
-export type UnsortedAndSorter<T> = {
+export type UnsortedAndSorted<T> = {
   unsorted: Array<IfComponentDetails>;
   sorted: Array<IfComponentDetails>;
 };
 
-const depsResolved = (
+/**
+ * Given a componentDetails and array of componentDetails
+ * checks in all constructor dependencies and prop dependencies
+ * of component can be found in given array of components.
+ *
+ * @param component component to check
+ * @param aComponents array of components to look for dependencies
+ * @returns boolean true if all component dependencies can be found in given array
+ * of components, false otherwise.
+ */
+export const depsResolved = (
   component: IfComponentDetails,
   aComponents: Array<IfComponentDetails>,
 ): boolean => {
@@ -106,10 +116,10 @@ const depsResolved = (
   return !propDepsresolved.includes(-1) && !ctorDepsresolved.includes(-1);
 };
 
-export const initIterator = async function*(
+export const initIterator = async function* initIterator(
   container: IfIocContainer,
   components: Array<IfComponentDetails>,
-): AsyncIterableIterator<boolean> {
+): AsyncIterableIterator<string> {
   for (const comp of components) {
     /**
      * Only Singleton can have initializer functions
@@ -122,7 +132,7 @@ export const initIterator = async function*(
      * because initializer returns a promise but container must return
      * instance, it cannot return a Promise of component.
      */
-    if (comp.scope === ComponentScope.SINGLETON && comp.postConstruct) {
+    if (comp.scope===ComponentScope.SINGLETON && comp.postConstruct) {
       const o = container.getComponent(comp.identity);
 
       yield o[comp.postConstruct]().then(() => stringifyIdentify(comp.identity));
@@ -143,16 +153,16 @@ export const initIterator = async function*(
  * It may also mean a dependency loop
  *
  *
- * @param {UnsortedAndSorter<T>} input
- * @returns {UnsortedAndSorter<T>}
+ * @param {UnsortedAndSorted<T>} input
+ * @returns {UnsortedAndSorted<T>}
  */
-export const sortComponents = <T>(input: UnsortedAndSorter<T>): UnsortedAndSorter<T> => {
+export const sortComponents = <T>(input: UnsortedAndSorted<T>): UnsortedAndSorted<T> => {
   let resolvedOne = false;
-  if (input.unsorted.length === 0) {
+  if (input.unsorted.length===0) {
     return input;
   }
 
-  const ret: UnsortedAndSorter<T> = {
+  const ret: UnsortedAndSorted<T> = {
     unsorted: [],
     sorted: copyComponents(input.sorted),
   };
