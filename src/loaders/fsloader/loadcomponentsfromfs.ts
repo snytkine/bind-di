@@ -1,12 +1,13 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { IfIocContainer } from '../../definitions';
-import { getClassName, getComponentName } from '../../metadata';
-import { addComponent } from '../../framework/container';
-import { FrameworkError } from '../../exceptions';
+import { addComponent } from '../../framework/container/containerutils';
+import FrameworkError from '../../exceptions/frameworkerror';
 import getFilenamesRecursive from './getFilenamesRecursive';
 import { COMPONENT_IDENTITY } from '../../consts';
-import { jsonStringify } from '../../framework';
+import jsonStringify from '../../framework/lib/jsonstringify';
+import getComponentName from '../../metadata/getcomponentname';
+import getClassName from '../../metadata/getclassname';
 
 const TAG = 'LOAD_FROM_FS';
 

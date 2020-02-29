@@ -1,5 +1,5 @@
 import { StringOrSymbol } from '../definitions';
-import { FrameworkError } from '../exceptions';
+import FrameworkError from '../exceptions/frameworkerror';
 import getClassName from './getclassname';
 
 const defineMetadata = (

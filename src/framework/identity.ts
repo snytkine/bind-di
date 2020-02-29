@@ -1,7 +1,7 @@
 import { IfComponentIdentity, StringOrSymbol, Target } from '../definitions';
 import FrameworkError from '../exceptions/frameworkerror';
 import { UNNAMED_COMPONENT } from '../consts';
-import { isStringOrSymbol } from './lib/index';
+import isStringOrSymbol from './lib/isstringorsymbol';
 
 /**
  * Factory function to create IfComponentIdentity

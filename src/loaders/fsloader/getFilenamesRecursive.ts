@@ -1,6 +1,3 @@
-/**
- * Created by snytkind on 8/8/17.
- */
 import * as fs from 'fs';
 import * as path from 'path';
 

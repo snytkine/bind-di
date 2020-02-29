@@ -7,7 +7,7 @@ import {
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
 import stringifyIdentify from '../lib/stringifyidentity';
-import { copyIdentity } from '../../metadata';
+import { copyIdentity } from '../../metadata/utils';
 import isSameIdentity from '../../metadata/issameidentity';
 
 const debug = require('debug')('bind:container');

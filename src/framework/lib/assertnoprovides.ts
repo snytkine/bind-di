@@ -1,5 +1,5 @@
 import { IfComponentDetails } from '../../definitions';
-import { FrameworkError } from '../../exceptions';
+import FrameworkError from '../../exceptions/frameworkerror';
 import stringifyIdentify from './stringifyidentity';
 
 export default function assertNoProvides(meta: IfComponentDetails): void {
