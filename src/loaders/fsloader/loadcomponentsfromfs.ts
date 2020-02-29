@@ -1,22 +1,20 @@
+import * as path from 'path';
+import * as fs from 'fs';
 import { IfIocContainer } from '../../definitions';
 import { getClassName, getComponentName } from '../../metadata';
 import { addComponent } from '../../framework/container';
 import { FrameworkError } from '../../exceptions';
-import {
-  getFilenamesRecursive,
-} from './getFilenamesRecursive';
-import * as path from 'path';
-import * as fs from 'fs';
+import getFilenamesRecursive from './getFilenamesRecursive';
 import { COMPONENT_IDENTITY } from '../../consts';
-import { jsonStringify } from '../../framework/lib';
+import { jsonStringify } from '../../framework';
 
 const TAG = 'LOAD_FROM_FS';
 
 const debug = require('debug')('bind:loader');
 
 export type FileExports = {
-  [key: string]: any
-}
+  [key: string]: any;
+};
 
 export type ObjectEntry = [string, any];
 
@@ -32,7 +30,6 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
   return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
 };
 
-
 /**
  * Check file name
  * If file path (including directories in its path)
@@ -45,10 +42,8 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
  * @returns {boolean} true if file should be loaded by application loader
  */
 export function isFileNameLoadable(filePath: string): boolean {
-
-  return (!filePath.match(/'\/__'/)) && path.extname(filePath)==='.js';
+  return !filePath.match(/'\/__'/) && path.extname(filePath) === '.js';
 }
-
 
 /**
  * Check that file exists and that contents of file
@@ -64,17 +59,14 @@ export function isFileNameLoadable(filePath: string): boolean {
  * @returns {boolean} true if file exists and contains one of the component annotations|false otherwise
  */
 export function fileContainsDecorators(filePath: string): boolean {
-
   const fileContents = fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8');
 
-  let match = !!(fileContents && fileContents.match(/__decorate/));
+  const match = !!(fileContents && fileContents.match(/__decorate/));
 
   debug('%s fileContents of "%s" will be loaded="%s"', TAG, filePath, match);
 
   return match;
-
 }
-
 
 /**
  *
@@ -95,6 +87,7 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
   let myExports: FileExports = {};
 
   try {
+    // eslint-disable-next-line
     myExports = require(file);
   } catch (e) {
     /**
@@ -106,8 +99,7 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
     if (e instanceof FrameworkError) {
       throw e;
     }
-
-    console.error(`${TAG} failed to require file '${file}' error: ${e.message}`);
+    throw new FrameworkError(`Failed at require file ${file}`, e);
   }
 
   const ret = Object.entries(myExports);
@@ -115,7 +107,6 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
   debug('%s getExportsFromFile() returning export for file "%s" exports="%O"', TAG, file, ret);
 
   return ret;
-
 };
 
 /**
@@ -125,7 +116,6 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
  * cannot be added to container
  */
 export const load = (container: IfIocContainer, dirs: string[]) => {
-
   const files = getFilenamesRecursive(dirs)
     .filter(isFileNameLoadable)
     .filter(fileContainsDecorators);
@@ -133,7 +123,6 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
   debug('%s loading from files: %s', TAG, jsonStringify(files));
 
   files.forEach(file => {
-
     let fileExports: Array<ObjectEntry>;
     let targetEntries: Array<ObjectEntry>;
     let components: Array<any>;
@@ -157,10 +146,7 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
       components = targetEntries.map(entry => entry[1]);
 
       components.forEach(component => {
-        debug('%s Adding component className="%s" from file "%s"',
-          TAG,
-          getClassName,
-          file);
+        debug('%s Adding component className="%s" from file "%s"', TAG, getClassName, file);
         try {
           addComponent(container, component);
         } catch (e) {
@@ -173,5 +159,4 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
       });
     }
   });
-
 };

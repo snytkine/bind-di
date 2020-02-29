@@ -9,55 +9,112 @@ import {
   DESIGN_TYPE,
   UNNAMED_COMPONENT,
   RESERVED_COMPONENT_NAMES,
-  DependencyType,
-  TargetStereoType, PROP_DEPENDENCY, CONSTRUCTOR_DEPENDENCIES, PARAM_TYPES,
+  PROP_DEPENDENCY,
+  CONSTRUCTOR_DEPENDENCIES,
+  PARAM_TYPES,
 } from '../consts';
-import {
-  defineMetadata,
-  getClassName,
-  getComponentIdentity,
-  getComponentName,
-} from '../metadata';
-import {
-  Identity,
-  isStringOrSymbol,
-  getTargetStereotype,
-} from '../framework/lib';
 import { FrameworkError } from '../exceptions';
+import { DependencyType, TargetStereoType } from '../enums';
+import getComponentName from '../metadata/getcomponentname';
+import getClassName from '../metadata/getclassname';
+import getComponentIdentity from '../metadata/getcomponentidentity';
+import defineMetadata from '../metadata/definemetadata';
+import getTargetStereotype from '../framework/lib/gettargetstereotype';
+import { Identity } from '../framework/identity';
+import isStringOrSymbol from '../framework/lib/isstringorsymbol';
 
 const debug = require('debug')('bind:decorate:inject');
+
 const TAG = '@Inject';
 
 export type NumberOrPropertyDescriptor = number | PropertyDescriptor;
 export type StringOrTarget = string | Target;
 
-const getInjectionType = (target: Target,
-                          propertyKey?: string,
-                          parameterIndex?: NumberOrPropertyDescriptor): DependencyType => {
+/**
+ * @todo deal with inheritance. If parent already has ctor dependencies
+ * a child can have co-variant types for same dependencies
+ *
+ * @param {Target} target
+ * @param {IfComponentIdentity} dependency
+ * @param {number} parameterIndex
+ */
+export const addConstructorDependency = (
+  target: Target,
+  dependency: IfComponentIdentity,
+  parameterIndex: number,
+): void => {
+  const deps =
+    <Array<IfConstructorDependency>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
+  const name = String(getComponentName(target));
+  debug(
+    `%s Adding Constructor dependency at index="%d" dependency="%o"
+    for component="%s"
+    className="%s"
+     Existing dependencies="%o"`,
+    TAG,
+    parameterIndex,
+    dependency,
+    name,
+    getClassName(target),
+    deps,
+  );
 
+  /**
+   * In case of inheritance deps array may already have dependency at the same index
+   * in which case need to replace element at index in deps array
+   * just check if deps[parameterIndex] then replace value, else push as before.
+   * Typescript compiler will allow to use only co-variant types in child constructor
+   */
+  const existingDependencyIndex: number = deps.findIndex(
+    dep => dep.parameterIndex === parameterIndex,
+  );
 
+  if (existingDependencyIndex > -1) {
+    debug(
+      '% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
+      TAG,
+      getClassName(target),
+      parameterIndex,
+    );
+
+    delete deps[existingDependencyIndex];
+  }
+
+  deps.push({
+    parameterIndex,
+    dependency,
+  });
+
+  Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
+};
+
+const getInjectionType = (
+  target: Target,
+  propertyKey?: string,
+  parameterIndex?: NumberOrPropertyDescriptor,
+): DependencyType => {
   let ret: DependencyType = DependencyType.UNKNOWN;
   const targetStereoType: TargetStereoType = getTargetStereotype(target);
 
-  if (TargetStereoType.PROTOTYPE===targetStereoType &&
+  if (
+    TargetStereoType.PROTOTYPE === targetStereoType &&
     propertyKey &&
-    typeof propertyKey==='string' &&
-    parameterIndex===undefined) {
-
-    ret = DependencyType.PROPERTY;
-
-  } else if (TargetStereoType.CONSTRUCTOR===targetStereoType &&
-    propertyKey===undefined &&
-    typeof parameterIndex==='number'
+    typeof propertyKey === 'string' &&
+    parameterIndex === undefined
   ) {
-
+    ret = DependencyType.PROPERTY;
+  } else if (
+    TargetStereoType.CONSTRUCTOR === targetStereoType &&
+    propertyKey === undefined &&
+    typeof parameterIndex === 'number'
+  ) {
     ret = DependencyType.CONSTRUCTOR_PARAMETER;
-
-  } else if (TargetStereoType.PROTOTYPE===targetStereoType &&
-    typeof propertyKey==='string' &&
-    typeof parameterIndex==='object' &&
+  } else if (
+    TargetStereoType.PROTOTYPE === targetStereoType &&
+    typeof propertyKey === 'string' &&
+    typeof parameterIndex === 'object' &&
     parameterIndex.set &&
-    typeof parameterIndex.set==='function'
+    typeof parameterIndex.set === 'function'
   ) {
     ret = DependencyType.SETTER;
   }
@@ -65,13 +122,15 @@ const getInjectionType = (target: Target,
   return ret;
 };
 
-const applyInjectToProperty = (dependencyName: StringOrSymbol,
-                               target: Target,
-                               propertyKey: string): void => {
-
+const applyInjectToProperty = (
+  dependencyName: StringOrSymbol,
+  target: Target,
+  propertyKey: string,
+): void => {
   const name = String(getComponentName(target));
 
-  debug('%s Entered applyInjectToProperty dependencyName="%s" target="%s" propertyKey="%s"',
+  debug(
+    '%s Entered applyInjectToProperty dependencyName="%s" target="%s" propertyKey="%s"',
     TAG,
     dependencyName,
     name,
@@ -93,12 +152,10 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
    *
    * 2. UNNAMED dependencies MUST have valid DESIGN_TYPE
    */
-  if (dependencyName!==UNNAMED_COMPONENT) {
+  if (dependencyName !== UNNAMED_COMPONENT) {
     injectName = dependencyName;
     injectIdentity = Identity(injectName, target);
-
   } else {
-
     if (!rt) {
       throw new FrameworkError(`Cannot determine 
             the dependency type for component "${name}" propertyKey="${propertyKey}". 
@@ -124,7 +181,8 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
     injectName = injectIdentity.componentName;
     injectClassName = injectIdentity?.clazz?.name;
 
-    debug('%s DESIGN_TYPE of property "%s.%s" is "%s" className="%s"',
+    debug(
+      '%s DESIGN_TYPE of property "%s.%s" is "%s" className="%s"',
       TAG,
       name,
       propertyKey,
@@ -144,14 +202,14 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
      * This is not allowed.
      */
     if (RESERVED_COMPONENT_NAMES.includes(injectClassName)) {
-
       throw new FrameworkError(`Dependency class ${injectClassName} 
             for property "${name}.${propertyKey}"  is not allowed as dependency component. 
             Consider using named dependency or user-defined class as dependency`);
     }
   }
 
-  debug('Adding %s metadata for propertyKey="%s" dependencyName="%s" for target="%s"',
+  debug(
+    'Adding %s metadata for propertyKey="%s" dependencyName="%s" for target="%s"',
     TAG,
     propertyKey,
     String(injectName),
@@ -165,8 +223,9 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
    */
   if (!target.hasOwnProperty(propertyKey)) {
     debug('%s defining property "%s" for Injection on target="%s"', TAG, propertyKey, name);
+
     Object.defineProperty(target, propertyKey, {
-      value: void 0,
+      value: undefined,
       writable: true,
       enumerable: true,
     });
@@ -182,11 +241,12 @@ const applyInjectToProperty = (dependencyName: StringOrSymbol,
  * @param target target will be a Function here - a constructor
  * @param parameterIndex
  */
-const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
-                                       target: Target,
-                                       paramIndex: NumberOrPropertyDescriptor): void => {
-
-  if (typeof paramIndex!=='number') {
+const applyInjectToConstructorParam = (
+  dependencyName: StringOrSymbol,
+  target: Target,
+  paramIndex: NumberOrPropertyDescriptor,
+): void => {
+  if (typeof paramIndex !== 'number') {
     throw new FrameworkError(`parameterIndex passed to applyInjectToConstructorParam 
     must be a number. dependencyName=${String(dependencyName)}`);
   }
@@ -220,13 +280,13 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
         on class ${getClassName(target)}`);
   }
 
-  if (dependencyName===UNNAMED_COMPONENT) {
+  if (dependencyName === UNNAMED_COMPONENT) {
     /**
      * For unnamed @Inject get identity from ptypes[paramIndex]
      * make sure class type is not reserved type.
      */
     injectIdentity = getComponentIdentity(ptypes[paramIndex]);
-    let injectClassName = injectIdentity?.clazz?.name;
+    const injectClassName = injectIdentity?.clazz?.name;
 
     if (!injectClassName) {
       throw new FrameworkError(`${TAG} Failed to get class name 
@@ -240,13 +300,11 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
      * This is not allowed.
      */
     if (RESERVED_COMPONENT_NAMES.includes(injectClassName)) {
-
       throw new FrameworkError(`Dependency class ${injectClassName} 
             for "${String(target)}"  constructor at position ${paramIndex} 
             is not an allowed as dependency component. 
             Consider using named dependency or more specific class type for this component`);
     }
-
   } else {
     /**
      * For named dependency just generate identity using dependencyName
@@ -255,24 +313,24 @@ const applyInjectToConstructorParam = (dependencyName: StringOrSymbol,
     injectIdentity = Identity(dependencyName, ptypes[paramIndex]);
   }
 
-
   return addConstructorDependency(target, injectIdentity, paramIndex);
 };
 
-
-const applyInject = (depName: StringOrSymbol) => (target: Target,
-                                                  propertyKey?: string,
-                                                  paramIndex?: NumberOrPropertyDescriptor) => {
-
+const applyInject = (depName: StringOrSymbol) => (
+  target: Target,
+  propertyKey?: string,
+  paramIndex?: NumberOrPropertyDescriptor,
+) => {
   const injectionType = getInjectionType(target, propertyKey, paramIndex);
 
-  debug('%s applyInjectDecorator for dependencyName="%s" injectionType=%s',
+  debug(
+    '%s applyInjectDecorator for dependencyName="%s" injectionType=%s',
     TAG,
     depName,
-    injectionType);
+    injectionType,
+  );
 
   switch (injectionType) {
-
     case DependencyType.CONSTRUCTOR_PARAMETER:
       applyInjectToConstructorParam(depName, target, paramIndex);
       break;
@@ -289,24 +347,22 @@ const applyInject = (depName: StringOrSymbol) => (target: Target,
       throw new FrameworkError(`${TAG} decorator applied in unsupported way 
             in "${getClassName(target)}" component. 
             Can only be applied to constructor parameter, property or property setter.`);
-
   }
 
   return undefined;
 };
 
-
 /**
  * @Inject decorator can be applied to class property, setter, or to constructor parameter
  *
  */
-export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void
+export function Inject(target: Target, propertyKey: string, parameterIndex?: number): void;
 
-export function Inject(target: Target, propertyKey: string, descriptor: PropertyDescriptor): void
+export function Inject(target: Target, propertyKey: string, descriptor: PropertyDescriptor): void;
 
-export function Inject(name: StringOrSymbol): (target: Target,
-                                               propertyKey?: string,
-                                               parameterIndex?: NumberOrPropertyDescriptor) => void
+export function Inject(
+  name: StringOrSymbol,
+): (target: Target, propertyKey?: string, parameterIndex?: NumberOrPropertyDescriptor) => void;
 
 /**
  * Implementation
@@ -315,71 +371,17 @@ export function Inject(name: StringOrSymbol): (target: Target,
  * @param parameterIndex
  * @constructor
  */
-export function Inject(nameOrTarget: StringOrTarget,
-                       propertyKey?: string,
-                       parameterIndex?: NumberOrPropertyDescriptor) {
-
+export function Inject(
+  nameOrTarget: StringOrTarget,
+  propertyKey?: string,
+  parameterIndex?: NumberOrPropertyDescriptor,
+) {
   debug('%s Entered Inject', TAG);
   if (isStringOrSymbol(nameOrTarget)) {
     return applyInject(<StringOrSymbol>nameOrTarget);
-  } else {
-    applyInject(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, parameterIndex);
   }
+  applyInject(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, parameterIndex);
 }
-
-/**
- * @todo deal with inheritance. If parent already has ctor dependencies
- * a child can have co-variant types for same dependencies
- *
- * @param {Target} target
- * @param {IfComponentIdentity} dependency
- * @param {number} parameterIndex
- */
-export const addConstructorDependency = (target: Target,
-                                         dependency: IfComponentIdentity,
-                                         parameterIndex: number): void => {
-  let deps = <Array<IfConstructorDependency>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
-  const name = String(getComponentName(target));
-  debug(`%s Adding Constructor dependency at index="%d" dependency="%o"
-    for component="%s"
-    className="%s"
-     Existing dependencies="%o"`,
-    TAG,
-    parameterIndex,
-    dependency,
-    name,
-    getClassName(target),
-    deps,
-  );
-
-  /**
-   * In case of inheritance deps array may already have dependency at the same index
-   * in which case need to replace element at index in deps array
-   * just check if deps[parameterIndex] then replace value, else push as before.
-   * Typescript compiler will allow to use only co-variant types in child constructor
-   */
-  let existingDependencyIndex: number = deps.findIndex(
-    (dep) => dep.parameterIndex===parameterIndex,
-  );
-
-  if (existingDependencyIndex > -1) {
-
-    debug('% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
-      TAG,
-      getClassName(target),
-      parameterIndex,
-    );
-
-    delete (deps[existingDependencyIndex]);
-  }
-
-  deps.push({
-    parameterIndex,
-    dependency,
-  });
-
-  Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, deps, target);
-};
 
 /**
  * Returns array of IfComponentIdentity in sorted order of
@@ -389,10 +391,10 @@ export const addConstructorDependency = (target: Target,
  * @throws if dependency is missing for constructor parameter
  */
 export const getConstructorDependencies = (target: Target): Array<IfComponentIdentity> => {
-
-  let ret: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
+  const ret: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
   if (ret) {
-    debug(`%s Found component CONSTRUCTOR_DEPENDENCIES 
+    debug(
+      `%s Found component CONSTRUCTOR_DEPENDENCIES 
     for componentName="%s" 
     className="" deps="%o"`,
       TAG,
@@ -414,7 +416,7 @@ export const getConstructorDependencies = (target: Target): Array<IfComponentIde
      * Need to turn it into  array of ordered dependency components
      */
     for (let i = 0; i < ret.length; i += 1) {
-      sorted.push(ret.find(it => it.parameterIndex===i));
+      sorted.push(ret.find(it => it.parameterIndex === i));
       if (!sorted[i]) {
         throw new FrameworkError(`Constructor is missing @Inject decorator 
                 for parameter ${i} for component ${target.name}`);
@@ -423,7 +425,8 @@ export const getConstructorDependencies = (target: Target): Array<IfComponentIde
 
     sorted = sorted.map(it => it.dependency);
 
-    debug('%s Returning CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="%s" sorted="%o"',
+    debug(
+      '%s Returning CONSTRUCTOR_DEPENDENCIES for componentName="%s" className="%s" sorted="%o"',
       TAG,
       String(getComponentName(target)),
       getClassName(target),
@@ -431,15 +434,14 @@ export const getConstructorDependencies = (target: Target): Array<IfComponentIde
     );
 
     return sorted;
-  } else {
-    debug('%s NOT FOUND constructor dependencies for component="%s"',
-      TAG,
-      String(getComponentName(target)),
-    );
-    return [];
   }
+  debug(
+    '%s NOT FOUND constructor dependencies for component="%s"',
+    TAG,
+    String(getComponentName(target)),
+  );
+  return [];
 };
-
 
 export const getClassSetters = (target: Target): Array<string> => {
   const ret = [];
@@ -453,9 +455,7 @@ export const getClassSetters = (target: Target): Array<string> => {
   const descriptors = Object.getOwnPropertyDescriptors(target.prototype);
 
   for (const k in descriptors) {
-    if (descriptors[k] &&
-      descriptors[k].set &&
-      typeof descriptors[k].set==='function') {
+    if (descriptors[k] && descriptors[k].set && typeof descriptors[k].set === 'function') {
       ret.push(k);
     }
   }
@@ -463,9 +463,7 @@ export const getClassSetters = (target: Target): Array<string> => {
   return ret;
 };
 
-
 export function getPropDependencies(target: Target): Array<IfComponentPropDependency> {
-
   const cName = String(getComponentName(target));
 
   debug('%s Entered getPropDependencies for target="%s"', TAG, cName);
@@ -473,7 +471,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
   /**
    * If class extends other class May not get props of parent class
    */
-  let dependencies = [];
+  const dependencies = [];
   let keys = [];
   if (target && target.prototype) {
     keys = Object.keys(target.prototype);
@@ -498,14 +496,12 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    * be considered a dependency
    */
   for (const p of keys) {
-
     debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
 
     /**
      * First check if class has own property p
      */
     if (Reflect.hasMetadata(PROP_DEPENDENCY, target.prototype, p)) {
-
       const dep = Reflect.getMetadata(PROP_DEPENDENCY, target.prototype, p);
       debug('%s Prop "%s.%s" has dependency %o', TAG, cName, p, dep);
       /**
@@ -522,11 +518,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
     }
   }
 
-  debug('%s returning prop dependencies for class "%s" dependencies=%o',
-    TAG,
-    cName,
-    dependencies
-  );
+  debug('%s returning prop dependencies for class "%s" dependencies=%o', TAG, cName, dependencies);
 
   return dependencies;
 }

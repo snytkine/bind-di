@@ -1,5 +1,3 @@
-export * from './assertnotreservedtype'
-export * from './gettargetstereotype'
-export * from './identity'
-export * from './isstringorsymbol'
-export * from './jsonutil'
+export { default as getTargetStereotype } from './gettargetstereotype';
+export { default as jsonStringify } from './jsonstringify';
+export { default as isStringOrSymbol } from './isstringorsymbol';

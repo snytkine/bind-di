@@ -1,2 +1,2 @@
-export * from './getFilenamesRecursive'
-export * from './loadcomponentsfromfs'
+export { default as getFilenamesRecursive } from './getFilenamesRecursive';
+export * from './loadcomponentsfromfs';

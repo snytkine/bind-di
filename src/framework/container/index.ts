@@ -1,4 +1,3 @@
-export * from './container'
-export * from './containerutils'
-export * from './getcomponentmeta'
-export * from './initializer'
+export { default as Container } from './container';
+export * from './containerutils';
+export * from './initializer';

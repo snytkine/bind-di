@@ -3,26 +3,20 @@
  */
 
 export interface Try<T, E extends Error = Error> {
-  Success: T
-  Failure: Error
+  Success: T;
+  Failure: Error;
 }
 
-
 export function TryCatch<T>(f: Function): Try<T, Error> {
-
   try {
-
-     return {
-       Success: f(),
-       Failure: null
-     }
-
-  } catch(e){
-
+    return {
+      Success: f(),
+      Failure: null,
+    };
+  } catch (e) {
     return {
       Success: null,
-      Failure: e
-    }
+      Failure: e,
+    };
   }
-
 }

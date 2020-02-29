@@ -1,2 +1,2 @@
-export * from './decoratorerror'
-export * from './frameworkerror'
+export { default as FrameworkError } from './frameworkerror';
+export { default as DecoratorError } from './decoratorerror';

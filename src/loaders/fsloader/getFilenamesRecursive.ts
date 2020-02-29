@@ -15,30 +15,21 @@ const TAG = 'FILE_LOADER';
  *
  * @returns Array<string> array of full paths to all files
  */
-export function getFilenamesRecursive(dirs: string[]): Array<string> {
+export default function getFilenamesRecursive(dirs: string[]): Array<string> {
+  debug('%s Entered getFilenamesRecursive with dir %o', TAG);
 
-    debug(`Entered getFilenamesRecursive with dir ${dirs.join(',')}`);
+  const getFilenamesRecursiveInner = (dir: string, aFiles: string[] = [], level = 0) => {
+    const files = fs.readdirSync(dir);
+    files.forEach(file => {
+      if (fs.statSync(path.join(dir, file)).isDirectory()) {
+        aFiles = getFilenamesRecursiveInner(path.join(dir, file), aFiles, level + 1);
+      } else {
+        aFiles.push(path.join(dir, file));
+      }
+    });
 
-    const getFilenamesRecursive_ = function (dir: string, aFiles: string[] = [], level = 0) {
-        let files = fs.readdirSync(dir);
-        files.forEach(function (file) {
-            if (fs.statSync(path.join(dir, file))
-                    .isDirectory()) {
-                aFiles = getFilenamesRecursive_(path.join(dir, file), aFiles, level + 1);
-            } else {
-                aFiles.push(path.join(dir, file));
-            }
+    return aFiles;
+  };
 
-        });
-
-        return aFiles;
-    };
-
-    return dirs.map(_ => getFilenamesRecursive_(_))
-            .reduce((prev, cur) => prev.concat(cur), []);
+  return dirs.map(_ => getFilenamesRecursiveInner(_)).reduce((prev, cur) => prev.concat(cur), []);
 }
-
-
-
-
-

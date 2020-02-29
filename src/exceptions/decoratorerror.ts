@@ -1,7 +1,7 @@
-import { FrameworkError } from './frameworkerror';
+import FrameworkError from './frameworkerror';
 
-export class DecoratorError extends FrameworkError {
-    constructor(message: string, nestedException?: Error) {
-        super(message, nestedException);
-    }
+export default class DecoratorError extends FrameworkError {
+  constructor(public message: string, public nestedException?: Error) {
+    super(message, nestedException);
+  }
 }

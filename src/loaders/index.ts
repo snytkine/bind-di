@@ -1,1 +1,1 @@
-export * from './fsloader'
+export * from './fsloader';

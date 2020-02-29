@@ -6,37 +6,30 @@ import {
   RETURN_TYPE,
   PARAM_TYPES,
   CONSTRUCTOR_DEPENDENCIES,
-  TargetStereoType,
 } from '../consts';
 
-import {
-  ComponentScope,
-} from '../enums';
-
-import {
-  defineMetadata, getClassName, getComponentIdentity, getComponentName,
-  setComponentIdentity,
-} from '../metadata/';
-
-import {
-  DecoratorError, FrameworkError,
-} from '../exceptions';
-import {
-  Identity,
-  assertNotReservedType,
-  isStringOrSymbol,
-  getTargetStereotype,
-} from '../framework/lib';
-
+import { ComponentScope, TargetStereoType } from '../enums';
+import { DecoratorError, FrameworkError } from '../exceptions';
 
 import {
   IfComponentFactoryMethod,
   IfComponentIdentity,
   IfConstructorDependency,
-  StringOrSymbol, Target,
+  StringOrSymbol,
+  Target,
 } from '../definitions';
+import { Identity } from '../framework/identity';
+import getClassName from '../metadata/getclassname';
+import getComponentIdentity from '../metadata/getcomponentidentity';
+import setComponentIdentity from '../metadata/setcomponentidentity';
+import defineMetadata from '../metadata/definemetadata';
+import getComponentName from '../metadata/getcomponentname';
+import assertNotReservedType from '../framework/lib/assertnotreserved';
+import getTargetStereotype from '../framework/lib/gettargetstereotype';
+import isStringOrSymbol from '../framework/lib/isstringorsymbol';
 
 const debug = require('debug')('bind:decorate:component');
+
 const TAG = '@Component';
 
 /**
@@ -45,8 +38,10 @@ const TAG = '@Component';
  * @param dependency
  * @constructor
  */
-export const ConstructorDependency = (parameterIndex: number,
-                                      dep: IfComponentIdentity): IfConstructorDependency => {
+export const ConstructorDependency = (
+  parameterIndex: number,
+  dep: IfComponentIdentity,
+): IfConstructorDependency => {
   return {
     parameterIndex,
     dependency: dep,
@@ -86,7 +81,8 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
    * Some may have been defined using @Inject directly on
    * constructor parameters.
    */
-  const existingCtorDeps: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
+  const existingCtorDeps: Array<IfConstructorDependency> =
+    Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
 
   console.log(componentName, '!!!!!!!!!!!!');
   console.log(getClassName(target));
@@ -107,21 +103,26 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
    * Loop over them and check that
    */
 
-  if (constructorParamTypes && Array.isArray(constructorParamTypes) &&
-    existingCtorDeps.length!==constructorParamTypes.length) {
+  if (
+    constructorParamTypes &&
+    Array.isArray(constructorParamTypes) &&
+    existingCtorDeps.length !== constructorParamTypes.length
+  ) {
     const targetClassName = getClassName(target);
 
-    debug(`%s setConstructorDependencies 
+    debug(
+      `%s setConstructorDependencies 
         Adding additional constructor dependencies to component "%s" class="%s"`,
       TAG,
       String(componentName),
-      targetClassName);
+      targetClassName,
+    );
 
     const updatedCtorDependencies: Array<IfConstructorDependency> = constructorParamTypes.map(
       (dep, i) => {
-        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex===i);
+        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex === i);
 
-        if(!res){
+        if (!res) {
           /**
            * Do not have existing constructor dependency for this
            * constructor argument
@@ -129,16 +130,15 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
            * but must check that it's not undefined and not a reserved class
            *
            */
-          if(!dep){
+          if (!dep) {
             throw new FrameworkError(`Cannot determine constructor dependency for arg ${i}
             for class ${targetClassName}
             Either the dependency is not a user-defined class or there may be a
             circular import. Possible solutions are: 
             - use named components as constructor dependencies 
             - use user-defined classes as constructor dependencies but make sure there are
-            no circular imports`)
+            no circular imports`);
           }
-
         }
         res = res || ConstructorDependency(i, getComponentIdentity(dep));
         /**
@@ -154,27 +154,32 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
         }
 
         return res;
-      });
+      },
+    );
 
     /**
      * Now set updated constructor dependencies as metadata for constructor
      */
-    debug(`%s setConstructorDependencies updated "%s" constructor dependencies=%o`,
+    debug(
+      `%s setConstructorDependencies updated "%s" constructor dependencies=%o`,
       targetClassName,
-      updatedCtorDependencies);
+      updatedCtorDependencies,
+    );
 
     Reflect.defineMetadata(CONSTRUCTOR_DEPENDENCIES, updatedCtorDependencies, target);
   }
-
 };
 
 /**
  * Actual function that will set component metadata on component
  * @param componentName
  */
-export const applyComponentDecorator = (componentName: StringOrSymbol) => (target: Object, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void => {
-
-  if (getTargetStereotype(target)===TargetStereoType.CONSTRUCTOR && !propertyKey) {
+export const applyComponentDecorator = (componentName: StringOrSymbol) => (
+  target: Object,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<Object>,
+): void => {
+  if (getTargetStereotype(target) === TargetStereoType.CONSTRUCTOR && !propertyKey) {
     /**
      * Applying decorator to class
      */
@@ -182,11 +187,13 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
 
     setComponentIdentity(Identity(componentName, target), target);
     setConstructorDependencies(componentName, target);
-
   } else {
-
     const factoryClassName = target?.constructor?.name;
-    debug(`Defining named ${TAG}('${String(componentName)}') for class method "${String(factoryClassName)}.${propertyKey}"`);
+    debug(
+      `Defining named ${TAG}('${String(componentName)}') for class method "${String(
+        factoryClassName,
+      )}.${propertyKey}"`,
+    );
 
     /**
      * Applying decorator to method of the class
@@ -206,8 +213,10 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
      * Also decorating a method makes it possible to do something like
      * return new MyClass(somePropSetFromInit)
      */
-    if (!descriptor || typeof descriptor.value!=='function') {
-      throw new DecoratorError(`Only class or class method can have a '${TAG}'decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`);
+    if (!descriptor || typeof descriptor.value !== 'function') {
+      throw new DecoratorError(
+        `Only class or class method can have a '${TAG}'decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`,
+      );
     }
 
     /**
@@ -229,8 +238,10 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
     const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
     const RT = typeof rettype;
 
-    if (componentName===UNNAMED_COMPONENT && (RT!='function' || !rettype.name)) {
-      throw new DecoratorError(`Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and type is not an object: "${RT}"`);
+    if (componentName === UNNAMED_COMPONENT && (RT !== 'function' || !rettype.name)) {
+      throw new DecoratorError(
+        `Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and type is not an object: "${RT}"`,
+      );
     }
 
     /**
@@ -239,12 +250,15 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
      * but only in case of UNNAMED_COMPONENT
      *
      */
-    assertNotReservedType(componentName, rettype, `
+    assertNotReservedType(
+      componentName,
+      rettype,
+      `
         ${TAG} Return type of method "${target.constructor.name}.${propertyKey}" 
                 is not a valid name for a component: "${rettype.name}". 
                 Possibly return type was not explicitly defined or the 
-                Interface name was used for return type instead of class name`);
-
+                Interface name was used for return type instead of class name`,
+    );
 
     /**
      * the rettype is actually a class that if usually declared in different file
@@ -258,7 +272,6 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
      * In this case it makes sense to set DEFAULT_SCOPE to be SINGLETON for this component
      */
     defineMetadata(DEFAULT_SCOPE, ComponentScope.SINGLETON, target, propertyKey)(true);
-
   }
 };
 
@@ -270,21 +283,27 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (targe
  * @param {Target} target
  * @constructor
  */
-export function Component(target: Target): void
+export function Component(target: Target): void;
 
-export function Component(target: Target, propertyKey: string, descriptor: TypedPropertyDescriptor<Object>): void
+export function Component(
+  target: Target,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<Object>,
+): void;
 
-export function Component(name: StringOrSymbol): (target: any, propertyKey?: string,
-                                                  descriptor?: TypedPropertyDescriptor<Object>) => void
+export function Component(
+  name: StringOrSymbol,
+): (target: any, propertyKey?: string, descriptor?: TypedPropertyDescriptor<Object>) => void;
 
-export function Component(nameOrTarget: StringOrSymbol | Target, propertyKey?: string,
-                          descriptor?: TypedPropertyDescriptor<Object>) {
-
+export function Component(
+  nameOrTarget: StringOrSymbol | Target,
+  propertyKey?: string,
+  descriptor?: TypedPropertyDescriptor<Object>,
+) {
   if (isStringOrSymbol(nameOrTarget)) {
     return applyComponentDecorator(<StringOrSymbol>nameOrTarget);
-  } else {
-    applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);
   }
+  applyComponentDecorator(UNNAMED_COMPONENT)(nameOrTarget, propertyKey, descriptor);
 }
 
 // Example how to create custom component decorator
@@ -292,8 +311,7 @@ export function Component(nameOrTarget: StringOrSymbol | Target, propertyKey?: s
  const MyFactory = (target: Target): void => {
  Component(target);
  // Here define additional metadata using Reflect.defineMetadata
- };*/
-
+ }; */
 
 /**
  * @todo will the getOwnPropertyNames be a problem in case of inheritance?
@@ -303,7 +321,6 @@ export function Component(nameOrTarget: StringOrSymbol | Target, propertyKey?: s
  * @returns {Array<IfComponentFactoryMethod>}
  */
 export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
-
   /**
    * use target.prototype because target is just a constructor function
    * we need to access to object's properties and for that we need
@@ -329,19 +346,22 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
    *
    * @type {string[]}
    */
-  let methods = Object.getOwnPropertyNames(target.prototype);
+  const methods = Object.getOwnPropertyNames(target.prototype);
 
   const cName = String(getComponentName(target));
 
-
   debug('%s property names of target "%s" "%o"', TAG, cName, methods);
 
-  let factoryMethods = methods.filter(m => Reflect.hasMetadata(COMPONENT_IDENTITY, target.prototype, m)).map(m => {
-    return { 'methodName': m, 'providesComponent': Reflect.getMetadata(COMPONENT_IDENTITY, target.prototype, m) };
-  });
+  const factoryMethods = methods
+    .filter(m => Reflect.hasMetadata(COMPONENT_IDENTITY, target.prototype, m))
+    .map(m => {
+      return {
+        methodName: m,
+        providesComponent: Reflect.getMetadata(COMPONENT_IDENTITY, target.prototype, m),
+      };
+    });
 
   debug('%s factory methods of componentName="%s" "%o"', TAG, cName, factoryMethods);
 
   return factoryMethods;
 }
-
