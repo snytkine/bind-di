@@ -91,6 +91,7 @@ export const getComponentFromScopedStorages = (
     );
 
     ret = meta.propDependencies.reduce((prev, curr) => {
+      // eslint-disable-next-line no-param-reassign
       prev[curr.propertyName] = container.getComponent(curr.dependency, arrStorages);
 
       return prev;
@@ -169,7 +170,7 @@ const addFactoryProvidedComponents = (
           break;
 
         case ComponentScope.SINGLETON:
-          providedComponentGetter = (function() {
+          providedComponentGetter = (function providedGetterSingleton() {
             let instance: Object;
 
             return (c: IfIocContainer) => {
@@ -184,7 +185,7 @@ const addFactoryProvidedComponents = (
            * Look in scopedComponentStorage that matches
            * ComponentScope
            */
-          providedComponentGetter = (function(componentDetails) {
+          providedComponentGetter = (function providedGetterScoped(componentDetails) {
             return (c: IfIocContainer, arrStorages?: Array<IScopedComponentStorage>) => {
               return getComponentFromScopedStorages(c, componentDetails, arrStorages);
             };
@@ -234,10 +235,10 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
    * Getter of Singleton component
    * does not take context as second param
    */
-  const getter = (function() {
+  const getter = (function getterSingleton() {
     let instance: any;
 
-    return function(ctnr: IfIocContainer) {
+    return function getterSingletonInner(ctnr: IfIocContainer) {
       debug('%s Getter called for Singleton componentName="%s"', TAG, name);
 
       if (instance) {
@@ -282,6 +283,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
          * @type {any}
          */
         if (!prev[curr.propertyName]) {
+          // eslint-disable-next-line no-param-reassign
           prev[curr.propertyName] = ctnr.getComponent(curr.dependency);
         } else {
           debug(
@@ -327,8 +329,8 @@ export function addScopedComponent(container: IfIocContainer, meta: IfComponentD
     meta.scope,
   );
 
-  const getter = (container: IfIocContainer, arrStorages?: Array<IScopedComponentStorage>) => {
-    return getComponentFromScopedStorages(container, meta, arrStorages);
+  const getter = (cntnr: IfIocContainer, arrStorages?: Array<IScopedComponentStorage>) => {
+    return getComponentFromScopedStorages(cntnr, meta, arrStorages);
   };
 
   const component = {
@@ -364,11 +366,10 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
   );
 
   const name = String(meta.identity.componentName);
-  const getter = function(
+  const getter = function prototypeGetter(
     ctnr: IfIocContainer,
     scopedComponentStorage?: Array<IScopedComponentStorage>,
   ) {
-    // debug(TAG, 'Creating new instance of componentName=\'', name, '\' className=', meta.identity?.clazz?.name, ', with constructor args', meta.constructorDependencies, ' with scopedComponentStorage=', !!scopedComponentStorage);
     debug(
       `%s Creating new instance of component="%s"
       with constructorArs="%o" with scopedComponentStorage="%s"`,
@@ -398,6 +399,7 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
        * with own value.
        */
       if (!prev[curr.propertyName]) {
+        // eslint-disable-next-line no-param-reassign
         prev[curr.propertyName] = ctnr.getComponent(curr.dependency, scopedComponentStorage);
       } else {
         debug(

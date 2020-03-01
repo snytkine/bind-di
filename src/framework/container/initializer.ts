@@ -73,6 +73,8 @@ export type UnsortedAndSorted<T> = {
  * @param aComponents array of components to look for dependencies
  * @returns boolean true if all component dependencies can be found in given array
  * of components, false otherwise.
+ *
+ * @todo return Promise<boolean>? this way can return rejected Promise with error
  */
 export const depsResolved = (
   component: IfComponentDetails,
@@ -81,7 +83,10 @@ export const depsResolved = (
   debug('%s entered depsResolved for component="%s"', TAG, stringifyIdentify(component.identity));
   /**
    * Every propDependency and every Constructor Dependency must be provided by
-   * components in the aComponents
+   * components in the aComponents.
+   *
+   * @todo what about checking for scope rules? provided component scope cannot be
+   * smaller than component scope. (Smaller scope cannot be injected into larger scope)
    */
   const ctorDepsresolved = component.constructorDependencies.map(ctorDep => {
     return aComponents.findIndex(comp => {
@@ -132,7 +137,7 @@ export const initIterator = async function* initIterator(
      * because initializer returns a promise but container must return
      * instance, it cannot return a Promise of component.
      */
-    if (comp.scope===ComponentScope.SINGLETON && comp.postConstruct) {
+    if (comp.scope === ComponentScope.SINGLETON && comp.postConstruct) {
       const o = container.getComponent(comp.identity);
 
       yield o[comp.postConstruct]().then(() => stringifyIdentify(comp.identity));
@@ -158,7 +163,7 @@ export const initIterator = async function* initIterator(
  */
 export const sortComponents = <T>(input: UnsortedAndSorted<T>): UnsortedAndSorted<T> => {
   let resolvedOne = false;
-  if (input.unsorted.length===0) {
+  if (input.unsorted.length === 0) {
     return input;
   }
 

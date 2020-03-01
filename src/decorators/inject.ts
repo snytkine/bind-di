@@ -13,7 +13,7 @@ import {
   CONSTRUCTOR_DEPENDENCIES,
   PARAM_TYPES,
 } from '../consts';
-import { FrameworkError } from '../exceptions';
+import FrameworkError from '../exceptions/frameworkerror';
 import { DependencyType, TargetStereoType } from '../enums';
 import getComponentName from '../metadata/getcomponentname';
 import getClassName from '../metadata/getclassname';
@@ -193,7 +193,11 @@ const applyInjectToProperty = (
     if (!injectClassName) {
       throw new FrameworkError(`${TAG} Failed to get class name 
             of injected component for "${name}.${propertyKey}"
-            Consider using named dependency or user-defined class as dependency`);
+            Possible reason may be a dependency loop for this component dependency
+            Possible remedies:
+            1. Use named dependency 
+            2  Use user-defined class as dependency but make sure there are no
+            dependency loops`);
     }
 
     /**
@@ -220,8 +224,10 @@ const applyInjectToProperty = (
    * The actual target object may not have this property defined
    * because typescript compiler will not
    * add a property if it does not have a value.
+   *
+   * // target.hasOwnProperty(propertyKey)
    */
-  if (!target.hasOwnProperty(propertyKey)) {
+  if (!Object.getOwnPropertyNames(target).includes(propertyKey)) {
     debug('%s defining property "%s" for Injection on target="%s"', TAG, propertyKey, name);
 
     Object.defineProperty(target, propertyKey, {

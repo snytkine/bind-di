@@ -84,11 +84,19 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
   const existingCtorDeps: Array<IfConstructorDependency> =
     Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
 
-  console.log(componentName, '!!!!!!!!!!!!');
-  console.log(getClassName(target));
-  console.dir(existingCtorDeps);
-  console.log(componentName, '??????????????');
-  console.dir(constructorParamTypes);
+  debug(
+    '%s existingCtorDeps for component="%s" "%o"',
+    TAG,
+    String(componentName),
+    existingCtorDeps,
+  );
+
+  debug(
+    '%s constructorParamTypes for component="%s" "%o"',
+    TAG,
+    String(componentName),
+    constructorParamTypes,
+  );
 
   /**
    * constructorParamTypes array has all constructor parameters.

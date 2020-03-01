@@ -19,6 +19,7 @@ export default function getFilenamesRecursive(dirs: string[]): Array<string> {
     const files = fs.readdirSync(dir);
     files.forEach(file => {
       if (fs.statSync(path.join(dir, file)).isDirectory()) {
+        // eslint-disable-next-line no-param-reassign
         aFiles = getFilenamesRecursiveInner(path.join(dir, file), aFiles, level + 1);
       } else {
         aFiles.push(path.join(dir, file));

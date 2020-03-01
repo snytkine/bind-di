@@ -9,13 +9,12 @@ import {
 import { ComponentScope } from '../../enums';
 import { RESERVED_COMPONENT_NAMES } from '../../consts';
 
-import { depsResolved, initIterator, sortComponents } from './initializer';
+import { initIterator, sortComponents } from './initializer';
 import FrameworkError from '../../exceptions/frameworkerror';
 import isSameIdentity from '../../metadata/issameidentity';
 import jsonStringify from '../lib/jsonstringify';
 import stringifyIdentify from '../lib/stringifyidentity';
 import { IfComponentWithDependencies } from '../../definitions/componentwithdependencies';
-import { Try } from '../try';
 
 const debug = require('debug')('bind:container');
 
@@ -32,15 +31,15 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
 
   debug('%s entered checkDependencies', TAG);
 
-  const unresolved: Array<IfComponentIdentity> = components.reduce((acc: Array<IfComponentIdentity>, next, i, aComponents) => {
+  /* const unresolved: Array<IfComponentIdentity> = components.reduce((acc: Array<IfComponentIdentity>, next, i, aComponents) => {
 
-    const componentsToCheck = [...aComponents].splice(i, 1);
-    const ret = [...acc];
-    if (!depsResolved(next, componentsToCheck)) {
-      ret.push(next.identity);
-    }
-    return ret;
-  }, []);
+   const componentsToCheck = [...aComponents].splice(i, 1);
+   const ret = [...acc];
+   if (!depsResolved(next, componentsToCheck)) {
+   ret.push(next.identity);
+   }
+   return ret;
+   }, []); */
 
   try {
     /**
@@ -114,7 +113,7 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
           dep.dependency?.clazz?.name &&
           found?.identity?.clazz?.name &&
           !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
-          found?.identity?.clazz?.name!==dep.dependency?.clazz?.name
+          found?.identity?.clazz?.name !== dep.dependency?.clazz?.name
         ) {
           throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
                 has property dependency "${String(dep.dependency.componentName)}:${
@@ -187,21 +186,34 @@ const checkDependencyLoop = (container: IfIocContainer) => {
 
   debug('%s namedComponents: %o', TAG, namedComponents);
 
-  const check = (component, parents: string[] = []) => {
-    debug('Entered %s.check with component "%s"', FUNC_NAME, component.name);
+  const check = (
+    component: IfComponentWithDependencies,
+    parents: Array<IfComponentIdentity> = [],
+  ): void => {
+    const id = stringifyIdentify(component.identity);
+    debug('Entered %s.check with component "%s"', FUNC_NAME, id);
     if (component.visited) {
-      debug('%s Component "%s" already visited', TAG, component.name);
+      debug('%s Component "%s" already visited', TAG, id);
       return;
     }
 
     /**
      * @todo should not be checking by name, should instead check by Identity
+     * If any of parent components has same identity as this component
+     * then it's a loop
+     *
+     * @todo use forEach here because we need to actually find the parent
+     * component that triggered circular dependency.
      */
-    if (parents.includes(component.name)) {
+    if (parents.some(parentId => isSameIdentity(parentId, component.identity))) {
       throw new FrameworkError(
-        `Dependency Loop detected for component "${String(component.name)}". Loop: ${parents.join(
-          ' -> ',
-        )} -> ${String(component.name)}`,
+        `Dependency Loop detected for component "${id}". 
+        Loop=${parents.reduce((acc: string, parentIdentity) => {
+          return `${acc}${stringifyIdentify(parentIdentity)}
+          -> `;
+        }, '')}
+        -> ${id}
+        `,
       );
     }
 
@@ -212,18 +224,19 @@ const checkDependencyLoop = (container: IfIocContainer) => {
      * the name of 'this' component to array of parents.
      * After every child component check is done set the visited = true on that child
      * When this function is run recursively with a child component it is possible that
-     * that component will have own child components and recursion repeats for each or child's children, and so on,
+     * that component will have own child components and recursion
+     * repeats for each or child's children, and so on,
      * until the component with no children is found, at which point the recursion will
      * start to unwind.
      */
     component.dependencies
-      .map(cname => namedComponents.find(_ => _.name===cname))
+      .map(depComponent => namedComponents.find(nc => isSameIdentity(nc.identity, depComponent)))
       .reduce((acc, child) => {
         check(child, acc);
-        child.visited = true;
+        Reflect.set(child, 'visited', true);
 
         return acc;
-      }, parents.concat(component.name));
+      }, parents.concat(component.identity));
   };
 
   for (const nc of namedComponents) {
@@ -265,6 +278,9 @@ export default class Container implements IfIocContainer {
    *
    * @todo consider not throwing exception but instead return something like a Try object
    * where it may have value or Error.
+   * In the future if we switch to all-async container then return Promise<component> instead
+   * Returning a Promise will solve this issue of throwing exception
+   * We can already do this now and return immediately resolved promise.
    *
    * 2 named components can have same clazz and className
    * example: 2 different mongo Collection instances will both have same className and class
@@ -337,7 +353,7 @@ export default class Container implements IfIocContainer {
         ComponentScope[this.defaultScope],
       );
 
-      component.scope = this.defaultScope;
+      Reflect.set(component, 'scope', this.defaultScope);
     }
 
     this.componentsStore.push(component);
@@ -347,9 +363,8 @@ export default class Container implements IfIocContainer {
 
   async initialize(): Promise<IfIocContainer> {
     debug('%s Entered initialize. components="%s"', TAG, jsonStringify(this.components));
-
-    checkDependencies(this);
     checkDependencyLoop(this);
+    checkDependencies(this);
 
     /**
      * @todo refactor into separate function getSortedComponents

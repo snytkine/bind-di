@@ -66,12 +66,21 @@ export function getPostConstruct(target: Target): string {
   debug('%s Property names of %s are %o', TAG, cName, a);
 
   if (target.prototype) {
-    for (const p in target.prototype) {
-      debug('%s Checking postConstruct of %s.%s', TAG, cName, p);
-      if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
-        return p;
-      }
-    }
+    const targetPropNames = Object.getOwnPropertyNames(target.prototype);
+    const initPropName = targetPropNames.find(p =>
+      Reflect.hasMetadata(INIT_METHOD, target.prototype, p),
+    );
+    debug('%s Found INIT_METHOD="%s" in target="%s"', TAG, ret, cName);
+
+    return initPropName;
+    /* for (const p in target.prototype) {
+     if (target.prototype.hasOwnProperty(p)) {
+     debug('%s Checking postConstruct of %s.%s', TAG, cName, p);
+     if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
+     return p;
+     }
+     }
+     } */
   }
 
   return undefined;
