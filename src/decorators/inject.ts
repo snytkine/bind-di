@@ -154,7 +154,17 @@ const applyInjectToProperty = (
    */
   if (dependencyName !== UNNAMED_COMPONENT) {
     injectName = dependencyName;
-    injectIdentity = Identity(injectName, target);
+    /**
+     * This injection is named component
+     * we must use dependencyName as injectName, regardless if class rt
+     * is itself a component with different named identity.
+     * The value of clazz should be rt. we dont have to check
+     * rt for reserved classed because it's a named component and
+     * injection will be resolved by name. clazz may only be used
+     * for extra validation when dependency component is found in container
+     * or when dependencies are validated in the init stage of container.
+     */
+    injectIdentity = Identity(injectName, rt); // this is wrong target is the component, not injected class
   } else {
     if (!rt) {
       throw new FrameworkError(`Cannot determine 

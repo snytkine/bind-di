@@ -3,11 +3,14 @@ import { TargetStereoType } from '../../enums';
 
 export default function getTargetStereotype(target: Target): TargetStereoType {
   let ret = TargetStereoType.UNKNOWN;
-
+  /**
+   * Bug to check target.constructor.length because it can be 0
+   * instead must check hasOwnProperty
+   */
   if (target) {
     if (target.prototype && typeof target === 'function') {
       ret = TargetStereoType.CONSTRUCTOR;
-    } else if (target.constructor && target.constructor.length) {
+    } else if (target.constructor && target.constructor.hasOwnProperty('length')) {
       ret = TargetStereoType.PROTOTYPE;
     }
   }

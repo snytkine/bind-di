@@ -155,7 +155,7 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
  * Should instead use Identify and equals method of Identify class
  *
  */
-const checkDependencyLoop = (container: IfIocContainer) => {
+export const checkDependencyLoop = (container: IfIocContainer) => {
   const FUNC_NAME = 'checkDependencyLoop';
   debug('%s Entered checkDependencyLoop', FUNC_NAME);
 
