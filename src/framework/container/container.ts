@@ -113,7 +113,7 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
           dep.dependency?.clazz?.name &&
           found?.identity?.clazz?.name &&
           !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
-          found?.identity?.clazz?.name!==dep.dependency?.clazz?.name
+          found?.identity?.clazz?.name !== dep.dependency?.clazz?.name
         ) {
           throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
                 has property dependency "${String(dep.dependency.componentName)}:${

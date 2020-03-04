@@ -1,4 +1,9 @@
-import { IfComponentIdentity } from './container';
+import { IfComponentDetails, IfComponentIdentity, IfIocComponent } from './container';
+
+export interface IfValidateScopeCheck {
+  component: IfComponentDetails
+  dependency: IfComponentDetails
+}
 
 export interface IfComponentWithDependencies {
   visited: boolean;

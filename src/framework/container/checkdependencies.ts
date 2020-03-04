@@ -1,15 +1,36 @@
-import { IfComponentDetails, IfComponentIdentity, IfComponentPropDependency, IfIocContainer } from '../../definitions';
+import {
+  IfComponentDetails,
+  IfComponentIdentity,
+  IfComponentPropDependency,
+  IfIocContainer,
+} from '../../definitions';
 import FrameworkError from '../../exceptions/frameworkerror';
 import stringifyIdentify from '../lib/stringifyidentity';
 import { ComponentScope } from '../../enums';
 import { RESERVED_COMPONENT_NAMES } from '../../consts';
 import { isSameIdentity } from '../../metadata';
-import { IfComponentWithDependencies } from '../../definitions/componentwithdependencies';
+import { IfComponentWithDependencies, IfValidateScopeCheck } from '../../definitions/componentwithdependencies';
 
 const debug = require('debug')('bind:init:depscheck');
 
 const TAG = 'CHECK_DEPENDENCIES';
 
+
+export function validateDependencyScope(components: IfValidateScopeCheck): FrameworkError | void {
+  if (components.component.scope > components.dependency.scope) {
+    /**
+     * Smaller scope cannot be injected into broader scope
+     * Specific example - prototype scoped component cannot be a dependency of a singleton
+     */
+    return new FrameworkError(`Invalid dependency Scope.
+        Component "${stringifyIdentify(components.component.identity)}" 
+                has a scope ${ComponentScope[components.component.scope]} but has
+                dependency on component "${stringifyIdentify(components.dependency.identity)}" 
+                with a smaller scope "${ComponentScope[components.dependency.scope]}"`);
+  }
+
+  return undefined;
+}
 
 /**
  * Check that component does not have a chain of dependencies that loop back to self
@@ -17,8 +38,9 @@ const TAG = 'CHECK_DEPENDENCIES';
  * This type of loop cannot be allowed
  *
  *
- * @todo this is old implementation, uses component names.
- * Should instead use Identify and equals method of Identify class
+ * @todo make sure component cannot depend on itself (Example would be
+ * a @Component{'settings') has @Inject('setting'), same for unnamed
+ * component/dependency
  *
  * @param container: IfIocContainer
  * @returns undefined
@@ -122,38 +144,55 @@ export function checkDependencyLoop(container: IfIocContainer): void {
   }
 }
 
-
+/**
+ * Loops over all components in container and makes sure that all
+ * constructor dependencies in every component can be satisfied
+ * by another component found in container.
+ *
+ * @todo container may have setting flag to check for dependency types
+ * This means in case of named dependencies also validate the dependency class
+ * but only if dependency component is known and not a generic type (not String, Object, etc)
+ * In longer run may allow a subtype to be used for a dependency. For example
+ * if dependency type is Smartphone then dependency component can be an Iphone
+ *
+ * @param container
+ * @return array of FrameworkError objects. Returning empty array means there were no
+ * errors detected (all constructor dependencies or all components were satisfied)
+ */
 export function checkConstructorDependencies(container: IfIocContainer): Array<FrameworkError> {
   debug('%s Entered checkConstructorDependencies', TAG);
   const { components } = container;
 
-  const ret = components.map(component => {
-    return component.constructorDependencies.reduce((acc: Array<FrameworkError>, dep, i) => {
-      const ret = [...acc];
-      const found = components.find(c => isSameIdentity(dep, c.identity));
-      if (!found) {
-        ret.push(new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+  const ret = components
+    .map(component => {
+      return component.constructorDependencies.reduce((acc: Array<FrameworkError>, dep, i) => {
+        const errors = [...acc];
+        const found = components.find(c => isSameIdentity(dep, c.identity));
+        if (!found) {
+          errors.push(
+            new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
                 has unsatisfied constructor dependency for parameter "${i}" 
-                on dependency ${stringifyIdentify(dep)}`));
-      } else {
-
-        /**
-         * Smaller scope cannot be injected into broader scope
-         * Most specific - prototype scoped component cannot be a dependency of a singleton
-         */
-        if (component.scope > found.scope) {
-          ret.push(new FrameworkError(`Invalid dependency Scope.
+                on dependency ${stringifyIdentify(dep)}`),
+          );
+        } else if (component.scope > found.scope) {
+          /**
+           * Smaller scope cannot be injected into broader scope
+           * Most specific - prototype scoped component cannot be a dependency of a singleton
+           */
+          errors.push(
+            new FrameworkError(`Invalid dependency Scope.
         Component "${stringifyIdentify(component.identity)}" 
                 has a scope ${ComponentScope[component.scope]} but has constructor 
                 dependency on component "${stringifyIdentify(found.identity)}" 
                 with a smaller scope "${ComponentScope[found.scope]}"`),
           );
         }
-      }
 
-      return ret;
-    }, []);
-  }).filter(x => x.length > 0).flat();
+        return errors;
+      }, []);
+    })
+    .filter(x => x.length > 0)
+    .flat();
 
   return ret;
 }
@@ -161,12 +200,26 @@ export function checkConstructorDependencies(container: IfIocContainer): Array<F
 
 export function checkPropDependencies(container: IfIocContainer): Array<FrameworkError> {
   debug('%s Entered checkPropDependencies', TAG);
-  const ret = [];
+
   const { components } = container;
 
+  const ret = components.map(component => {
+    return component.propDependencies.reduce((acc: Array<FrameworkError>, propDep) => {
+      const errors = [...acc];
+      const found = components.find(c => isSameIdentity(propDep.dependency, c.identity));
+      if (!found) {
+        errors.push(
+          new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+                has unsatisfied dependency for property "${String(propDep.propertyName)}" 
+                on dependency ${stringifyIdentify(propDep.dependency)}`),
+        );
+      }
+
+      return errors;
+    }, []);
+  }).filter(x => x.length > 0).flat();
 
   return ret;
-
 }
 
 /**
