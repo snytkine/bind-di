@@ -125,6 +125,10 @@ const addFactoryProvidedComponents = (
        * to instantiate the provided component and return it.
        * This means that factory provided component cannot have own
        * dependencies
+       *
+       * Every provided component must have factoryDependency with value set
+       * to factory's identity.
+       * This property will be necessary when checking dependency loop.
        */
       const providedComponent: IfComponentDetails = {
         identity: curr.providesComponent,
@@ -132,6 +136,7 @@ const addFactoryProvidedComponents = (
         propDependencies: [],
         constructorDependencies: [],
         provides: [],
+        factoryDependency: factoryComponentMeta.identity,
       };
 
       const getFactoryProvidedComponent = (c: IfIocContainer) => {

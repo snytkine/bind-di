@@ -47,6 +47,12 @@ export interface IfComponentDetails {
   constructorDependencies: Array<IfComponentIdentity>;
 
   /**
+   * If this component is created by a component factory
+   * then component factory is a dependency.
+   */
+  factoryDependency?: IfComponentIdentity;
+
+  /**
    * @todo
    * add methodArgumentDependencies?
    * the array of dependencies for methodArguments

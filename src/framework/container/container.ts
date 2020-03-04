@@ -14,7 +14,7 @@ import FrameworkError from '../../exceptions/frameworkerror';
 import isSameIdentity from '../../metadata/issameidentity';
 import jsonStringify from '../lib/jsonstringify';
 import stringifyIdentify from '../lib/stringifyidentity';
-import { IfComponentWithDependencies } from '../../definitions/componentwithdependencies';
+import { checkDependencyLoop } from './checkdependencies';
 
 const debug = require('debug')('bind:container');
 
@@ -113,7 +113,7 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
           dep.dependency?.clazz?.name &&
           found?.identity?.clazz?.name &&
           !RESERVED_COMPONENT_NAMES.includes(dep.dependency?.clazz?.name) &&
-          found?.identity?.clazz?.name !== dep.dependency?.clazz?.name
+          found?.identity?.clazz?.name!==dep.dependency?.clazz?.name
         ) {
           throw new FrameworkError(`Component "${String(component.identity.componentName)}" 
                 has property dependency "${String(dep.dependency.componentName)}:${
@@ -142,105 +142,6 @@ const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> =
     return Promise.resolve(container);
   } catch (e) {
     return Promise.reject(e);
-  }
-};
-
-/**
- * Check that component does not have a chain of dependencies that loop back to self
- * An example of a loop: A depends on B, B depends on C, C depends on A
- * This type of loop cannot be allowed
- *
- *
- * @todo this is old implementation, uses component names.
- * Should instead use Identify and equals method of Identify class
- *
- */
-export const checkDependencyLoop = (container: IfIocContainer) => {
-  const FUNC_NAME = 'checkDependencyLoop';
-  debug('%s Entered checkDependencyLoop', FUNC_NAME);
-
-  const { components } = container;
-
-  /**
-   * First, convert array of components into an array of simple
-   * objects {id:componentName, dependencies: string[], visited: boolean}
-   * dependencies will be an array of component names (strings) of all constructor
-   * dependencies and property dependencies
-   * The 'visited' flag is set when a child component has been checked.
-   * This will reduce number of passes
-   * because otherwise in a complex dependencies graph multiple components have dependencies on same components
-   * and once we already check a child component on one pass we don't have to check it if we arrived to same
-   * component via different path
-   *
-   * @type {{name: string; dependencies: string[], visited: boolean}[]}
-   */
-  const namedComponents: Array<IfComponentWithDependencies> = components.map(component => {
-    return {
-      identity: component.identity,
-      dependencies: component.constructorDependencies.concat(
-        component.propDependencies.map(pd => pd.dependency),
-      ),
-      visited: false,
-    };
-  });
-
-  debug('%s namedComponents: %o', TAG, namedComponents);
-
-  const check = (
-    component: IfComponentWithDependencies,
-    parents: Array<IfComponentIdentity> = [],
-  ): void => {
-    const id = stringifyIdentify(component.identity);
-    debug('Entered %s.check with component "%s"', FUNC_NAME, id);
-    if (component.visited) {
-      debug('%s Component "%s" already visited', TAG, id);
-      return;
-    }
-
-    /**
-     * @todo should not be checking by name, should instead check by Identity
-     * If any of parent components has same identity as this component
-     * then it's a loop
-     *
-     * @todo use forEach here because we need to actually find the parent
-     * component that triggered circular dependency.
-     */
-    if (parents.some(parentId => isSameIdentity(parentId, component.identity))) {
-      throw new FrameworkError(
-        `Dependency Loop detected for component "${id}". 
-        Loop=${parents.reduce((acc: string, parentIdentity) => {
-          return `${acc}${stringifyIdentify(parentIdentity)}
-          -> `;
-        }, '')}
-        -> ${id}
-        `,
-      );
-    }
-
-    /**
-     * For every child component name:
-     * generate an array of child components
-     * then run each child component through check (recurse to this function), but append
-     * the name of 'this' component to array of parents.
-     * After every child component check is done set the visited = true on that child
-     * When this function is run recursively with a child component it is possible that
-     * that component will have own child components and recursion
-     * repeats for each or child's children, and so on,
-     * until the component with no children is found, at which point the recursion will
-     * start to unwind.
-     */
-    component.dependencies
-      .map(depComponent => namedComponents.find(nc => isSameIdentity(nc.identity, depComponent)))
-      .reduce((acc, child) => {
-        check(child, acc);
-        Reflect.set(child, 'visited', true);
-
-        return acc;
-      }, parents.concat(component.identity));
-  };
-
-  for (const nc of namedComponents) {
-    check(nc);
   }
 };
 

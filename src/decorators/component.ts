@@ -198,7 +198,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
   } else {
     const factoryClassName = target?.constructor?.name;
     debug(
-      `Defining named ${TAG}('${String(componentName)}') for class method "${String(
+      `Defining  ${TAG}('${String(componentName)}') for class method "${String(
         factoryClassName,
       )}.${propertyKey}"`,
     );
@@ -248,7 +248,8 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
 
     if (componentName === UNNAMED_COMPONENT && (RT !== 'function' || !rettype.name)) {
       throw new DecoratorError(
-        `Cannot add ${TAG} to property ${propertyKey}. ${TAG} decorator was used without a name and type is not an object: "${RT}"`,
+        `Cannot add ${TAG} to property ${propertyKey}. 
+        ${TAG} decorator was used without a name and type is not an object: "${RT}"`,
       );
     }
 

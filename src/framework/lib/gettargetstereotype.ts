@@ -8,9 +8,10 @@ export default function getTargetStereotype(target: Target): TargetStereoType {
    * instead must check hasOwnProperty
    */
   if (target) {
-    if (target.prototype && typeof target === 'function') {
+    if (target.prototype && typeof target==='function') {
       ret = TargetStereoType.CONSTRUCTOR;
-    } else if (target.constructor && target.constructor.hasOwnProperty('length')) {
+    } else if (target.constructor &&
+      Object.prototype.hasOwnProperty.call(target.constructor, 'length')) {
       ret = TargetStereoType.PROTOTYPE;
     }
   }
