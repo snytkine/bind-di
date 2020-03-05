@@ -10,7 +10,7 @@ import { ComponentScope } from '../../enums';
 import { isSameIdentity } from '../../metadata';
 import { arrayNotEmpty, notEmpty } from '../lib';
 
-const debug = require('debug')('bind:init:depscheck');
+const debug = require('debug')('bind:init:check');
 
 const TAG = 'CHECK_DEPENDENCIES';
 
@@ -271,8 +271,10 @@ export const checkDependencies = (container: IfIocContainer): Promise<IfIocConta
 
   if (res.length > 0) {
     const errors = res.map(e => e.message);
-    return Promise.reject(new FrameworkError(`${DOTTED_LINE}
-    Dependency validation errors: ${errors.join(DOTTED_LINE)}`));
+    return Promise.reject(
+      new FrameworkError(`${DOTTED_LINE}
+    Dependency validation errors: ${errors.join(DOTTED_LINE)}`),
+    );
   }
 
   return Promise.resolve(container);
