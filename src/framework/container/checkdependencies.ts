@@ -250,9 +250,9 @@ export function checkPropDependencies(container: IfIocContainer): Array<Framewor
  * @return Array of FrameworkError object. Empty array is returned if no dependency
  * errors are found.
  */
-export const checkDependencies = (container: IfIocContainer): Array<FrameworkError> => {
+export const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> => {
   const ret = [];
-
+  const DOTTED_LINE = '\n..................................................\n';
   try {
     checkDependencyLoop(container);
   } catch (e) {
@@ -263,9 +263,17 @@ export const checkDependencies = (container: IfIocContainer): Array<FrameworkErr
     }
   }
 
-  return [
+  const res = [
     ...ret,
     ...checkConstructorDependencies(container),
     ...checkPropDependencies(container),
   ].filter(notEmpty);
+
+  if (res.length > 0) {
+    const errors = res.map(e => e.message);
+    return Promise.reject(new FrameworkError(`${DOTTED_LINE}
+    Dependency validation errors: ${errors.join(DOTTED_LINE)}`));
+  }
+
+  return Promise.resolve(container);
 };
