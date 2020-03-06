@@ -61,7 +61,16 @@ export const getComponentFromScopedStorages = (
   let componentStorage: IComponentStorage;
   let ret: Object | undefined;
 
-  if (arrStorages) {
+  const hasScopeAndScopeStorage = () => {
+    return (
+      (meta.scope || meta.scope === 0) &&
+      arrStorages &&
+      Array.isArray(arrStorages) &&
+      arrStorages.length > 0
+    );
+  };
+
+  if (hasScopeAndScopeStorage()) {
     const scopedStorage = arrStorages.find(storage => storage.scope === meta.scope);
     if (scopedStorage) {
       componentStorage = scopedStorage.storage;
@@ -100,7 +109,9 @@ export const getComponentFromScopedStorages = (
     /**
      * Now add ret to componentStorage and also return it
      */
-    componentStorage?.setComponent(meta.identity, ret);
+    if (hasScopeAndScopeStorage() && componentStorage) {
+      componentStorage.setComponent(meta.identity, ret);
+    }
   }
 
   return ret;
