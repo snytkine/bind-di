@@ -24,7 +24,7 @@ const TAG = 'CONTAINER_UTILS';
 const debug = require('debug')('bind:container');
 
 const getComponentNameFromIdentity = (identity: IfComponentIdentity): string => {
-  if (identity.componentName !== UNNAMED_COMPONENT) {
+  if (identity.componentName!==UNNAMED_COMPONENT) {
     return String(identity.componentName);
   }
 
@@ -62,7 +62,7 @@ export const getComponentFromScopedStorages = (
   let ret: Object | undefined;
 
   if (arrStorages) {
-    const scopedStorage = arrStorages.find(storage => storage.scope === meta.scope);
+    const scopedStorage = arrStorages.find(storage => storage.scope===meta.scope);
     if (scopedStorage) {
       componentStorage = scopedStorage.storage;
       const storedComponent = componentStorage.getComponent(meta.identity);
@@ -129,10 +129,19 @@ const addFactoryProvidedComponents = (
        * Every provided component must have factoryDependency with value set
        * to factory's identity.
        * This property will be necessary when checking dependency loop.
+       *
+       * provided component's scope is same as factory component's scope
+       * Currently its the only option. In the future may consider allowing
+       * factory components to have smaller scope than factory
+       * For example if factory is Singleton then provided can be NewInstance or Request scoped
+       * But provided component should not be allowed to be larger scoped than its' factory.
        */
+      let providedComponentScope: ComponentScope = getScope(factoryComponentMeta.identity.clazz, curr.methodName);
+      providedComponentScope = providedComponentScope || container.defaultScope;
+
       const providedComponent: IfComponentDetails = {
         identity: curr.providesComponent,
-        scope: getScope(factoryComponentMeta.identity.clazz, curr.methodName),
+        scope: providedComponentScope,
         propDependencies: [],
         constructorDependencies: [],
         provides: [],
@@ -440,10 +449,10 @@ export function addComponent(container: IfIocContainer, clazz: Target): void {
 
   const scope = meta?.scope || container.defaultScope;
 
-  if (scope === ComponentScope.SINGLETON) {
+  if (scope===ComponentScope.SINGLETON) {
     return addSingletonComponent(container, meta);
   }
-  if (scope === ComponentScope.NEWINSTANCE) {
+  if (scope===ComponentScope.NEWINSTANCE) {
     return addPrototypeComponent(container, meta);
   }
   if (scope) {

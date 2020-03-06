@@ -74,7 +74,7 @@ export function getSortedComponents(container: IfIocContainer): Promise<Array<If
     sorted: [],
   });
 
-  if (unsorted) {
+  if (unsorted.length > 0) {
     const error = `
                     Dependency sorting failed. Following components have unresolved dependencies.
                     Please check your dependencies. There may be an "import loop"

@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import {
   COMPONENT_IDENTITY,
-  UNNAMED_COMPONENT,
-  DEFAULT_SCOPE,
-  RETURN_TYPE,
-  PARAM_TYPES,
   CONSTRUCTOR_DEPENDENCIES,
+  DEFAULT_SCOPE,
+  PARAM_TYPES,
+  RETURN_TYPE,
+  UNNAMED_COMPONENT,
 } from '../consts';
 
 import { ComponentScope, TargetStereoType } from '../enums';
@@ -114,7 +114,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
   if (
     constructorParamTypes &&
     Array.isArray(constructorParamTypes) &&
-    existingCtorDeps.length !== constructorParamTypes.length
+    existingCtorDeps.length!==constructorParamTypes.length
   ) {
     const targetClassName = getClassName(target);
 
@@ -128,7 +128,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
 
     const updatedCtorDependencies: Array<IfConstructorDependency> = constructorParamTypes.map(
       (dep, i) => {
-        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex === i);
+        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex===i);
 
         if (!res) {
           /**
@@ -183,11 +183,13 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
  * @param componentName
  */
 export const applyComponentDecorator = (componentName: StringOrSymbol) => (
-  target: Object,
+  target: Target,
   propertyKey: string,
   descriptor: TypedPropertyDescriptor<Object>,
 ): void => {
-  if (getTargetStereotype(target) === TargetStereoType.CONSTRUCTOR && !propertyKey) {
+
+  const targetStereoType = getTargetStereotype(target);
+  if (targetStereoType===TargetStereoType.CONSTRUCTOR && !propertyKey) {
     /**
      * Applying decorator to class
      */
@@ -195,7 +197,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
 
     setComponentIdentity(Identity(componentName, target), target);
     setConstructorDependencies(componentName, target);
-  } else {
+  } else if (targetStereoType===TargetStereoType.PROTOTYPE) {
     const factoryClassName = target?.constructor?.name;
     debug(
       `Defining  ${TAG}('${String(componentName)}') for class method "${String(
@@ -221,7 +223,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
      * Also decorating a method makes it possible to do something like
      * return new MyClass(somePropSetFromInit)
      */
-    if (!descriptor || typeof descriptor.value !== 'function') {
+    if (!descriptor || typeof descriptor.value!=='function') {
       throw new DecoratorError(
         `Only class or class method can have a '${TAG}'decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`,
       );
@@ -246,7 +248,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
     const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
     const RT = typeof rettype;
 
-    if (componentName === UNNAMED_COMPONENT && (RT !== 'function' || !rettype.name)) {
+    if (componentName===UNNAMED_COMPONENT && (RT!=='function' || !rettype.name)) {
       throw new DecoratorError(
         `Cannot add ${TAG} to property ${propertyKey}. 
         ${TAG} decorator was used without a name and type is not an object: "${RT}"`,
@@ -264,7 +266,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
       rettype,
       `
         ${TAG} Return type of method "${target.constructor.name}.${propertyKey}" 
-                is not a valid name for a component: "${rettype.name}". 
+                is not a valid name for a component: "${rettype && rettype.name}". 
                 Possibly return type was not explicitly defined or the 
                 Interface name was used for return type instead of class name`,
     );
@@ -275,12 +277,34 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
      * And also that class itself does not have @Component decorator.
      */
     setComponentIdentity(Identity(componentName, rettype), target, propertyKey);
+    /**
+     * Also set metadata on prototype because in this case the target stereotype is
+     * PROTOTYPE not CONSTRUCTOR
+     */
+    setComponentIdentity(Identity(componentName, rettype), target.constructor, propertyKey);
+
+    /**
+     * @todo allow setting scope to provided component
+     * Scope cannot be larger than factory scope
+     */
 
     /**
      * Components created by functions of factory have default scope SINGLETON
      * In this case it makes sense to set DEFAULT_SCOPE to be SINGLETON for this component
+     *
+     * In this block the target is PROTOTYPE so metadata DEFAULT_SCOPE
+     * must be defined on target.constructor in this case, otherwise when we looking
+     * for this metadata and providing the class/propertyKey pair we will not find it
+     *
+     *
      */
     defineMetadata(DEFAULT_SCOPE, ComponentScope.SINGLETON, target, propertyKey)(true);
+    /**
+     * Also set DEFAULT_SCOPE metadata on target.prototype
+     */
+    defineMetadata(DEFAULT_SCOPE, ComponentScope.SINGLETON, target.constructor, propertyKey)(true);
+  } else {
+    throw new FrameworkError(`Cannot apply ${TAG} decorator because could not determine target stereotype`);
   }
 };
 
