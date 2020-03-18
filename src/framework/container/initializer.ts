@@ -54,7 +54,7 @@ export const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentD
       componentMetaData: componentDetails.componentMetaData,
       preDestroy: componentDetails.preDestroy,
       postConstruct: componentDetails.postConstruct,
-      provides: componentDetails.provides.map(copyFactoryMethod),
+      provides: componentDetails.provides && componentDetails.provides.map(copyFactoryMethod),
     };
   });
 };
@@ -92,9 +92,10 @@ export const depsResolved = (
     return aComponents.findIndex(comp => {
       return (
         isSameIdentity(comp.identity, ctorDep) ||
-        comp.provides.findIndex(provided => {
-          return isSameIdentity(provided.providesComponent, ctorDep);
-        }) > -1
+        (comp.provides &&
+          comp.provides.findIndex(provided => {
+            return isSameIdentity(provided.providesComponent, ctorDep);
+          }) > -1)
       );
     });
   });
@@ -103,9 +104,10 @@ export const depsResolved = (
     return aComponents.findIndex(comp => {
       return (
         isSameIdentity(comp.identity, propDep.dependency) ||
-        comp.provides.findIndex(provided => {
-          return isSameIdentity(provided.providesComponent, propDep.dependency);
-        }) > -1
+        (comp.provides &&
+          comp.provides.findIndex(provided => {
+            return isSameIdentity(provided.providesComponent, propDep.dependency);
+          }) > -1)
       );
     });
   });

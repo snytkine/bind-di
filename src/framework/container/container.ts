@@ -98,7 +98,14 @@ export default class Container implements IfIocContainer {
       !!scopedStorage,
     );
 
-    return this.getComponentDetails(id).get(this, scopedStorage);
+    const ret = this.getComponentDetails(id).get(scopedStorage);
+
+    if (!ret) {
+      throw new FrameworkError(`
+            Failed to create component by Identity="${stringifyIdentify(id)}"`);
+    }
+
+    return ret;
   }
 
   addComponent(component: IfIocComponent): boolean {
@@ -162,7 +169,7 @@ export default class Container implements IfIocContainer {
     const a: Array<Promise<Boolean>> = this.components
       .filter(component => !!component.preDestroy)
       .map(component => {
-        const obj = component.get(this);
+        const obj = component.get();
         const methodName = component.preDestroy;
 
         return obj[methodName]();

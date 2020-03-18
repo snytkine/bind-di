@@ -68,7 +68,7 @@ export interface IfComponentDetails {
    * Factory may provide
    * multiple components
    */
-  provides: Array<IfComponentFactoryMethod>;
+  provides?: Array<IfComponentFactoryMethod>;
 
   /**
    * Optional name of method function to call after
@@ -94,7 +94,8 @@ export interface IfComponentDetails {
   componentMetaData?: StringToAny;
 }
 
-//
+export type MaybeScopedStorage = IScopedComponentStorage | undefined;
+export type MaybeObject = Object | undefined;
 /**
  * A Context will be an example of component store
  * you will be able to get component by ID from context.
@@ -106,9 +107,18 @@ export interface IComponentStorage {
   setComponent(id: IfComponentIdentity, component: any): void;
 }
 
-export interface IScopedComponentStorage {
+export interface IScopedComponentStorage extends IComponentStorage {
+  /**
+   * @todo should scope be an array of scopes?
+   * can an object like
+   * "Context" implement both RequestScopeStorage
+   * and SessionScopeStorage?
+   * Answer is - probably not but Context object
+   * can have references to both RequestScopeStorage
+   * and SessionScopeStorage
+   */
   scope: ComponentScope;
-  storage: IComponentStorage;
+  // storage: IComponentStorage;
 }
 
 /**
@@ -122,10 +132,11 @@ export interface IScopedComponentStorage {
  * Framework provides these helper functions for singleton and context-scoped
  * components
  */
-export type IocComponentGetter = (
-  container: IfIocContainer,
-  scopedComponentStorage?: Array<IScopedComponentStorage>,
-) => any;
+export type IocComponentGetter = (scopedComponentStorage?: Array<IScopedComponentStorage>) => any;
+
+export type ComponentGetterFactory = (container: IfIocContainer) => IocComponentGetter;
+
+// export type X = (meta: IfComponentDetails) => ComponentGetterFactory;
 
 /**
  * Lifecycle callbacks are made by container after
@@ -191,19 +202,34 @@ export interface IfIocContainer {
    * Get a record for the component by identity
    * The result is NOT a component, but a component details like scope,
    * constructorDependencies, provides, as well as component getter function
+   * @todo Would it be better to not throw exception if component not found?
+   * I think it will be better for types definition to return either IfIocComponent
+   * of FrameworkError
    *
    * @param ctx
    * @param name
    * @returns any
+   * @throws FrameworkError if Component not found
    */
   getComponentDetails(id: IfComponentIdentity): IfIocComponent;
 
   /**
    * Result of finding component and calling component getter
    *
+   * @todo instead of throwing FrameworkError return Object | FrameworkError
+   * Then it will be most strongly typed.
+   * Downside of that change would be that consumer must check result of calling this function
+   * to make sure it's not instance of FrameworkError
+   * A More consumer-friendly way would be to return Promise<Component>
+   *   that way it would be more natural to use .catch block to deal with
+   *   potential not found errors.
+   *   Also returning Promise may become more useful for future versions when
+   *   container returns actual Promise for all components.
+   *
    * @param ctx
    * @param name
    * @returns any
+   * @throws FrameworkError if component not found
    */
   getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any;
 

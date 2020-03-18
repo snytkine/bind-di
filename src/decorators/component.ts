@@ -354,12 +354,11 @@ export function Component(
  * @param {Target} target
  * @returns {Array<IfComponentFactoryMethod>}
  */
-export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> {
+export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> | undefined {
   /**
    * use target.prototype because target is just a constructor function
    * we need to access to object's properties and for that we need
    * to get the prototype
-   *
    *
    * @type {string[]}
    */
@@ -370,7 +369,7 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
    * can be imported
    */
   if (!target.prototype) {
-    return [];
+    return undefined;
   }
 
   /**
@@ -397,5 +396,9 @@ export function getFactoryMethods(target: Target): Array<IfComponentFactoryMetho
 
   debug('%s factory methods of componentName="%s" "%o"', TAG, cName, factoryMethods);
 
-  return factoryMethods;
+  if (Array.isArray(factoryMethods) && factoryMethods.length > 0) {
+    return factoryMethods;
+  }
+
+  return undefined;
 }
