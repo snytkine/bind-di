@@ -2,7 +2,7 @@ import {
   IfComponentIdentity,
   IfIocComponent,
   IfIocContainer,
-  IScopedComponentStorage,
+  IScopedComponentStorage, isDefined, Maybe,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
 import { initIterator } from './initializer';
@@ -66,7 +66,7 @@ export default class Container implements IfIocContainer {
    * @returns {IfIocComponent<T>}
    * @throws FrameworkError if component is not found by id
    */
-  getComponentDetails(id: IfComponentIdentity): IfIocComponent {
+  getComponentDetails(id: IfComponentIdentity): Maybe<IfIocComponent> {
     debug(
       '%s Entered Container.getComponentDetails Requesting component="%s"',
       TAG,
@@ -81,28 +81,45 @@ export default class Container implements IfIocContainer {
       isSameIdentity(id, component.identity),
     );
 
-    if (!ret) {
-      throw new FrameworkError(`
-            Container Component Not found by Identity="${stringifyIdentify(id)}"`);
-    }
-
     return ret;
   }
 
-  getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any {
+  getComponent(id: IfComponentIdentity, scopedStorages?: Array<IScopedComponentStorage>): any {
     debug(
       `%s Entered Container.getComponent 
         Requesting component="%s" With scopedStorage="%s"`,
       TAG,
       stringifyIdentify(id),
-      !!scopedStorage,
+      !!scopedStorages,
     );
 
-    const ret = this.getComponentDetails(id).get(scopedStorage);
+    let ret: any;
+
+    const details = this.getComponentDetails(id);
+    if (isDefined(details)) {
+      ret = details.get(scopedStorages);
+    } else {
+      /**
+       * Component details not found in container
+       * If scopedStorages are passed then look
+       * for component in scoped storages.
+       */
+      if (scopedStorages) {
+
+        ret = scopedStorages.reduce((acc: any, next) => {
+          if (acc) {
+            return acc;
+          }
+
+          return next.getComponent(id);
+
+        });
+      }
+    }
 
     if (!ret) {
       throw new FrameworkError(`
-            Failed to create component by Identity="${stringifyIdentify(id)}"`);
+            Failed find component by Identity="${stringifyIdentify(id)}"`);
     }
 
     return ret;

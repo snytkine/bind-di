@@ -1,4 +1,4 @@
-import { StringOrSymbol, StringToAny } from './types';
+import { Maybe, StringOrSymbol, StringToAny } from './types';
 import { ComponentScope } from '../enums';
 
 export type Target = {
@@ -102,7 +102,7 @@ export type MaybeObject = Object | undefined;
  * What should it return - a component or a component getter function?
  */
 export interface IComponentStorage {
-  getComponent(id: IfComponentIdentity): any;
+  getComponent(id: IfComponentIdentity): Maybe<Object>;
 
   setComponent(id: IfComponentIdentity, component: any): void;
 }
@@ -211,7 +211,7 @@ export interface IfIocContainer {
    * @returns any
    * @throws FrameworkError if Component not found
    */
-  getComponentDetails(id: IfComponentIdentity): IfIocComponent;
+  getComponentDetails(id: IfComponentIdentity): Maybe<IfIocComponent>;
 
   /**
    * Result of finding component and calling component getter
