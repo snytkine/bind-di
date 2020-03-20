@@ -9,6 +9,7 @@ import {
   getPropDependencies,
   getScope,
 } from '../../decorators';
+import getExtraDependencies from './getextradependencies';
 
 export default function getComponentMeta(
   clazz: Target,
@@ -33,5 +34,6 @@ export default function getComponentMeta(
     provides: getFactoryMethods(clazz),
     preDestroy: getPredestroy(clazz),
     postConstruct: getPostConstruct(clazz),
+    extraDependencies: getExtraDependencies(clazz),
   };
 }

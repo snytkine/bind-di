@@ -50,7 +50,23 @@ export interface IfComponentDetails {
    * If this component is created by a component factory
    * then component factory is a dependency.
    */
-  factoryDependency?: IfComponentIdentity;
+  // factoryDependency?: IfComponentIdentity;
+
+  /**
+   * Component may require other components to be
+   * available at runtime. These may not be strictly
+   * dependencies - they may not be added via @Inject of any kind
+   * but are still expected to be available. The consumer
+   * of this framework may have some requirements that
+   * this framework cannot possibly know.
+   * For example a controller may depend on middleware component
+   * and that middleware is not added to controller via @Inject
+   * but instead may use different decorator like @Middlewares
+   * For this purpose we need a way to indicate that certain
+   * extraDependencies are required so that in the initialization phase
+   * the init logic can validate all dependencies.
+   */
+  extraDependencies: Array<IfComponentIdentity>;
 
   /**
    * @todo

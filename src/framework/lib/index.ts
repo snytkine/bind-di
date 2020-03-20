@@ -4,5 +4,6 @@ export { default as isStringOrSymbol } from './isstringorsymbol';
 export { default as getComponentMeta } from './getcomponentsmeta';
 export { default as assertNoPostConstruct } from './assertnopostconstruct';
 export { default as stringifyIdentity } from './stringifyidentity';
+export { default as getExtraDependencies } from './getextradependencies';
 export * from './getfunctionparameters';
 export * from './notempty';

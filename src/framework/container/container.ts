@@ -2,7 +2,9 @@ import {
   IfComponentIdentity,
   IfIocComponent,
   IfIocContainer,
-  IScopedComponentStorage, isDefined, Maybe,
+  IScopedComponentStorage,
+  isDefined,
+  Maybe,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
 import { initIterator } from './initializer';
@@ -98,28 +100,23 @@ export default class Container implements IfIocContainer {
     const details = this.getComponentDetails(id);
     if (isDefined(details)) {
       ret = details.get(scopedStorages);
-    } else {
+    } else if (scopedStorages) {
       /**
        * Component details not found in container
        * If scopedStorages are passed then look
        * for component in scoped storages.
        */
-      if (scopedStorages) {
+      ret = scopedStorages.reduce((acc: any, next) => {
+        if (acc) {
+          return acc;
+        }
 
-        ret = scopedStorages.reduce((acc: any, next) => {
-          if (acc) {
-            return acc;
-          }
-
-          return next.getComponent(id);
-
-        });
-      }
+        return next.getComponent(id);
+      }, undefined);
     }
 
     if (!ret) {
-      throw new FrameworkError(`
-            Failed find component by Identity="${stringifyIdentify(id)}"`);
+      throw new FrameworkError(`Failed find component by Identity="${stringifyIdentify(id)}"`);
     }
 
     return ret;

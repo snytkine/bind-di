@@ -84,7 +84,7 @@ export function checkDependencyLoop(container: IfIocContainer): void {
       identity: component.identity,
       dependencies: component.constructorDependencies
         .concat(component.propDependencies.map(pd => pd.dependency))
-        .concat(component.factoryDependency)
+        .concat(component.extraDependencies)
         .filter(dep => !!dep),
       visited: false,
     };
@@ -208,6 +208,35 @@ export function checkConstructorDependencies(container: IfIocContainer): Array<F
     .filter(notEmpty);
 }
 
+export function checkExtraDependencies(container: IfIocContainer): Array<FrameworkError> {
+  debug('%s Entered checkExtraDependencies', TAG);
+  const { components } = container;
+
+  return components
+    .map(component => {
+      const extraDependencies = component.extraDependencies || [];
+      return extraDependencies.reduce((acc: Array<FrameworkError | undefined>, dep) => {
+        const errors = [...acc];
+        const found = components.find(c => isSameIdentity(dep, c.identity));
+        if (!found) {
+          errors.push(
+            new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+                has unsatisfied extra dependency on component ${stringifyIdentify(dep)}`),
+          );
+        }
+        /**
+         * NO scope rules validation
+         * for extraDependencies
+         */
+
+        return errors;
+      }, []);
+    })
+    .filter(arrayNotEmpty)
+    .flat()
+    .filter(notEmpty);
+}
+
 export function checkPropDependencies(container: IfIocContainer): Array<FrameworkError> {
   debug('%s Entered checkPropDependencies', TAG);
 
@@ -267,6 +296,7 @@ export const checkDependencies = (container: IfIocContainer): Promise<IfIocConta
     ...ret,
     ...checkConstructorDependencies(container),
     ...checkPropDependencies(container),
+    ...checkExtraDependencies(container),
   ].filter(notEmpty);
 
   if (res.length > 0) {

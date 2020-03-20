@@ -170,7 +170,7 @@ const addFactoryProvidedComponents = (
        * This means that factory provided component cannot have own
        * dependencies
        *
-       * Every provided component must have factoryDependency with value set
+       * Every provided component must have extraDependencies with value set
        * to factory's identity.
        * This property will be necessary when checking dependency loop.
        *
@@ -192,7 +192,7 @@ const addFactoryProvidedComponents = (
         scope: providedComponentScope,
         propDependencies: [],
         constructorDependencies: [],
-        factoryDependency: factoryComponentMeta.identity,
+        extraDependencies: [factoryComponentMeta.identity],
       };
 
       /**

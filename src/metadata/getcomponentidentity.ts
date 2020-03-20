@@ -22,7 +22,7 @@ export default function getComponentIdentity(
 
   /**
    * Now get className
-   * it it's different that found by Identity it could be a sub-class
+   * if it's different than found by Identity it could be a sub-class
    * or an annotated class. In such case the parent class since it had
    * a Component decorator, will already have a COMPONENT_IDENTITY meta
    * but a child-class if it's not decorated will not have own meta

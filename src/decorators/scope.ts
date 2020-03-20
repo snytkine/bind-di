@@ -1,7 +1,7 @@
 import { COMPONENT_SCOPE, DEFAULT_SCOPE } from '../consts';
 
 import { ComponentScope } from '../enums';
-import { StringOrSymbol } from '../definitions';
+import { StringOrSymbol, Target } from '../definitions';
 import getComponentName from '../metadata/getcomponentname';
 import getClassName from '../metadata/getclassname';
 import defineMetadata from '../metadata/definemetadata';
@@ -13,10 +13,10 @@ const TAG = '@Scope';
 
 export function Scope(scope: ComponentScope) {
   /**
-   * @todo allow adding scope on Factory-Provided components
+   * Allow adding scope on Factory-Provided components
    * for that need to also add propertyKey
    */
-  return (target: Object, propertyKey?: StringOrSymbol) => {
+  return (target: Target, propertyKey?: StringOrSymbol) => {
     debug(
       '%s Adding scope %s to component "%s" className="%s"',
       TAG,

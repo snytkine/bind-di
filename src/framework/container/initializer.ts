@@ -55,6 +55,7 @@ export const copyComponents = (a: Array<IfComponentDetails>): Array<IfComponentD
       preDestroy: componentDetails.preDestroy,
       postConstruct: componentDetails.postConstruct,
       provides: componentDetails.provides && componentDetails.provides.map(copyFactoryMethod),
+      extraDependencies: componentDetails.extraDependencies.map(copyIdentity),
     };
   });
 };
