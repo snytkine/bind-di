@@ -8,6 +8,7 @@ import {
   IfComponentFactoryMethod,
   MaybeScopedStorage,
   MaybeObject,
+  IfIocComponent,
 } from '../../definitions';
 
 import { ComponentScope } from '../../enums';
@@ -324,6 +325,9 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
     /**
      * Singleton getter does not use
      * the scopedComponentStorage optional parameter
+     * because singleton component cannot have dependencies
+     * on scoped components, so passing scopedStorages is irrelevant
+     *
      * and as such we don't add Array<IScopedComponentStorage>
      * as parameter to this getter
      */
@@ -388,7 +392,7 @@ export function addSingletonComponent(container: IfIocContainer, meta: IfCompone
     };
   })(container);
 
-  const component = {
+  const component: IfIocComponent = {
     ...meta,
     get: getter,
   };
@@ -466,7 +470,7 @@ export function addPrototypeComponent(container: IfIocContainer, meta: IfCompone
    * and returns constructed component
    */
   const getter: IocComponentGetter = (function prototypeGetter(ctnr: IfIocContainer) {
-    return (scopedComponentStorage?: Array<IScopedComponentStorage>) => {
+    return function getNewInstance(scopedComponentStorage?: Array<IScopedComponentStorage>) {
       debug(
         `%s Creating new instance of component="%s"
       with constructorArs="%o" with scopedComponentStorage="%s"`,

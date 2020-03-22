@@ -51,6 +51,12 @@ export default function getComponentIdentity(
         ret?.clazz?.name,
         targetName,
       );
+      /**
+       * @todo not sure what was the logic behind this.
+       * if COMPONENT_IDENTITY metadata was found
+       * but the .clazz is not the same as target then why returning
+       * different identity from what was explicitely set in metadata?
+       */
       if (target !== ret.clazz) {
         return Identity(target);
       }
