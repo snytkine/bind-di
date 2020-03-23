@@ -33,7 +33,8 @@ const getFunctionParameters = (func: Function): string[] => {
     .exec(func.toString().replace(/\n/g, ''))[1]
     .replace(/\/\*.*?\*\//g, '')
     .replace(/ /g, '')
-    .split(',');
+    .split(',')
+    .map(val => val.split('=')[0]);
 };
 
 /**
