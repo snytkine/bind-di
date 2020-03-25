@@ -1,6 +1,8 @@
 import 'reflect-metadata';
-import { IfComponentIdentity, StringOrSymbol, Target } from '../definitions';
+import { StringOrSymbol } from '../definitions/types';
 import { COMPONENT_IDENTITY, UNNAMED_COMPONENT } from '../consts';
+import { ComponentIdentity } from '../lib/componentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:metadata');
 
@@ -16,7 +18,7 @@ export default function getComponentName(
   propertyKey?: StringOrSymbol,
 ): StringOrSymbol {
   if (target) {
-    const ret = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
+    const ret = <ComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
     if (ret) {
       debug(
         '%s Found component name from COMPONENT_IDENTITY metadata ',

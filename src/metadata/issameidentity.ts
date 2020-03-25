@@ -1,5 +1,5 @@
-import { IfComponentIdentity } from '../definitions';
 import { UNNAMED_COMPONENT } from '../consts';
+import { ComponentIdentity } from '../lib/componentidentity';
 
 /**
  * Compare 2 component identities
@@ -13,7 +13,7 @@ import { UNNAMED_COMPONENT } from '../consts';
  * @param b
  * @return boolean
  */
-export default function isSameIdentity(a: IfComponentIdentity, b: IfComponentIdentity): boolean {
+export default function isSameIdentity(a: ComponentIdentity, b: ComponentIdentity): boolean {
   /**
    * Either one is NOT UNNAMED_COMPONENT
    * then compare by componentName

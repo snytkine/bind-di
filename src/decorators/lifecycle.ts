@@ -1,7 +1,8 @@
 import { INIT_METHOD, PRE_DESTROY } from '../consts';
-import { LifecycleCallback, Target } from '../definitions';
+import { LifecycleCallback } from '../definitions';
 import defineMetadata from '../metadata/definemetadata';
 import getComponentName from '../metadata/getcomponentname';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator:lifecycle');
 

@@ -6,7 +6,6 @@ import {
   IfComponentPropDependency,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
-import stringifyIdentify from '../lib/stringifyidentity';
 import { copyIdentity } from '../../metadata/utils';
 import isSameIdentity from '../../metadata/issameidentity';
 
@@ -81,7 +80,7 @@ export const depsResolved = (
   component: IfComponentDetails,
   aComponents: Array<IfComponentDetails>,
 ): boolean => {
-  debug('%s entered depsResolved for component="%s"', TAG, stringifyIdentify(component.identity));
+  debug('%s entered depsResolved for component="%s"', TAG, component.identity);
   /**
    * Every propDependency and every Constructor Dependency must be provided by
    * components in the aComponents.
@@ -116,7 +115,7 @@ export const depsResolved = (
   debug(
     '%s deps for component "%s"  ctorDepsresolved="%o" propDepsresolved="%o"',
     TAG,
-    stringifyIdentify(component.identity),
+    component.identity,
     ctorDepsresolved,
     propDepsresolved,
   );
@@ -143,7 +142,7 @@ export const initIterator = async function* initIterator(
     if (comp.scope === ComponentScope.SINGLETON && comp.postConstruct) {
       const o = container.getComponent(comp.identity);
 
-      yield o[comp.postConstruct]().then(() => stringifyIdentify(comp.identity));
+      yield o[comp.postConstruct]().then(() => comp.identity.toString());
     }
   }
 };

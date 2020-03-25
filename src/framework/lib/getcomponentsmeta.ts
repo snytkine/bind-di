@@ -1,4 +1,4 @@
-import { IfComponentDetails, StringOrSymbol, Target } from '../../definitions';
+import { IfComponentDetails, StringOrSymbol } from '../../definitions';
 import { COMPONENT_META_DATA } from '../../consts';
 import getComponentIdentity from '../../metadata/getcomponentidentity';
 import {
@@ -10,6 +10,7 @@ import {
   getScope,
 } from '../../decorators';
 import getExtraDependencies from './getextradependencies';
+import { Target } from '../../definitions/target';
 
 export default function getComponentMeta(
   clazz: Target,

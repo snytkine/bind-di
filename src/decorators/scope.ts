@@ -1,11 +1,12 @@
 import { COMPONENT_SCOPE, DEFAULT_SCOPE } from '../consts';
 
 import { ComponentScope } from '../enums';
-import { StringOrSymbol, Target } from '../definitions';
+import { StringOrSymbol } from '../definitions';
 import getComponentName from '../metadata/getcomponentname';
 import getClassName from '../metadata/getclassname';
 import defineMetadata from '../metadata/definemetadata';
 import getComponentIdentity from '../metadata/getcomponentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator:scope');
 

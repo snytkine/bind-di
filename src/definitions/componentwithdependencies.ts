@@ -1,7 +1,7 @@
-import { IfComponentIdentity } from './container';
+import { ComponentIdentity } from '../lib/componentidentity';
 
 export interface IfComponentWithDependencies {
   visited: boolean;
-  identity: IfComponentIdentity;
-  dependencies: Array<IfComponentIdentity>;
+  identity: ComponentIdentity;
+  dependencies: Array<ComponentIdentity>;
 }

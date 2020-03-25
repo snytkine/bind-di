@@ -1,6 +1,7 @@
 import 'reflect-metadata';
-import { IfComponentIdentity, Target } from '../definitions';
 import { COMPONENT_IDENTITY } from '../consts';
+import { ComponentIdentity } from '../lib/componentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator');
 
@@ -9,7 +10,7 @@ const TAG = 'getClassName';
 export default function getClassName(target: Target): string {
   let res = '';
   if (target) {
-    const identity = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target);
+    const identity = <ComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target);
 
     if (identity && identity.clazz) {
       debug('%s Found className from COMPONENT_IDENTITY metadata ', TAG, identity);

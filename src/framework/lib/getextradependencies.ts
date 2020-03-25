@@ -1,16 +1,17 @@
-import { IfComponentIdentity, Target } from '../../definitions';
 import { EXTRA_DEPENDENCIES } from '../../consts';
 import getComponentName from '../../metadata/getcomponentname';
+import { ComponentIdentity } from '../../lib/componentidentity';
+import { Target } from '../../definitions/target';
 
 const debug = require('debug')('bind:decorator:lifecycle');
 
 const TAG = 'getExtraDependencies';
 
-export default function getExtraDependencies(target: Target): Array<IfComponentIdentity> {
+export default function getExtraDependencies(target: Target): Array<ComponentIdentity> {
   const cName = String(getComponentName(target));
   debug('%s Entered getPropDependencies for target="%s"', TAG, cName);
 
-  let dependencies: Array<IfComponentIdentity> =
+  let dependencies: Array<ComponentIdentity> =
     Reflect.getMetadata(EXTRA_DEPENDENCIES, target) || [];
   let keys = [];
   if (target && target.prototype) {
@@ -27,7 +28,7 @@ export default function getExtraDependencies(target: Target): Array<IfComponentI
      * First check if class has own property p
      */
     if (Reflect.hasMetadata(EXTRA_DEPENDENCIES, target.prototype, p)) {
-      const deps: Array<IfComponentIdentity> = Reflect.getMetadata(
+      const deps: Array<ComponentIdentity> = Reflect.getMetadata(
         EXTRA_DEPENDENCIES,
         target.prototype,
         p,

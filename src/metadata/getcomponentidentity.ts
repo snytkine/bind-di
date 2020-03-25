@@ -1,9 +1,11 @@
-import { IfComponentIdentity, StringOrSymbol, Target } from '../definitions';
+import { StringOrSymbol } from '../definitions/types';
 import { FrameworkError } from '../exceptions';
 import { COMPONENT_IDENTITY } from '../consts';
 import { Identity } from '../framework/identity';
 import getClassName from './getclassname';
 import { isObject } from './utils';
+import { ComponentIdentity } from '../lib/componentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator');
 
@@ -12,12 +14,12 @@ const TAG = 'getComponentIdentity';
 export default function getComponentIdentity(
   target: Target,
   propertyKey?: StringOrSymbol,
-): IfComponentIdentity {
+): ComponentIdentity {
   if (!isObject(target)) {
     throw new FrameworkError(`target not passed to getComponentIdentity`);
   }
 
-  const ret = <IfComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
+  const ret = <ComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
   let targetName: string;
 
   /**

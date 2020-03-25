@@ -11,13 +11,7 @@ import {
 import { ComponentScope, TargetStereoType } from '../enums';
 import { DecoratorError, FrameworkError } from '../exceptions';
 
-import {
-  IfComponentFactoryMethod,
-  IfComponentIdentity,
-  IfConstructorDependency,
-  StringOrSymbol,
-  Target,
-} from '../definitions';
+import { IfComponentFactoryMethod, IfConstructorDependency, StringOrSymbol } from '../definitions';
 import { Identity } from '../framework/identity';
 import getClassName from '../metadata/getclassname';
 import getComponentIdentity from '../metadata/getcomponentidentity';
@@ -27,6 +21,8 @@ import getComponentName from '../metadata/getcomponentname';
 import assertNotReservedType from '../framework/lib/assertnotreserved';
 import getTargetStereotype from '../framework/lib/gettargetstereotype';
 import isStringOrSymbol from '../framework/lib/isstringorsymbol';
+import { ComponentIdentity } from '../lib/componentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorate:component');
 
@@ -40,7 +36,7 @@ const TAG = '@Component';
  */
 export const ConstructorDependency = (
   parameterIndex: number,
-  dep: IfComponentIdentity,
+  dep: ComponentIdentity,
 ): IfConstructorDependency => {
   return {
     parameterIndex,

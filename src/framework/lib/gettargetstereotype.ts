@@ -1,5 +1,5 @@
-import { Target } from '../../definitions/container';
 import { TargetStereoType } from '../../enums';
+import { Target } from '../../definitions/target';
 
 export default function getTargetStereotype(target: Target): TargetStereoType {
   let ret = TargetStereoType.UNKNOWN;

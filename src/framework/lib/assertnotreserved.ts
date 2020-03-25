@@ -1,6 +1,6 @@
-import { Target } from '../../definitions';
 import { RESERVED_COMPONENT_NAMES, UNNAMED_COMPONENT } from '../../consts';
 import FrameworkError from '../../exceptions/frameworkerror';
+import { Target } from '../../definitions/target';
 
 export default function assertNotReservedType(
   componentName,

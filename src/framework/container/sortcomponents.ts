@@ -1,7 +1,6 @@
 import { copyComponents, depsResolved, UnsortedAndSorted } from './initializer';
 import { IfComponentDetails, IfIocComponent, IfIocContainer } from '../../definitions';
 import FrameworkError from '../../exceptions/frameworkerror';
-import stringifyIdentify from '../lib/stringifyidentity';
 
 const debug = require('debug')('bind:init:check');
 
@@ -79,7 +78,7 @@ export function getSortedComponents(container: IfIocContainer): Promise<Array<If
                     Dependency sorting failed. Following components have unresolved dependencies.
                     Please check your dependencies. There may be an "import loop"
                     Components with unresolved dependencies are:
-                    ${unsorted.map(component => stringifyIdentify(component.identity)).join(', ')}
+                    ${unsorted.map(component => component.identity.toString()).join(', ')}
                     ===============================
                     `;
     return Promise.reject(new FrameworkError(error));

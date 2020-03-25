@@ -1,13 +1,6 @@
 import { Maybe, StringOrSymbol, StringToAny } from './types';
 import { ComponentScope } from '../enums';
-
-export type Target = {
-  new?(...args: any[]): any;
-  name?: string;
-  constructor: Function;
-  prototype?: any;
-  length?: number;
-};
+import { ComponentIdentity } from '../lib/componentidentity';
 
 /**
  * A Component may be a named component or
@@ -20,16 +13,17 @@ export type Target = {
  * In case of generic class the name of type T is not used, only the className
  * is used for value of className
  */
-export interface IfComponentIdentity {
-  componentName: StringOrSymbol;
-  clazz?: Target;
-}
+
+/* export interface IfComponentIdentity {
+ componentName: StringOrSymbol;
+ clazz?: Target;
+ } */
 
 export interface IfComponentDetails {
   /**
    * Component Unique Identifier (component name)
    */
-  identity: IfComponentIdentity;
+  identity: ComponentIdentity;
 
   /**
    * Component lifecycle
@@ -44,13 +38,7 @@ export interface IfComponentDetails {
   /**
    * Constructor dependencies
    */
-  constructorDependencies: Array<IfComponentIdentity>;
-
-  /**
-   * If this component is created by a component factory
-   * then component factory is a dependency.
-   */
-  // factoryDependency?: IfComponentIdentity;
+  constructorDependencies: Array<ComponentIdentity>;
 
   /**
    * Component may require other components to be
@@ -66,7 +54,7 @@ export interface IfComponentDetails {
    * extraDependencies are required so that in the initialization phase
    * the init logic can validate all dependencies.
    */
-  extraDependencies: Array<IfComponentIdentity>;
+  extraDependencies: Array<ComponentIdentity>;
 
   /**
    * @todo
@@ -110,17 +98,15 @@ export interface IfComponentDetails {
   componentMetaData?: StringToAny;
 }
 
-export type MaybeScopedStorage = IScopedComponentStorage | undefined;
-export type MaybeObject = Object | undefined;
 /**
  * A Context will be an example of component store
  * you will be able to get component by ID from context.
  * What should it return - a component or a component getter function?
  */
 export interface IComponentStorage {
-  getComponent(id: IfComponentIdentity): Maybe<Object>;
+  getComponent(id: ComponentIdentity): Maybe<Object>;
 
-  setComponent(id: IfComponentIdentity, component: any): void;
+  setComponent(id: ComponentIdentity, component: any): void;
 }
 
 export interface IScopedComponentStorage extends IComponentStorage {
@@ -165,12 +151,12 @@ export type LifecycleCallback = () => Promise<Boolean>;
 
 export interface IfComponentFactoryMethod {
   methodName: string;
-  providesComponent: IfComponentIdentity;
+  providesComponent: ComponentIdentity;
 }
 
 export interface IfConstructorDependency {
   parameterIndex: number;
-  dependency: IfComponentIdentity;
+  dependency: ComponentIdentity;
 }
 
 /**
@@ -180,7 +166,7 @@ export interface IfConstructorDependency {
  */
 export interface IfComponentPropDependency {
   propertyName: StringOrSymbol;
-  dependency: IfComponentIdentity;
+  dependency: ComponentIdentity;
 }
 
 /**
@@ -212,7 +198,7 @@ export interface IfIocContainer {
    * @param name
    * @returns boolean
    */
-  has(name: IfComponentIdentity): boolean;
+  has(name: ComponentIdentity): boolean;
 
   /**
    * Get a record for the component by identity
@@ -227,7 +213,7 @@ export interface IfIocContainer {
    * @returns any
    * @throws FrameworkError if Component not found
    */
-  getComponentDetails(id: IfComponentIdentity): Maybe<IfIocComponent>;
+  getComponentDetails(id: ComponentIdentity): Maybe<IfIocComponent>;
 
   /**
    * Result of finding component and calling component getter
@@ -247,7 +233,7 @@ export interface IfIocContainer {
    * @returns any
    * @throws FrameworkError if component not found
    */
-  getComponent(id: IfComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any;
+  getComponent(id: ComponentIdentity, scopedStorage?: Array<IScopedComponentStorage>): any;
 
   /**
    * Adds component to container

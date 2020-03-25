@@ -6,3 +6,4 @@ export * from './exceptions';
 export * from './framework';
 export * from './loaders';
 export * from './metadata';
+export * from './lib';

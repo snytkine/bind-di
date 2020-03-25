@@ -1,14 +1,9 @@
-import {
-  IfComponentDetails,
-  IfComponentIdentity,
-  IfIocContainer,
-  IfComponentWithDependencies,
-} from '../../definitions';
+import { IfComponentDetails, IfIocContainer, IfComponentWithDependencies } from '../../definitions';
 import FrameworkError from '../../exceptions/frameworkerror';
-import stringifyIdentify from '../lib/stringifyidentity';
 import { ComponentScope } from '../../enums';
 import { isSameIdentity } from '../../metadata';
 import { arrayNotEmpty, notEmpty } from '../lib';
+import { ComponentIdentity } from '../../lib/componentidentity';
 
 const debug = require('debug')('bind:init:check');
 
@@ -37,11 +32,9 @@ export function validateDependencyScopeRule(
      * Specific example - prototype scoped component cannot be a dependency of a singleton
      */
     return new FrameworkError(`Dependency on Smaller-Scoped component is not allowed.
-        Component "${stringifyIdentify(parent.identity)}" 
+        Component "${parent.identity}" 
                 has a scope "${ComponentScope[parent.scope]}" but has
-                ${dependencyName} dependency on component "${stringifyIdentify(
-      dependency.identity,
-    )}" 
+                ${dependencyName} dependency on component "${dependency.identity}" 
                 with a smaller scope of "${ComponentScope[dependency.scope]}"`);
   }
 
@@ -94,9 +87,9 @@ export function checkDependencyLoop(container: IfIocContainer): void {
 
   const check = (
     component: IfComponentWithDependencies,
-    parents: Array<IfComponentIdentity> = [],
+    parents: Array<ComponentIdentity> = [],
   ): void => {
-    const id = stringifyIdentify(component.identity);
+    const id = component.identity.toString();
     debug('Entered %s.check with component "%s"', FUNC_NAME, id);
     if (component.visited) {
       debug('%s Component "%s" already visited', TAG, id);
@@ -120,7 +113,7 @@ export function checkDependencyLoop(container: IfIocContainer): void {
         const depChain = arrParents
           .concat(parentId)
           .slice(i)
-          .map(componentIdentity => stringifyIdentify(componentIdentity)).join(` 
+          .map(componentIdentity => componentIdentity.toString()).join(` 
             -> `);
 
         throw new FrameworkError(`Circular dependency chain detected for components: 
@@ -184,9 +177,9 @@ export function checkConstructorDependencies(container: IfIocContainer): Array<F
           const found = components.find(c => isSameIdentity(dep, c.identity));
           if (!found) {
             errors.push(
-              new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+              new FrameworkError(`Component ${component.identity} 
                 has unsatisfied constructor dependency for parameter "${i}" 
-                on dependency ${stringifyIdentify(dep)}`),
+                on dependency ${dep}`),
             );
           } else {
             const scopeRuleValidation = validateDependencyScopeRule(
@@ -220,8 +213,8 @@ export function checkExtraDependencies(container: IfIocContainer): Array<Framewo
         const found = components.find(c => isSameIdentity(dep, c.identity));
         if (!found) {
           errors.push(
-            new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
-                has unsatisfied extra dependency on component ${stringifyIdentify(dep)}`),
+            new FrameworkError(`Component ${component.identity} 
+                has unsatisfied extra dependency on component ${dep}`),
           );
         }
         /**
@@ -249,9 +242,9 @@ export function checkPropDependencies(container: IfIocContainer): Array<Framewor
         const found = components.find(c => isSameIdentity(propDep.dependency, c.identity));
         if (!found) {
           errors.push(
-            new FrameworkError(`Component ${stringifyIdentify(component.identity)} 
+            new FrameworkError(`Component ${component.identity} 
                 has unsatisfied dependency for property "${String(propDep.propertyName)}" 
-                on dependency ${stringifyIdentify(propDep.dependency)}`),
+                on dependency ${propDep.dependency}`),
           );
         } else {
           const scopeRuleValidation = validateDependencyScopeRule(
@@ -303,7 +296,7 @@ export const checkDependencies = (container: IfIocContainer): Promise<IfIocConta
     const errors = res.map(e => e.message);
     return Promise.reject(
       new FrameworkError(`${DOTTED_LINE}
-    Dependency validation errors: ${errors.join(DOTTED_LINE)}`),
+    Dependency validation errors:\n${DOTTED_LINE}\n${errors.join(DOTTED_LINE)}`),
     );
   }
 

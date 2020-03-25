@@ -1,6 +1,6 @@
 import { FrameworkError } from '../../exceptions';
-import { Target } from '../../definitions';
 import getTargetStereotype from './gettargetstereotype';
+import { Target } from '../../definitions/target';
 
 const debug = require('debug')('promiseoft:decorators');
 

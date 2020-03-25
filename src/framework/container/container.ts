@@ -1,5 +1,4 @@
 import {
-  IfComponentIdentity,
   IfIocComponent,
   IfIocContainer,
   IScopedComponentStorage,
@@ -11,9 +10,9 @@ import { initIterator } from './initializer';
 import FrameworkError from '../../exceptions/frameworkerror';
 import isSameIdentity from '../../metadata/issameidentity';
 import jsonStringify from '../lib/jsonstringify';
-import stringifyIdentify from '../lib/stringifyidentity';
 import { checkDependencies } from './checkdependencies';
 import { getSortedComponents } from './sortcomponents';
+import { ComponentIdentity } from '../../lib/componentidentity';
 
 const debug = require('debug')('bind:container');
 
@@ -64,16 +63,12 @@ export default class Container implements IfIocContainer {
    * If looking for unnamed component we can allow finding a named one
    * only if named component is the only one with same class
    *
-   * @param {IfComponentIdentity} id
+   * @param {ComponentIdentity} id
    * @returns {IfIocComponent<T>}
    * @throws FrameworkError if component is not found by id
    */
-  getComponentDetails(id: IfComponentIdentity): Maybe<IfIocComponent> {
-    debug(
-      '%s Entered Container.getComponentDetails Requesting component="%s"',
-      TAG,
-      stringifyIdentify(id),
-    );
+  getComponentDetails(id: ComponentIdentity): Maybe<IfIocComponent> {
+    debug('%s Entered Container.getComponentDetails Requesting component="%s"', TAG, id);
 
     /**
      * For a named component a match is by name
@@ -86,12 +81,12 @@ export default class Container implements IfIocContainer {
     return ret;
   }
 
-  getComponent(id: IfComponentIdentity, scopedStorages?: Array<IScopedComponentStorage>): any {
+  getComponent(id: ComponentIdentity, scopedStorages?: Array<IScopedComponentStorage>): any {
     debug(
       `%s Entered Container.getComponent 
         Requesting component="%s" With scopedStorage="%s"`,
       TAG,
-      stringifyIdentify(id),
+      id,
       !!scopedStorages,
     );
 
@@ -116,21 +111,17 @@ export default class Container implements IfIocContainer {
     }
 
     if (!ret) {
-      throw new FrameworkError(`Failed find component by Identity="${stringifyIdentify(id)}"`);
+      throw new FrameworkError(`Failed find component by Identity="${id.toString()}"`);
     }
 
     return ret;
   }
 
   addComponent(component: IfIocComponent): boolean {
-    debug(
-      '%s Entered Container.addComponent with component="%s"',
-      TAG,
-      stringifyIdentify(component.identity),
-    );
+    debug('%s Entered Container.addComponent with component="%s"', TAG, component.identity);
     if (this.has(component.identity)) {
       throw new FrameworkError(`
-            Container already has component "${stringifyIdentify(component.identity)}"`);
+            Container already has component "${component.identity.toString()}"`);
     }
 
     /**
@@ -143,7 +134,7 @@ export default class Container implements IfIocContainer {
       debug(
         '%s Component "%s" Does not have defined scope. Setting default scope="%s"',
         TAG,
-        stringifyIdentify(component.identity),
+        component.identity,
         ComponentScope[this.defaultScope],
       );
 
@@ -192,7 +183,7 @@ export default class Container implements IfIocContainer {
     return Promise.all(a).then(() => true);
   }
 
-  has(id: IfComponentIdentity): boolean {
+  has(id: ComponentIdentity): boolean {
     try {
       return !!this.getComponentDetails(id);
     } catch (e) {

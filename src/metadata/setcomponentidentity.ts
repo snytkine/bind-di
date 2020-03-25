@@ -1,9 +1,9 @@
-import { IfComponentIdentity } from '../definitions';
 import { COMPONENT_IDENTITY } from '../consts';
 import defineMetadata from './definemetadata';
+import { ComponentIdentity } from '../lib/componentidentity';
 
 export default function setComponentIdentity(
-  identity: IfComponentIdentity,
+  identity: ComponentIdentity,
   target: Object,
   propertyKey?: string,
 ): void {

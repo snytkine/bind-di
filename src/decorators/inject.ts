@@ -1,10 +1,4 @@
-import {
-  IfComponentIdentity,
-  IfComponentPropDependency,
-  IfConstructorDependency,
-  StringOrSymbol,
-  Target,
-} from '../definitions';
+import { IfComponentPropDependency, IfConstructorDependency, StringOrSymbol } from '../definitions';
 import {
   DESIGN_TYPE,
   UNNAMED_COMPONENT,
@@ -22,6 +16,8 @@ import defineMetadata from '../metadata/definemetadata';
 import getTargetStereotype from '../framework/lib/gettargetstereotype';
 import { Identity } from '../framework/identity';
 import isStringOrSymbol from '../framework/lib/isstringorsymbol';
+import { ComponentIdentity } from '../lib/componentidentity';
+import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorate:inject');
 
@@ -35,12 +31,12 @@ export type StringOrTarget = string | Target;
  * a child can have co-variant types for same dependencies
  *
  * @param {Target} target
- * @param {IfComponentIdentity} dependency
+ * @param {ComponentIdentity} dependency
  * @param {number} parameterIndex
  */
 export const addConstructorDependency = (
   target: Target,
-  dependency: IfComponentIdentity,
+  dependency: ComponentIdentity,
   parameterIndex: number,
 ): void => {
   const deps =
@@ -141,7 +137,7 @@ const applyInjectToProperty = (
   debug('%s applyInjectToProperty rt=%o', TAG, rt);
 
   let injectName: StringOrSymbol;
-  let injectIdentity: IfComponentIdentity;
+  let injectIdentity: ComponentIdentity;
   let injectClassName: string;
 
   /**
@@ -268,7 +264,7 @@ const applyInjectToConstructorParam = (
   }
 
   const ptypes = Reflect.getMetadata(PARAM_TYPES, target);
-  let injectIdentity: IfComponentIdentity;
+  let injectIdentity: ComponentIdentity;
 
   /**
    * Applied to constructor method parameter
@@ -400,13 +396,13 @@ export function Inject(
 }
 
 /**
- * Returns array of IfComponentIdentity in sorted order of
+ * Returns array of ComponentIdentity in sorted order of
  * constructor parameters.
  *
  * @param target
  * @throws if dependency is missing for constructor parameter
  */
-export const getConstructorDependencies = (target: Target): Array<IfComponentIdentity> => {
+export const getConstructorDependencies = (target: Target): Array<ComponentIdentity> => {
   const ret: Array<IfConstructorDependency> = Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target);
   if (ret) {
     debug(
