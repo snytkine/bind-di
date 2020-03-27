@@ -134,7 +134,9 @@ export interface IScopedComponentStorage extends IComponentStorage {
  * Framework provides these helper functions for singleton and context-scoped
  * components
  */
-export type IocComponentGetter = (scopedComponentStorage?: Array<IScopedComponentStorage>) => any;
+export type IocComponentGetter<T = any> = (
+  scopedComponentStorage?: Array<IScopedComponentStorage>,
+) => T;
 
 export type ComponentGetterFactory = (container: IfIocContainer) => IocComponentGetter;
 
@@ -172,12 +174,12 @@ export interface IfComponentPropDependency {
 /**
  * Interface of a Component stored in container
  */
-export interface IfIocComponent extends IfComponentDetails {
+export interface IfIocComponent<T = any> extends IfComponentDetails {
   /**
    * Main function to call to get
    * instance of requested component
    */
-  get: IocComponentGetter;
+  get: IocComponentGetter<T>;
 }
 
 export interface Newable<T> {
@@ -228,8 +230,8 @@ export interface IfIocContainer {
    *   Also returning Promise may become more useful for future versions when
    *   container returns actual Promise for all components.
    *
-   * @param ctx
-   * @param name
+   * @param id
+   * @param scopedStorage
    * @returns any
    * @throws FrameworkError if component not found
    */
@@ -237,7 +239,7 @@ export interface IfIocContainer {
 
   /**
    * Adds component to container
-   * @param cClass component class
+   * @param component component class
    * @returns string name of added component
    */
   addComponent(component: IfIocComponent): boolean;
