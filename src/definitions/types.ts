@@ -11,3 +11,9 @@ export function isDefined<T>(x: Maybe<T>): x is T {
 export function getOrElse<T>(x: Maybe<T>, defaultValue: T): T {
   return isDefined(x) ? x : defaultValue;
 }
+
+export type Constructor<T> = new (...args: any[]) => T;
+
+export type ClassPrototype = {
+  constructor: Function;
+};

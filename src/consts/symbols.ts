@@ -9,3 +9,4 @@ export const COMPONENT_META_DATA = Symbol.for('bind:component_meta_type');
 export const COMPONENT_SCOPE = Symbol.for('bind:component_scope');
 export const DEFAULT_SCOPE = Symbol.for('bind:component_default_scope');
 export const UNNAMED_COMPONENT = Symbol.for('bind:component_unnamed');
+export const CONTAINER_COMPONENT = Symbol('bind:container_component');

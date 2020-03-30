@@ -24,7 +24,7 @@ import { Target } from '../../definitions/target';
 const TAG = 'CONTAINER_UTILS';
 const debug = require('debug')('bind:container');
 
-const getComponentNameFromIdentity = (identity: ComponentIdentity): string => {
+export const getComponentNameFromIdentity = (identity: ComponentIdentity): string => {
   if (identity.componentName !== UNNAMED_COMPONENT) {
     return String(identity.componentName);
   }

@@ -13,6 +13,8 @@ import jsonStringify from '../lib/jsonstringify';
 import { checkDependencies } from './checkdependencies';
 import { getSortedComponents } from './sortcomponents';
 import { ComponentIdentity } from '../../lib/componentidentity';
+import { CONTAINER_COMPONENT } from '../../consts';
+import { Identity } from '../identity';
 
 const debug = require('debug')('bind:container');
 
@@ -40,8 +42,23 @@ export default class Container implements IfIocContainer {
     if (!Symbol.asyncIterator) {
       Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
     }
-    // (Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for('Symbol.asyncIterator');
-    this.componentsStore = [];
+
+    /**
+     * Special case register
+     * special type of component that
+     * will return this object when requesting
+     * component with identity CONTAINER_COMPONENT
+     */
+    this.componentsStore = [
+      {
+        identity: Identity(CONTAINER_COMPONENT),
+        propDependencies: [],
+        constructorDependencies: [],
+        extraDependencies: [],
+        scope: ComponentScope.SINGLETON,
+        get: () => this,
+      },
+    ];
   }
 
   get components(): Array<IfIocComponent> {
@@ -71,6 +88,22 @@ export default class Container implements IfIocContainer {
     debug('%s Entered Container.getComponentDetails Requesting component="%s"', TAG, id);
 
     /**
+     * Special case if requesting this container
+     * return a special component with getter
+     * that returns this object.
+     */
+    /* if (id.componentName===CONTAINER_COMPONENT) {
+      return {
+        identity: Identity(CONTAINER_COMPONENT),
+        propDependencies: [],
+        constructorDependencies: [],
+        extraDependencies: [],
+        scope: ComponentScope.SINGLETON,
+        get: () => this,
+      };
+    } */
+
+    /**
      * For a named component a match is by name
      * For unnamed component a match is by clazz
      */
@@ -83,8 +116,7 @@ export default class Container implements IfIocContainer {
 
   getComponent(id: ComponentIdentity, scopedStorages?: Array<IScopedComponentStorage>): any {
     debug(
-      `%s Entered Container.getComponent 
-        Requesting component="%s" With scopedStorage="%s"`,
+      '%s Entered Container.getComponent Requesting component="%s" With scopedStorage="%s"',
       TAG,
       id,
       !!scopedStorages,

@@ -5,6 +5,7 @@ const RESERVED_COMPONENT_NAMES = [
   'String',
   'Number',
   'Boolean',
+  'Array',
   'Promise',
 ];
 
