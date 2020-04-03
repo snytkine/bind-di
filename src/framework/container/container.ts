@@ -3,7 +3,6 @@ import {
   IfIocContainer,
   IScopedComponentStorage,
   isDefined,
-  Maybe,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
 import { initIterator } from './initializer';
@@ -84,7 +83,7 @@ export default class Container implements IfIocContainer {
    * @returns {IfIocComponent<T>}
    * @throws FrameworkError if component is not found by id
    */
-  getComponentDetails(id: ComponentIdentity): Maybe<IfIocComponent> {
+  getComponentDetails(id: ComponentIdentity): IfIocComponent {
     debug('%s Entered Container.getComponentDetails Requesting component="%s"', TAG, id);
 
     /**
@@ -93,15 +92,15 @@ export default class Container implements IfIocContainer {
      * that returns this object.
      */
     /* if (id.componentName===CONTAINER_COMPONENT) {
-      return {
-        identity: Identity(CONTAINER_COMPONENT),
-        propDependencies: [],
-        constructorDependencies: [],
-        extraDependencies: [],
-        scope: ComponentScope.SINGLETON,
-        get: () => this,
-      };
-    } */
+     return {
+     identity: Identity(CONTAINER_COMPONENT),
+     propDependencies: [],
+     constructorDependencies: [],
+     extraDependencies: [],
+     scope: ComponentScope.SINGLETON,
+     get: () => this,
+     };
+     } */
 
     /**
      * For a named component a match is by name
@@ -111,6 +110,9 @@ export default class Container implements IfIocContainer {
       isSameIdentity(id, component.identity),
     );
 
+    if (!ret) {
+      throw new FrameworkError(`Component details not found by id=${id}`);
+    }
     return ret;
   }
 
@@ -123,8 +125,26 @@ export default class Container implements IfIocContainer {
     );
 
     let ret: any;
-
-    const details = this.getComponentDetails(id);
+    let details;
+    try {
+      details = this.getComponentDetails(id);
+    } catch (e) {
+      debug('%s getComponents() did not find details. Error=%o', TAG, e);
+    }
+    /**
+     * @todo this does not make sense
+     * What is going on here is we are allowing for a
+     * component to not be known to container but will still
+     * look for it in scoped storages. This is dangerous because
+     * the container init() function must check dependency graph and
+     * at that point all components must be known to container otherwise
+     * the initialization will throw error.
+     *
+     * So really this should be removed and reduces to just
+     * ret = details.get(scopedStorages);
+     * also no need to wrap details = this.getComponentDetails(id);
+     * in try/catch, just let the exception to be thrown.
+     */
     if (isDefined(details)) {
       ret = details.get(scopedStorages);
     } else if (scopedStorages) {

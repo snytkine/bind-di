@@ -120,7 +120,6 @@ export interface IScopedComponentStorage extends IComponentStorage {
    * and SessionScopeStorage
    */
   scope: ComponentScope;
-  // storage: IComponentStorage;
 }
 
 /**
@@ -215,7 +214,7 @@ export interface IfIocContainer {
    * @returns any
    * @throws FrameworkError if Component not found
    */
-  getComponentDetails(id: ComponentIdentity): Maybe<IfIocComponent>;
+  getComponentDetails(id: ComponentIdentity): IfIocComponent;
 
   /**
    * Result of finding component and calling component getter
