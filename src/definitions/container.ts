@@ -257,7 +257,7 @@ export interface IfIocContainer {
    */
   readonly components: Array<IfIocComponent>;
 
-  initialize(): Promise<IfIocContainer>;
+  initialize(components?: Array<IfIocComponent>): Promise<Array<IfIocComponent>>;
 
   cleanup(): Promise<boolean>;
 }

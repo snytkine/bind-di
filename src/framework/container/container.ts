@@ -20,7 +20,7 @@ const debug = require('debug')('bind:container');
 const TAG = 'Container';
 
 export default class Container implements IfIocContainer {
-  private readonly componentsStore: Array<IfIocComponent>;
+  private componentsStore: Array<IfIocComponent> = [];
 
   /**
    * @todo this will be configurable by passing options to constructor
@@ -41,23 +41,6 @@ export default class Container implements IfIocContainer {
     if (!Symbol.asyncIterator) {
       Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
     }
-
-    /**
-     * Special case register
-     * special type of component that
-     * will return this object when requesting
-     * component with identity CONTAINER_COMPONENT
-     */
-    this.componentsStore = [
-      {
-        identity: Identity(CONTAINER_COMPONENT),
-        propDependencies: [],
-        constructorDependencies: [],
-        extraDependencies: [],
-        scope: ComponentScope.SINGLETON,
-        get: () => this,
-      },
-    ];
   }
 
   get components(): Array<IfIocComponent> {
@@ -198,10 +181,19 @@ export default class Container implements IfIocContainer {
     return true;
   }
 
-  async initialize(): Promise<IfIocContainer> {
+  /**
+   * Initialize container with array of components.
+   * @param aComponents
+   * @return Promise of Array of previous components (may be empty array)
+   */
+  async initialize(aComponents?: Array<IfIocComponent>): Promise<Array<IfIocComponent>> {
+    const prevComponentsStore = this.components;
+
+    const components = aComponents || this.componentsStore;
+
     debug('%s Entered initialize. components="%s"', TAG, jsonStringify(this.components));
 
-    const sorted = await checkDependencies(this).then(getSortedComponents);
+    const sorted = await checkDependencies(components).then(getSortedComponents);
 
     debug('%s initialize sorted="%s"', TAG, jsonStringify(sorted));
 
@@ -219,20 +211,73 @@ export default class Container implements IfIocContainer {
       debug('%s has no initializable components', TAG);
     }
 
-    return this;
+    /**
+     * Special case register
+     * special type of component that
+     * will return this object when requesting
+     * component with identity CONTAINER_COMPONENT
+     */
+    components.push({
+      identity: Identity(CONTAINER_COMPONENT),
+      propDependencies: [],
+      constructorDependencies: [],
+      extraDependencies: [],
+      scope: ComponentScope.SINGLETON,
+      get: () => this,
+    });
+
+    /**
+     * Set componentsStore
+     */
+    this.componentsStore = components;
+    debug(
+      '%s initialize() set this.componentStore with %s components',
+      TAG,
+      this.componentsStore.length,
+    );
+    debug(
+      '%s initialize() returning previous store with %s components',
+      TAG,
+      prevComponentsStore.length,
+    );
+
+    return prevComponentsStore;
   }
 
   cleanup(): Promise<boolean> {
-    const a: Array<Promise<Boolean>> = this.components
+    /**
+     * Here work on actual this.componentsStore (not on copy)
+     */
+    const a: Array<Promise<Boolean>> = this.componentsStore
       .filter(component => !!component.preDestroy)
       .map(component => {
+        /**
+         * Can call .get without scopedStorages because
+         * only singleton components can have preDestroy methods
+         */
         const obj = component.get();
         const methodName = component.preDestroy;
 
         return obj[methodName]();
       });
 
-    return Promise.all(a).then(() => true);
+    return Promise.all(a)
+      .then(() => {
+        this.componentsStore.forEach(comp => {
+          Reflect.deleteProperty(comp, 'get');
+          Reflect.deleteProperty(comp, 'extraDependencies');
+          Reflect.deleteProperty(comp, 'constructorDependencies');
+          Reflect.deleteProperty(comp, 'propDependencies');
+          Reflect.deleteProperty(comp, 'identity');
+          Reflect.deleteProperty(comp, 'provides');
+          Reflect.deleteProperty(comp, 'componentMetaData');
+        });
+      })
+      .then(() => {
+        this.componentsStore = null;
+        return true;
+      })
+      .then(() => true);
   }
 
   has(id: ComponentIdentity): boolean {

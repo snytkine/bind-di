@@ -1,5 +1,5 @@
 import { copyComponents, depsResolved, UnsortedAndSorted } from './initializer';
-import { IfComponentDetails, IfIocComponent, IfIocContainer } from '../../definitions';
+import { IfComponentDetails, IfIocComponent } from '../../definitions';
 import FrameworkError from '../../exceptions/frameworkerror';
 
 const debug = require('debug')('bind:init:check');
@@ -63,8 +63,9 @@ export const sortComponents = <T>(input: UnsortedAndSorted<T>): UnsortedAndSorte
  * @param container
  * @returns Promise<Array<IfComponentDetails>> or rejected promise with FrameworkError
  */
-export function getSortedComponents(container: IfIocContainer): Promise<Array<IfComponentDetails>> {
-  const { components } = container;
+export function getSortedComponents(
+  components: Array<IfIocComponent>,
+): Promise<Array<IfComponentDetails>> {
   if (!components.length) {
     debug('%TAG Components array is empty. Nothing to sort', TAG);
   }

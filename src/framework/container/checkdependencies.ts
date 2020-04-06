@@ -1,4 +1,4 @@
-import { IfComponentDetails, IfIocContainer, IfComponentWithDependencies } from '../../definitions';
+import { IfComponentDetails, IfComponentWithDependencies, IfIocComponent } from '../../definitions';
 import FrameworkError from '../../exceptions/frameworkerror';
 import { ComponentScope } from '../../enums';
 import { isSameIdentity } from '../../metadata';
@@ -49,15 +49,13 @@ export function validateDependencyScopeRule(
  * @todo instead of throwing on first loop detection return array
  * of all collected FrameworkError errors
  *
- * @param container: IfIocContainer
+ * @param components: Array<IfIocComponent>
  * @returns undefined
  * @throws FrameworkError in case dependency look is detected
  */
-export function checkDependencyLoop(container: IfIocContainer): void {
+export function checkDependencyLoop(components: Array<IfIocComponent>): void {
   const FUNC_NAME = 'checkDependencyLoop';
-  debug('%s Entered checkDependencyLoop', TAG);
-
-  const { components } = container;
+  debug('%s Entered checkDependencyLoop with %s components', components.length);
 
   /**
    * First, convert array of components into an array of simple
@@ -161,13 +159,14 @@ export function checkDependencyLoop(container: IfIocContainer): void {
  * In longer run may allow a subtype to be used for a dependency. For example
  * if dependency type is Smartphone then dependency component can be an Iphone
  *
- * @param container
+ * @param components: Array<IfIocComponent>
  * @return array of FrameworkError objects. Returning empty array means there were no
  * errors detected (all constructor dependencies or all components were satisfied)
  */
-export function checkConstructorDependencies(container: IfIocContainer): Array<FrameworkError> {
+export function checkConstructorDependencies(
+  components: Array<IfIocComponent>,
+): Array<FrameworkError> {
   debug('%s Entered checkConstructorDependencies', TAG);
-  const { components } = container;
 
   return components
     .map(component => {
@@ -201,9 +200,8 @@ export function checkConstructorDependencies(container: IfIocContainer): Array<F
     .filter(notEmpty);
 }
 
-export function checkExtraDependencies(container: IfIocContainer): Array<FrameworkError> {
+export function checkExtraDependencies(components: Array<IfIocComponent>): Array<FrameworkError> {
   debug('%s Entered checkExtraDependencies', TAG);
-  const { components } = container;
 
   return components
     .map(component => {
@@ -230,10 +228,8 @@ export function checkExtraDependencies(container: IfIocContainer): Array<Framewo
     .filter(notEmpty);
 }
 
-export function checkPropDependencies(container: IfIocContainer): Array<FrameworkError> {
+export function checkPropDependencies(components: Array<IfIocComponent>): Array<FrameworkError> {
   debug('%s Entered checkPropDependencies', TAG);
-
-  const { components } = container;
 
   return components
     .map(component => {
@@ -272,11 +268,13 @@ export function checkPropDependencies(container: IfIocContainer): Array<Framewor
  * @return Array of FrameworkError object. Empty array is returned if no dependency
  * errors are found.
  */
-export const checkDependencies = (container: IfIocContainer): Promise<IfIocContainer> => {
+export const checkDependencies = (
+  components: Array<IfIocComponent>,
+): Promise<Array<IfIocComponent>> => {
   const ret = [];
   const DOTTED_LINE = '\n..................................................\n';
   try {
-    checkDependencyLoop(container);
+    checkDependencyLoop(components);
   } catch (e) {
     if (e instanceof FrameworkError) {
       ret.push(e);
@@ -287,9 +285,9 @@ export const checkDependencies = (container: IfIocContainer): Promise<IfIocConta
 
   const res = [
     ...ret,
-    ...checkConstructorDependencies(container),
-    ...checkPropDependencies(container),
-    ...checkExtraDependencies(container),
+    ...checkConstructorDependencies(components),
+    ...checkPropDependencies(components),
+    ...checkExtraDependencies(components),
   ].filter(notEmpty);
 
   if (res.length > 0) {
@@ -300,5 +298,5 @@ export const checkDependencies = (container: IfIocContainer): Promise<IfIocConta
     );
   }
 
-  return Promise.resolve(container);
+  return Promise.resolve(components);
 };
