@@ -1,5 +1,5 @@
 import { UNNAMED_COMPONENT } from '../consts';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 
 /**
  * Compare 2 component identities

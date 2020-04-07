@@ -1,4 +1,4 @@
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 
 export interface IfComponentWithDependencies {
   visited: boolean;

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { COMPONENT_IDENTITY } from '../consts';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator');

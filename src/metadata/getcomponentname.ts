@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { StringOrSymbol } from '../definitions/types';
 import { COMPONENT_IDENTITY, UNNAMED_COMPONENT } from '../consts';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:metadata');

@@ -3,7 +3,7 @@ import FrameworkError from '../../exceptions/frameworkerror';
 import { ComponentScope } from '../../enums';
 import { isSameIdentity } from '../../metadata';
 import { arrayNotEmpty, notEmpty } from '../lib';
-import { ComponentIdentity } from '../../lib/componentidentity';
+import { ComponentIdentity } from '../../utils/componentidentity';
 
 const debug = require('debug')('bind:init:check');
 

@@ -2,7 +2,7 @@ import { StringOrSymbol } from '../definitions/types';
 import FrameworkError from '../exceptions/frameworkerror';
 import { UNNAMED_COMPONENT } from '../consts';
 import isStringOrSymbol from './lib/isstringorsymbol';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 /**

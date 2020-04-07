@@ -1,6 +1,6 @@
 import { COMPONENT_IDENTITY } from '../consts';
 import defineMetadata from './definemetadata';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 
 export default function setComponentIdentity(
   identity: ComponentIdentity,

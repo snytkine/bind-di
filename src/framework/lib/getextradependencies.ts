@@ -1,6 +1,6 @@
 import { EXTRA_DEPENDENCIES } from '../../consts';
 import getComponentName from '../../metadata/getcomponentname';
-import { ComponentIdentity } from '../../lib/componentidentity';
+import { ComponentIdentity } from '../../utils/componentidentity';
 import { Target } from '../../definitions/target';
 
 const debug = require('debug')('bind:decorator:lifecycle');

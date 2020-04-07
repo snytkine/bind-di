@@ -2,6 +2,7 @@ import { INIT_METHOD, PRE_DESTROY } from '../consts';
 import { LifecycleCallback, ClassPrototype } from '../definitions';
 import defineMetadata from '../metadata/definemetadata';
 import { Target } from '../definitions/target';
+import FrameworkError from '../exceptions/frameworkerror';
 
 const debug = require('debug')('bind:decorator:lifecycle');
 
@@ -19,6 +20,13 @@ export function PostConstruct(
     propertyKey,
     !!descriptor,
   );
+
+  const myInit = Reflect.getMetadata(INIT_METHOD, target);
+
+  if (myInit) {
+    throw new FrameworkError(`${target.constructor.name} already has method
+    decorated with @PostConstruct existing method=${myInit}`);
+  }
 
   defineMetadata(INIT_METHOD, propertyKey, target)();
   defineMetadata(INIT_METHOD, propertyKey, target.constructor)();
@@ -60,6 +68,14 @@ export function PreDestroy(
     propertyKey,
     !!descriptor,
   );
+
+  const myPreDestroy = Reflect.getMetadata(PRE_DESTROY, target);
+
+  if (myPreDestroy) {
+    throw new FrameworkError(`${target.constructor.name} already has method
+    decorated with @PreDestroy existing preDestroy method=${myPreDestroy}`);
+  }
+
   defineMetadata(PRE_DESTROY, propertyKey, target)();
   /**
    * target is a prototype of class in this case

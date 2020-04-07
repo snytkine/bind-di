@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Teller {
+    constructor(logger) {
+        this.logger = logger;
+    }
+    greet() {
+        return `Hi From Teller`;
+    }
+}
+exports.Teller = Teller;
+class Writer {
+    constructor(message) {
+        this.message = message;
+    }
+    echo() {
+        return this.message;
+    }
+}
+exports.Writer = Writer;
+//# sourceMappingURL=teller.js.map

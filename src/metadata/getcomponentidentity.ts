@@ -4,7 +4,7 @@ import { COMPONENT_IDENTITY } from '../consts';
 import { Identity } from '../framework/identity';
 import getClassName from './getclassname';
 import { isObject } from './utils';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator');

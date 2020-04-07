@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Identity } from '../framework/identity';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 
 /**
  * Tests variable for being object or function and not null

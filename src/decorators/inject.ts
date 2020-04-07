@@ -16,7 +16,7 @@ import defineMetadata from '../metadata/definemetadata';
 import getTargetStereotype from '../framework/lib/gettargetstereotype';
 import { Identity } from '../framework/identity';
 import isStringOrSymbol from '../framework/lib/isstringorsymbol';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorate:inject');

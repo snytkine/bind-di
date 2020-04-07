@@ -7,7 +7,6 @@ import getFilenamesRecursive from './getFilenamesRecursive';
 import { COMPONENT_ENV, COMPONENT_IDENTITY } from '../../consts';
 import jsonStringify from '../../framework/lib/jsonstringify';
 import getComponentName from '../../metadata/getcomponentname';
-import getClassName from '../../metadata/getclassname';
 
 const TAG = 'LOAD_FROM_FS';
 
@@ -48,14 +47,17 @@ export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean 
 
   const compEnvs: Array<StringOrSymbol> = Reflect.getMetadata(COMPONENT_ENV, compClass);
   if (compEnvs) {
-    debug('%s COMPONENT "%s" has required values of process.env.%s %o ',
+    debug(
+      '%s COMPONENT "%s" has required values of process.env.%s %o ',
       TAG,
       compClass.name,
       envName,
-      compEnvs);
+      compEnvs,
+    );
 
     if (!compEnvs.includes(ENV)) {
-      debug('%s Skipping loading component "%s" in environment %s. Expected environments=%o',
+      debug(
+        '%s Skipping loading component "%s" in environment %s. Expected environments=%o',
         TAG,
         compClass.name,
         ENV,
@@ -72,7 +74,7 @@ export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean 
 /**
  * Check file name
  * If file path (including directories in its path)
- * starts with 2 underscore or not ends with .js then return false
+ * has (/__)or not ends with .js then return false
  * Files that start with 2 underscores is the pattern of test files
  * and we don't want to auto-load test files since that can lead to application startup error
  * because it will load duplicate components.
@@ -81,7 +83,7 @@ export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean 
  * @returns {boolean} true if file should be loaded by application loader
  */
 export function isFileNameLoadable(filePath: string): boolean {
-  return !filePath.match(/'\/__'/) && path.extname(filePath)==='.js';
+  return !filePath.match(/\/__/) && path.extname(filePath) === '.js';
 }
 
 /**
@@ -138,7 +140,11 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
     if (e instanceof FrameworkError) {
       throw e;
     }
-    throw new FrameworkError(`Failed at require file ${file}`, e);
+    throw new FrameworkError(
+      `Failed at require file ${file}
+    Error=${e.message}`,
+      e,
+    );
   }
 
   const ret = Object.entries(myExports);
@@ -163,7 +169,7 @@ export const load = (
     .filter(isFileNameLoadable)
     .filter(fileContainsDecorators);
 
-  debug('%s loading from files: %s', TAG, jsonStringify(files));
+  debug('%s loading from files: %o', TAG, files);
 
   files.forEach(file => {
     let fileExports: Array<ObjectEntry>;
@@ -189,10 +195,11 @@ export const load = (
       components = targetEntries.map(entry => entry[1]).filter(envFilter(options.envFilterName));
 
       components.forEach(component => {
-        debug('%s Adding component className="%s" from file "%s"',
+        debug(
+          '%s Adding component className="%s" from file "%s"',
           TAG,
           String(getComponentName(component)),
-          file
+          file,
         );
 
         try {

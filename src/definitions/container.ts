@@ -1,6 +1,6 @@
 import { Maybe, StringOrSymbol, StringToAny } from './types';
 import { ComponentScope } from '../enums';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 
 /**
  * A Component may be a named component or

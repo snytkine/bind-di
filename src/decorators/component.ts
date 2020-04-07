@@ -21,7 +21,7 @@ import getComponentName from '../metadata/getcomponentname';
 import assertNotReservedType from '../framework/lib/assertnotreserved';
 import getTargetStereotype from '../framework/lib/gettargetstereotype';
 import isStringOrSymbol from '../framework/lib/isstringorsymbol';
-import { ComponentIdentity } from '../lib/componentidentity';
+import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorate:component');

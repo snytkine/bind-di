@@ -11,7 +11,7 @@ import isSameIdentity from '../../metadata/issameidentity';
 import jsonStringify from '../lib/jsonstringify';
 import { checkDependencies } from './checkdependencies';
 import { getSortedComponents } from './sortcomponents';
-import { ComponentIdentity } from '../../lib/componentidentity';
+import { ComponentIdentity } from '../../utils/componentidentity';
 import { CONTAINER_COMPONENT } from '../../consts';
 import { Identity } from '../identity';
 

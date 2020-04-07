@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs = require("fs");
+const path = require("path");
+const debug = require('debug')('bind:loader');
+const TAG = 'FILE_LOADER';
+function getFilenamesRecursive(dirs) {
+    debug('%s Entered getFilenamesRecursive with dir %o', TAG);
+    const getFilenamesRecursiveInner = (dir, aFiles = [], level = 0) => {
+        const files = fs.readdirSync(dir);
+        files.forEach(file => {
+            if (fs.statSync(path.join(dir, file)).isDirectory()) {
+                aFiles = getFilenamesRecursiveInner(path.join(dir, file), aFiles, level + 1);
+            }
+            else {
+                aFiles.push(path.join(dir, file));
+            }
+        });
+        return aFiles;
+    };
+    return dirs.map(_ => getFilenamesRecursiveInner(_)).reduce((prev, cur) => prev.concat(cur), []);
+}
+exports.default = getFilenamesRecursive;

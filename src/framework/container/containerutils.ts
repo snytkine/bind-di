@@ -18,7 +18,7 @@ import getComponentMeta from '../lib/getcomponentsmeta';
 import assertNoPreDestroy from '../lib/assertnopredestroy';
 import assertNoProvides from '../lib/assertnoprovides';
 import assertNoPostConstruct from '../lib/assertnopostconstruct';
-import { ComponentIdentity } from '../../lib/componentidentity';
+import { ComponentIdentity } from '../../utils/componentidentity';
 import { Target } from '../../definitions/target';
 
 const TAG = 'CONTAINER_UTILS';
