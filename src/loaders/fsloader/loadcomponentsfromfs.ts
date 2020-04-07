@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { IfIocContainer } from '../../definitions';
+import { IContainerConfig, IfIocContainer, StringOrSymbol } from '../../definitions';
 import { addComponent } from '../../framework/container/containerutils';
 import FrameworkError from '../../exceptions/frameworkerror';
 import getFilenamesRecursive from './getFilenamesRecursive';
-import { COMPONENT_IDENTITY } from '../../consts';
+import { COMPONENT_ENV, COMPONENT_IDENTITY } from '../../consts';
 import jsonStringify from '../../framework/lib/jsonstringify';
 import getComponentName from '../../metadata/getcomponentname';
 import getClassName from '../../metadata/getclassname';
@@ -31,6 +31,44 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
   return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
 };
 
+export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean => {
+  const ENV = (envName && process.env[envName]) || Symbol('process env prop');
+
+  if (!compClass.prototype) {
+    debug('%s envFilter no prototype in component class in module', TAG);
+    return false;
+  }
+
+  const cConstructor = compClass.prototype.constructor;
+
+  if (!cConstructor) {
+    debug('%s no constructor in component in module', TAG);
+    return false;
+  }
+
+  const compEnvs: Array<StringOrSymbol> = Reflect.getMetadata(COMPONENT_ENV, compClass);
+  if (compEnvs) {
+    debug('%s COMPONENT "%s" has required values of process.env.%s %o ',
+      TAG,
+      compClass.name,
+      envName,
+      compEnvs);
+
+    if (!compEnvs.includes(ENV)) {
+      debug('%s Skipping loading component "%s" in environment %s. Expected environments=%o',
+        TAG,
+        compClass.name,
+        ENV,
+        compEnvs,
+      );
+
+      return false;
+    }
+  }
+
+  return true;
+};
+
 /**
  * Check file name
  * If file path (including directories in its path)
@@ -43,7 +81,7 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
  * @returns {boolean} true if file should be loaded by application loader
  */
 export function isFileNameLoadable(filePath: string): boolean {
-  return !filePath.match(/'\/__'/) && path.extname(filePath) === '.js';
+  return !filePath.match(/'\/__'/) && path.extname(filePath)==='.js';
 }
 
 /**
@@ -116,7 +154,11 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
  * @throws FrameworkError if component cannot be loaded or
  * cannot be added to container
  */
-export const load = (container: IfIocContainer, dirs: string[]) => {
+export const load = (
+  container: IfIocContainer,
+  dirs: string[],
+  options: IContainerConfig = { envFilterName: 'NODE_ENV' },
+): void => {
   const files = getFilenamesRecursive(dirs)
     .filter(isFileNameLoadable)
     .filter(fileContainsDecorators);
@@ -144,10 +186,15 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
        * a decorated component
        */
       targetEntries = fileExports.filter(isComponentEntry);
-      components = targetEntries.map(entry => entry[1]);
+      components = targetEntries.map(entry => entry[1]).filter(envFilter(options.envFilterName));
 
       components.forEach(component => {
-        debug('%s Adding component className="%s" from file "%s"', TAG, getClassName, file);
+        debug('%s Adding component className="%s" from file "%s"',
+          TAG,
+          String(getComponentName(component)),
+          file
+        );
+
         try {
           addComponent(container, component);
         } catch (e) {
@@ -160,4 +207,6 @@ export const load = (container: IfIocContainer, dirs: string[]) => {
       });
     }
   });
+
+  return undefined;
 };

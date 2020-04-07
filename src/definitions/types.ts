@@ -17,3 +17,11 @@ export type Constructor<T> = new (...args: any[]) => T;
 export type ClassPrototype = {
   constructor: Function;
 };
+
+export type ComponentClassDecorator<T> = (target: Constructor<T>) => void;
+
+export type ClassOrMethodDecorator<T> = (
+  target: ClassPrototype | Constructor<any>,
+  propertyKey?: string,
+  descriptor?: TypedPropertyDescriptor<T>,
+) => void;

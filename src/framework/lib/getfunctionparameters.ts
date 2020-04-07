@@ -2,7 +2,7 @@ import { FrameworkError } from '../../exceptions';
 import getTargetStereotype from './gettargetstereotype';
 import { Target } from '../../definitions/target';
 
-const debug = require('debug')('promiseoft:decorators');
+const debug = require('debug')('bind:decorators');
 
 const TAG = 'GET_FUNCTION_PARAMS';
 

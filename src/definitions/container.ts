@@ -14,10 +14,9 @@ import { ComponentIdentity } from '../lib/componentidentity';
  * is used for value of className
  */
 
-/* export interface IfComponentIdentity {
- componentName: StringOrSymbol;
- clazz?: Target;
- } */
+export interface IContainerConfig {
+  envFilterName: string;
+}
 
 export interface IfComponentDetails {
   /**
@@ -139,8 +138,6 @@ export type IocComponentGetter<T = any> = (
 
 export type ComponentGetterFactory = (container: IfIocContainer) => IocComponentGetter;
 
-// export type X = (meta: IfComponentDetails) => ComponentGetterFactory;
-
 /**
  * Lifecycle callbacks are made by container after
  * the new component is constructed or before container shuts down
@@ -181,11 +178,11 @@ export interface IfIocComponent<T = any> extends IfComponentDetails {
   get: IocComponentGetter<T>;
 }
 
-export interface Newable<T> {
+/* export interface Newable<T> {
   new (): T;
 
   name?: string;
-}
+} */
 
 /**
  * Inversion of control container interface

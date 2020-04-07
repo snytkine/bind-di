@@ -1,7 +1,6 @@
 import { INIT_METHOD, PRE_DESTROY } from '../consts';
-import { LifecycleCallback } from '../definitions';
+import { LifecycleCallback, ClassPrototype } from '../definitions';
 import defineMetadata from '../metadata/definemetadata';
-import getComponentName from '../metadata/getcomponentname';
 import { Target } from '../definitions/target';
 
 const debug = require('debug')('bind:decorator:lifecycle');
@@ -11,9 +10,17 @@ const TAG = 'LIFECYCLE';
 export function PostConstruct(
   target: Target,
   propertyKey: string,
-  // eslint-disable-next-line
   descriptor: TypedPropertyDescriptor<LifecycleCallback>,
 ) {
+  debug(
+    '%s Adding @PostConstruct decorator to "%s" for method "%s" with descriptor %s',
+    TAG,
+    target.constructor.name,
+    propertyKey,
+    !!descriptor,
+  );
+
+  defineMetadata(INIT_METHOD, propertyKey, target)();
   defineMetadata(INIT_METHOD, propertyKey, target.constructor)();
   /**
    * @todo from the old implementation
@@ -42,16 +49,16 @@ export function PostConstruct(
 }
 
 export function PreDestroy(
-  target: Target,
+  target: ClassPrototype,
   propertyKey: string,
-  // eslint-disable-next-line
   descriptor: TypedPropertyDescriptor<LifecycleCallback>,
 ) {
   debug(
-    '%s Adding @PreDestroy decorator to "%s" for method "%s"',
+    '%s Adding @PreDestroy decorator to "%s" for method "%s" with descriptor %s',
     TAG,
-    String(target.name),
+    target.constructor.name,
     propertyKey,
+    !!descriptor,
   );
   defineMetadata(PRE_DESTROY, propertyKey, target)();
   /**
@@ -60,58 +67,33 @@ export function PreDestroy(
    * to be able to get the value of this meta by passing just a class
    * (in which case it actually is passing a constructor)
    */
-  defineMetadata(PRE_DESTROY, propertyKey, target.constructor);
+  defineMetadata(PRE_DESTROY, propertyKey, target.constructor)();
   /**
    * @todo see the comments in PostConstruct and defined actual
    * method on the prototype
-   * it will make this method avaiable in the sub-classes
+   * it will make this method available in the sub-classes
    * of the component.
    */
 }
 
-export function getPredestroy(target: Target): string {
+export function getPredestroy(target: ClassPrototype): string | undefined {
   return Reflect.getMetadata(PRE_DESTROY, target);
 }
 
 /**
- * @todo will not be able to get metadata that was defined on a property
- * from a target!
  *
  * @param {Target} target
- * @returns {string}
+ * @returns {string|undefined}
  */
-export function getPostConstruct(target: Target): string {
-  const cName = String(getComponentName(target));
-
-  debug('%s Entered getPostConstruct for target=%s', TAG, cName);
+export function getPostConstruct(target: ClassPrototype): string | undefined {
+  debug('%s Entered getPostConstruct for target=%s', TAG, target.constructor.name);
 
   const ret = Reflect.getMetadata(INIT_METHOD, target);
 
   if (ret) {
-    debug('%s Found method of postConstruct on %s method=%s', TAG, cName, ret);
+    debug('%s Found method of postConstruct on %s method=%s', TAG, target.constructor.name, ret);
 
     return ret;
-  }
-
-  const a = Object.getOwnPropertyNames(target);
-  debug('%s Property names of %s are %o', TAG, cName, a);
-
-  if (target.prototype) {
-    const targetPropNames = Object.getOwnPropertyNames(target.prototype);
-    const initPropName = targetPropNames.find(p =>
-      Reflect.hasMetadata(INIT_METHOD, target.prototype, p),
-    );
-    debug('%s Found INIT_METHOD="%s" in target="%s"', TAG, ret, cName);
-
-    return initPropName;
-    /* for (const p in target.prototype) {
-     if (target.prototype.hasOwnProperty(p)) {
-     debug('%s Checking postConstruct of %s.%s', TAG, cName, p);
-     if (Reflect.hasMetadata(INIT_METHOD, target.prototype, p)) {
-     return p;
-     }
-     }
-     } */
   }
 
   return undefined;
