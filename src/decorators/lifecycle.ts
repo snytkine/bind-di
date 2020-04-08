@@ -1,5 +1,5 @@
 import { INIT_METHOD, PRE_DESTROY } from '../consts';
-import { LifecycleCallback, ClassPrototype } from '../definitions';
+import { LifecycleCallback, ClassPrototype, Maybe } from '../definitions';
 import defineMetadata from '../metadata/definemetadata';
 import { Target } from '../definitions/target';
 import FrameworkError from '../exceptions/frameworkerror';
@@ -92,7 +92,7 @@ export function PreDestroy(
    */
 }
 
-export function getPredestroy(target: ClassPrototype): string | undefined {
+export function getPredestroy(target: ClassPrototype): Maybe<string> {
   return Reflect.getMetadata(PRE_DESTROY, target);
 }
 
@@ -101,7 +101,7 @@ export function getPredestroy(target: ClassPrototype): string | undefined {
  * @param {Target} target
  * @returns {string|undefined}
  */
-export function getPostConstruct(target: ClassPrototype): string | undefined {
+export function getPostConstruct(target: ClassPrototype): Maybe<string> {
   debug('%s Entered getPostConstruct for target=%s', TAG, target.constructor.name);
 
   const ret = Reflect.getMetadata(INIT_METHOD, target);

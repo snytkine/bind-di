@@ -1,5 +1,5 @@
-import { Client } from './fixtures/client';
-import { Obj1 } from './fixtures/obj1';
+import Client from './fixtures/client';
+import Obj1 from './fixtures/obj1';
 import { isComponentEntry } from '../loadcomponentsfromfs';
 
 describe('test isComponentEntity', () => {

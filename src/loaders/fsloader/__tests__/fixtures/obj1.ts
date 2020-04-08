@@ -1,4 +1,4 @@
-export class Obj1 {
+export default class Obj1 {
   message = 'hello';
 
   echo() {

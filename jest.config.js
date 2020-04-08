@@ -2,6 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleFileExtensions: ['js', 'json', 'jsx', 'ts', 'tsx', 'node', 'tjs'],
+  setupFiles: ["<rootDir>/.jest/setEnvVars.js"],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/build/',
@@ -16,16 +17,11 @@ module.exports = {
   collectCoverageFrom: [
     '**/*.ts',
     '!src/app.ts',
-    '!src/Components/mongo.ts',
     '!**/*.d.ts',
     '!**/node_modules/**',
-    '!**/vendor/**',
     '!build/**',
     '!src/loaders/fsloader/__tests__/fixtures/**',
-    '!**/__test__/fixtures/**',
-    '!src/Controllers/__tests__/fixtures/**',
-    '!src/Components/mongo_mock.ts',
-    '!src/Components/index.ts',
+    '!**/fixtures/**',
     '!src/sandbox/**',
   ],
   coverageThreshold: {

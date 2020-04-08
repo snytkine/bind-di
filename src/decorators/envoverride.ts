@@ -17,13 +17,14 @@ export default function EnvOverride<T extends { new (...args: any[]): {} }>(targ
 
       return new Proxy(this, {
         get(obj, property) {
-          if (typeof property === 'string' || typeof property === 'number') {
+          if (typeof property === 'string') {
             /**
              * Convert to String because if property
              * is number it can only possibly be set as env var as a string
              */
-            return process.env[`''${property}`] || obj[property];
+            return process.env[property] || obj[property];
           }
+
           return obj[property];
         },
         has(obj, p) {

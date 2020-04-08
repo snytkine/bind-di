@@ -1,10 +1,12 @@
-import Environment from '../../environment';
+import EnvOverride from '../../envoverride';
 
+export const SYM_KEY = Symbol('sym port');
 
+@EnvOverride
 export class Component1 {
-  private message = 'HELLO';
+  public myport: string = '8080';
 
-  echo(){
-    return this.message;
-  }
+  public myhost = 'localhost';
+
+  public [SYM_KEY] = 'test-test';
 }
