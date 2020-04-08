@@ -13,7 +13,7 @@
 export default function EnvOverride<T extends { new (...args: any[]): {} }>(target: T): T {
   const ret = class EnvProxy extends target {
     constructor(...args: any[]) {
-      super(args);
+      super(...args);
 
       return new Proxy(this, {
         get(obj, property) {
@@ -27,14 +27,8 @@ export default function EnvOverride<T extends { new (...args: any[]): {} }>(targ
 
           return obj[property];
         },
-        has(obj, p) {
-          return Reflect.has(obj, p);
-        },
         ownKeys(obj) {
           return Object.getOwnPropertyNames(obj);
-        },
-        getOwnPropertyDescriptor(obj, p) {
-          return Object.getOwnPropertyDescriptor(obj, p);
         },
       });
     }

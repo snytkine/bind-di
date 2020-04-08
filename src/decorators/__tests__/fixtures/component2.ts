@@ -1,9 +1,6 @@
-import EnvOverride from '../../envoverride';
+import { SYM_KEY } from './component1';
 
-export const SYM_KEY = Symbol('sym port');
-
-@EnvOverride
-export class Component1 {
+export default class Component2 {
   public myport: string = '8080';
 
   public myhost = 'localhost';
