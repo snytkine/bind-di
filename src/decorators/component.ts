@@ -11,7 +11,7 @@ import {
 import { ComponentScope, TargetStereoType } from '../enums';
 import { DecoratorError, FrameworkError } from '../exceptions';
 
-import { IfComponentFactoryMethod, IfConstructorDependency, StringOrSymbol } from '../definitions';
+import { IfComponentFactoryMethod, IfConstructorDependency, Maybe, StringOrSymbol } from '../definitions';
 import { Identity } from '../framework/identity';
 import getClassName from '../metadata/getclassname';
 import getComponentIdentity from '../metadata/getcomponentidentity';
@@ -110,7 +110,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
   if (
     constructorParamTypes &&
     Array.isArray(constructorParamTypes) &&
-    existingCtorDeps.length !== constructorParamTypes.length
+    existingCtorDeps.length!==constructorParamTypes.length
   ) {
     const targetClassName = getClassName(target);
 
@@ -124,7 +124,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
 
     const updatedCtorDependencies: Array<IfConstructorDependency> = constructorParamTypes.map(
       (dep, i) => {
-        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex === i);
+        let res = existingCtorDeps.find(existingDep => existingDep.parameterIndex===i);
 
         if (!res) {
           /**
@@ -184,7 +184,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
   descriptor: TypedPropertyDescriptor<Object>,
 ): void => {
   const targetStereoType = getTargetStereotype(target);
-  if (targetStereoType === TargetStereoType.CONSTRUCTOR && !propertyKey) {
+  if (targetStereoType===TargetStereoType.CONSTRUCTOR && !propertyKey) {
     /**
      * Applying decorator to class
      */
@@ -192,7 +192,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
 
     setComponentIdentity(Identity(componentName, target), target);
     setConstructorDependencies(componentName, target);
-  } else if (targetStereoType === TargetStereoType.PROTOTYPE) {
+  } else if (targetStereoType===TargetStereoType.PROTOTYPE) {
     const factoryClassName = target?.constructor?.name;
     debug(
       `Defining  ${TAG}('${String(componentName)}') for class method "${String(
@@ -218,7 +218,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
      * Also decorating a method makes it possible to do something like
      * return new MyClass(somePropSetFromInit)
      */
-    if (!descriptor || typeof descriptor.value !== 'function') {
+    if (!descriptor || typeof descriptor.value!=='function') {
       throw new DecoratorError(
         `Only class or class method can have a '${TAG}'decorator. ${target.constructor.name}.${propertyKey} decorated with ${TAG} is NOT a class or method`,
       );
@@ -243,7 +243,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
     const rettype = Reflect.getMetadata(RETURN_TYPE, target, propertyKey);
     const RT = typeof rettype;
 
-    if (componentName === UNNAMED_COMPONENT && (RT !== 'function' || !rettype.name)) {
+    if (componentName===UNNAMED_COMPONENT && (RT!=='function' || !rettype.name)) {
       throw new DecoratorError(
         `Cannot add ${TAG} to property ${propertyKey}. 
         ${TAG} decorator was used without a name and type is not an object: "${RT}"`,
@@ -350,7 +350,7 @@ export function Component(
  * @param {Target} target
  * @returns {Array<IfComponentFactoryMethod>}
  */
-export function getFactoryMethods(target: Target): Array<IfComponentFactoryMethod> | undefined {
+export function getFactoryMethods(target: Target): Maybe<Array<IfComponentFactoryMethod>> {
   /**
    * use target.prototype because target is just a constructor function
    * we need to access to object's properties and for that we need

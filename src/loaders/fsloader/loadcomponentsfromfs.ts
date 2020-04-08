@@ -5,7 +5,6 @@ import { addComponent } from '../../framework/container/containerutils';
 import FrameworkError from '../../exceptions/frameworkerror';
 import getFilenamesRecursive from './getFilenamesRecursive';
 import { COMPONENT_ENV, COMPONENT_IDENTITY } from '../../consts';
-import jsonStringify from '../../framework/lib/jsonstringify';
 import getComponentName from '../../metadata/getcomponentname';
 
 const TAG = 'LOAD_FROM_FS';
