@@ -16,11 +16,10 @@ export default function getComponentIdentity(
   propertyKey?: StringOrSymbol,
 ): ComponentIdentity {
   if (!isObject(target)) {
-    throw new FrameworkError(`target not passed to getComponentIdentity`);
+    throw new FrameworkError('Target passed to getComponentIdentity is not an object');
   }
 
   const ret = <ComponentIdentity>Reflect.getMetadata(COMPONENT_IDENTITY, target, propertyKey);
-  let targetName: string;
 
   /**
    * Now get className
@@ -34,45 +33,51 @@ export default function getComponentIdentity(
    * have same Identity object
    */
   if (ret) {
-    debug('%s Found className from COMPONENT_IDENTITY metadata ', TAG, ret);
-    if (target.name) {
-      debug('%s Found className in .name property "%s"', TAG, target.name);
+    debug('%s Found COMPONENT_IDENTITY propertyKey="%s"  ret=%s  ', TAG, propertyKey, ret);
 
-      targetName = target.name;
-    } else if (target.constructor && target.constructor.name) {
-      debug('%s Found className in constructor.name "%s"', TAG, target.constructor.name);
-
-      targetName = target.constructor.name;
-    }
-
-    if (targetName && ret.clazz && targetName !== ret.clazz.name) {
-      debug(
-        `%s Different className from Identity and class name. 
-      className="%s" name="%s"`,
-        TAG,
-        ret?.clazz?.name,
-        targetName,
-      );
-      /**
-       * @todo not sure what was the logic behind this.
-       * if COMPONENT_IDENTITY metadata was found
-       * but the .clazz is not the same as target then why returning
-       * different identity from what was explicitely set in metadata?
-       */
-      if (target !== ret.clazz) {
-        return Identity(target);
-      }
-    }
     return ret;
+    /*
+     if (target.name) {
+     debug('%s Found className in .name property "%s"', TAG, target.name);
+
+     targetName = target.name;
+     } else if (target.constructor && target.constructor.name) {
+     debug('%s Found className in constructor.name "%s"', TAG, target.constructor.name);
+
+     targetName = target.constructor.name;
+     }
+
+     if (targetName && ret.clazz && targetName !== ret.clazz.name) {
+     debug(
+     `%s Different className from Identity and class name.
+     className="%s" name="%s"`,
+     TAG,
+     ret?.clazz?.name,
+     targetName,
+     );
+
+     /!**
+     * @todo not sure what was the logic behind this.
+     * if COMPONENT_IDENTITY metadata was found
+     * but the .clazz is not the same as target then why returning
+     * different identity from what was explicitely set in metadata?
+     *!/
+     if (target !== ret.clazz) {
+     return Identity(target);
+     }
+     }
+     */
   }
+
   /**
    * Maybe a raw class unannotated.
    * In this case create clazz-based identity
-   *
-   * @todo we will not have unannotated classes.
    */
-  const className = getClassName(target);
-  debug('%s Returning unnamed component className="%s"', TAG, className);
+  if (!propertyKey) {
+    const className = getClassName(target);
+    debug('%s Returning unnamed component className="%s"', TAG, className);
+    return Identity(target);
+  }
 
-  return Identity(target);
+  return ret;
 }
