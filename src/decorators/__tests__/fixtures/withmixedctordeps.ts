@@ -4,14 +4,11 @@ import { Inject } from '../../inject';
 
 @Component
 export default class ComponentWithDeps2 {
-
-
   private message: string = 'hello';
 
   constructor(@Inject('greeter') public greeter, public client: Client) {}
 
-  get hello(){
-    return this.message
+  get hello() {
+    return this.message;
   }
 }
-
