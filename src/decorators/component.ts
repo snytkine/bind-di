@@ -9,7 +9,7 @@ import {
 } from '../consts';
 
 import { ComponentScope, TargetStereoType } from '../enums';
-import { DecoratorError, FrameworkError } from '../exceptions';
+import { DecoratorError } from '../exceptions';
 
 import {
   IfComponentFactoryMethod,
@@ -140,7 +140,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
            *
            */
           if (!dep) {
-            throw new FrameworkError(`Cannot determine constructor dependency for arg ${i}
+            throw new DecoratorError(`Cannot determine constructor dependency for arg ${i}
             for class ${targetClassName}
             Either the dependency is not a user-defined class or there may be a
             circular import. Possible solutions are: 
@@ -157,7 +157,7 @@ const setConstructorDependencies = (componentName: StringOrSymbol, target: Objec
         try {
           assertNotReservedType(res.dependency.componentName, res.dependency.clazz);
         } catch (e) {
-          throw new FrameworkError(`Failed to add dependency for constructor argument="${i}" 
+          throw new DecoratorError(`Failed to add dependency for constructor argument="${i}" 
                       for class "${targetClassName}"
                       Error=${e.message}`);
         }
@@ -304,7 +304,7 @@ export const applyComponentDecorator = (componentName: StringOrSymbol) => (
      */
     defineMetadata(DEFAULT_SCOPE, ComponentScope.SINGLETON, target.constructor, propertyKey)(true);
   } else {
-    throw new FrameworkError(
+    throw new DecoratorError(
       `Cannot apply ${TAG} decorator because could not determine target stereotype`,
     );
   }

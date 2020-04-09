@@ -1,2 +1,2 @@
 // SETUP YOUR environment variables here
-//process.env.myport = 'envport';
+//process.env.DEBUG = 'bind:decorate:component'
