@@ -35,14 +35,23 @@ export const isComponentEntry = (entry: ObjectEntry): boolean => {
 export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean => {
   const ENV = (envName && process.env[envName]) || Symbol('process env prop');
 
-  if (!compClass.prototype) {
+  if (!compClass) {
     debug('%s envFilter no prototype in component class in module', TAG);
     return false;
   }
+  let proto;
+  /**
+   * Here using getPrototypeOf instead of .prototype because
+   * an object may have __proto__ but no .prototype
+   */
+  if(!Object.prototype.hasOwnProperty.call(compClass, 'prototype') || !compClass.prototype){
+    debug('%s envFilter passed in class has no prototype', TAG);
+    return false;
+  }
 
-  const cConstructor = compClass.prototype.constructor;
+  proto = compClass.prototype;
 
-  if (!cConstructor) {
+  if (!Object.prototype.hasOwnProperty.call(proto, 'constructor')) {
     debug('%s no constructor in component in module', TAG);
     return false;
   }
