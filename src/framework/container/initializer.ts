@@ -6,7 +6,7 @@ import {
   IfComponentPropDependency,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
-import { copyIdentity } from '../../metadata/utils';
+import copyIdentity from '../../metadata/copyidentity';
 import isSameIdentity from '../../metadata/issameidentity';
 
 const debug = require('debug')('bind:container');

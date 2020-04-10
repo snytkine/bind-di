@@ -1,4 +1,4 @@
-export * from './utils';
+export { default as copyIdentity } from './copyidentity';
 export { default as defineMetadata } from './definemetadata';
 export { default as setComponentIdentity } from './setcomponentidentity';
 export { default as getClassName } from './getclassname';

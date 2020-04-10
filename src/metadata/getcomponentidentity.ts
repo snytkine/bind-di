@@ -1,9 +1,9 @@
-import { StringOrSymbol } from '../definitions/types';
+import { Maybe, StringOrSymbol } from '../definitions/types';
 import { FrameworkError } from '../exceptions';
 import { COMPONENT_IDENTITY } from '../consts';
 import { Identity } from '../framework/identity';
 import getClassName from './getclassname';
-import { isObject } from './utils';
+import isObject from '../framework/lib/isobject';
 import { ComponentIdentity } from '../utils/componentidentity';
 import { Target } from '../definitions/target';
 
@@ -14,7 +14,7 @@ const TAG = 'getComponentIdentity';
 export default function getComponentIdentity(
   target: Target,
   propertyKey?: StringOrSymbol,
-): ComponentIdentity {
+): Maybe<ComponentIdentity> {
   if (!isObject(target)) {
     throw new FrameworkError('Target passed to getComponentIdentity is not an object');
   }
@@ -34,6 +34,18 @@ export default function getComponentIdentity(
    */
   if (ret) {
     debug('%s Found COMPONENT_IDENTITY propertyKey="%s"  ret=%s  ', TAG, propertyKey, ret);
+
+    /**
+     * Special case when target is child-class and not decorated
+     * but parent class has @Component decorator
+     * in this case the COMPONENT_IDENTITY metadata will be from parent class
+     * and it will have parent's .class in identity.
+     * This is not what we want
+     */
+    if (!propertyKey && target !== ret.clazz) {
+      debug('%s .clazz of target does not match .clazz in found identity "%s"', TAG, ret);
+      return Identity(target);
+    }
 
     return ret;
     /*
@@ -78,6 +90,7 @@ export default function getComponentIdentity(
     debug('%s Returning unnamed component className="%s"', TAG, className);
     return Identity(target);
   }
+  debug('%s Could not determine Identity for target with propertyKey="%s"', TAG, propertyKey);
 
   return ret;
 }

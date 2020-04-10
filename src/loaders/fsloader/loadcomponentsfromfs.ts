@@ -26,7 +26,10 @@ export type ObjectEntry = [string, any];
  * @returns boolean true if Object in ObjectEntry has COMPONENT_IDENTITY
  */
 export const isComponentEntry = (entry: ObjectEntry): boolean => {
-  return !!Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
+  const id = Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
+  debug('%s Component id="%s"', TAG, id);
+
+  return !!id;
 };
 
 export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean => {

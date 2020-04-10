@@ -21,9 +21,10 @@ export default function isSameIdentity(a: ComponentIdentity, b: ComponentIdentit
   if (a.componentName !== UNNAMED_COMPONENT || b.componentName !== UNNAMED_COMPONENT) {
     return a.componentName === b.componentName;
   }
+
   /**
    * Both are UNNAMED_COMPONENT
    * then both must have same clazz
    */
-  return b.componentName === UNNAMED_COMPONENT && a.clazz === b.clazz;
+  return a.clazz === b.clazz;
 }

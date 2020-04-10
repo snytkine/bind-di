@@ -5,6 +5,7 @@ import { Component } from '../../decorators/component';
 import FactoryComponent from './fixtures/factory';
 import DB2 from './fixtures/db2';
 import MyPlainClass from './fixtures/myplainclass';
+import MyLogger from './fixtures/mylogger';
 
 describe('Test of getComponentIdentity function', () => {
   beforeEach(() => {
@@ -32,6 +33,15 @@ describe('Test of getComponentIdentity function', () => {
     });
   });
 
+  test('should return Identity for sub-class of decorated class', () => {
+    const res = getComponentIdentity(MyLogger);
+
+    expect(res).toEqual({
+      name: UNNAMED_COMPONENT,
+      targetClass: MyLogger,
+    });
+  });
+
   test('should return Identity for a Component decorated class', () => {
     Component('my-component')(MyPlainClass);
     const res = getComponentIdentity(MyPlainClass);
@@ -49,5 +59,11 @@ describe('Test of getComponentIdentity function', () => {
       name: 'db-connection',
       targetClass: DB2,
     });
+  });
+
+  test('should return undefined for class property that is not decorated with @Component', () => {
+    const identity = getComponentIdentity(MyPlainClass, 'greet');
+
+    expect(identity).toBeUndefined();
   });
 });

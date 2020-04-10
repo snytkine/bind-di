@@ -154,9 +154,20 @@ export default class Container implements IfIocContainer {
 
   addComponent(component: IfIocComponent): boolean {
     debug('%s Entered Container.addComponent with component="%s"', TAG, component.identity);
+
     if (this.has(component.identity)) {
-      throw new FrameworkError(`
+      const existing = this.getComponentDetails(component.identity);
+      /**
+       * if existing component has exactly the same .clazz as component.identity
+       * then we should just ignore this because that means that this method
+       * is somehow called more than once with same exact component.
+       */
+      if (existing.identity.clazz && component.identity.clazz === existing.identity.clazz) {
+        debug('%s attempting to add same component twice id="%s"', TAG, existing.identity);
+      } else {
+        throw new FrameworkError(`
             Container already has component "${component.identity.toString()}"`);
+      }
     }
 
     /**
