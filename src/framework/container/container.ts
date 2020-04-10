@@ -152,6 +152,13 @@ export default class Container implements IfIocContainer {
     return ret;
   }
 
+  /**
+   * Adds component to componentsStore array
+   * @param component
+   * @throws if DIFFERENT component with same Identity already in componentsStore
+   * if same component (by object reference) is already in componentsStore then will just
+   * not add it again.
+   */
   addComponent(component: IfIocComponent): boolean {
     debug('%s Entered Container.addComponent with component="%s"', TAG, component.identity);
 

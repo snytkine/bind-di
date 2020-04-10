@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { IContainerConfig, IfIocContainer, StringOrSymbol } from '../../definitions';
+import { IContainerConfig, IfIocContainer, StringOrSymbol, StringToAny } from '../../definitions';
 import { addComponent } from '../../framework/container/containerutils';
 import FrameworkError from '../../exceptions/frameworkerror';
 import getFilenamesRecursive from './getFilenamesRecursive';
@@ -10,10 +10,6 @@ import getComponentName from '../../metadata/getcomponentname';
 const TAG = 'LOAD_FROM_FS';
 
 const debug = require('debug')('bind:loader');
-
-export type FileExports = {
-  [key: string]: any;
-};
 
 export type ObjectEntry = [string, any];
 
@@ -39,17 +35,17 @@ export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean 
     debug('%s envFilter no prototype in component class in module', TAG);
     return false;
   }
-  let proto;
+
   /**
    * Here using getPrototypeOf instead of .prototype because
    * an object may have __proto__ but no .prototype
    */
-  if(!Object.prototype.hasOwnProperty.call(compClass, 'prototype') || !compClass.prototype){
+  if (!Object.prototype.hasOwnProperty.call(compClass, 'prototype') || !compClass.prototype) {
     debug('%s envFilter passed in class has no prototype', TAG);
     return false;
   }
 
-  proto = compClass.prototype;
+  const proto = compClass.prototype;
 
   if (!Object.prototype.hasOwnProperty.call(proto, 'constructor')) {
     debug('%s no constructor in component in module', TAG);
@@ -94,6 +90,14 @@ export const envFilter = (envName: string = 'NODE_ENV') => (compClass): boolean 
  * @returns {boolean} true if file should be loaded by application loader
  */
 export function isFileNameLoadable(filePath: string): boolean {
+  /**
+   * Special case to skip this check and allow all files to load
+   * when env.LOADER_TEST is test to TEST
+   * This way unit test can run and files can be loaded
+   * from __tests__ dir
+   */
+  if (process?.env?.LOADER_TEST === 'TEST') return true;
+
   return !filePath.match(/\/__/) && path.extname(filePath) === '.js';
 }
 
@@ -136,7 +140,7 @@ export function fileContainsDecorators(filePath: string): boolean {
  *
  */
 export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
-  let myExports: FileExports = {};
+  let myExports: StringToAny = {};
 
   try {
     // eslint-disable-next-line

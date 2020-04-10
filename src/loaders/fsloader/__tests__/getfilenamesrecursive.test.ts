@@ -3,6 +3,8 @@ import { getFilenamesRecursive } from '../index';
 describe('Testing getFileNamesRecursive', () => {
   test('should return names of files in directory', () => {
     const expected = [
+      '/fixtures/components/account.ts',
+      '/fixtures/components/account2.js',
       '/fixtures/components/component1.txt',
       '/fixtures/components/component2.txt',
       '/fixtures/components/subdir/component1.txt',
