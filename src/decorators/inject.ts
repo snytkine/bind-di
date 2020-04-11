@@ -327,8 +327,8 @@ const applyInjectToConstructorParam = (
      */
     if (RESERVED_COMPONENT_NAMES.includes(injectClassName)) {
       throw new FrameworkError(`Dependency class ${injectClassName} 
-            for "${String(target)}"  constructor at position ${paramIndex} 
-            is not an allowed as dependency component. 
+            for "${String(target.name)}"  constructor at position ${paramIndex} 
+            is not an allowed type as dependency component. 
             Consider using named dependency or more specific class type for this component`);
     }
   } else {

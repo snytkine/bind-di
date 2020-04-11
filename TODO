@@ -1,0 +1,8 @@
+Try to create factory provided dependency named with "any" for class
+Then inject it as UNNAMED injection into constructor
+See if it works. There is a check in inject.ts around line 199 if (!injectClassName) {... throw
+I think that may be a mistake, but maybe not a mistake.
+
+
+TODO also try to setup parent class with ctor injection and child class with ctor injection
+See how it works when ctor deps override ctor deps from parent.

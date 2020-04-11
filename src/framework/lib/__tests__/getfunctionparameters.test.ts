@@ -41,6 +41,22 @@ describe('Test of getFunctionParameters and getMethodParamName', () => {
     expect(res).toEqual(['name', 'title', 'idsb']);
   });
 
+  test(`getMethodParamName should throw if regex fails, like in case when
+  passed in Function in a Class`, () => {
+    let error;
+
+    try {
+      getFunctionParameters(Storage);
+    } catch (e) {
+      error = e;
+    }
+
+    expect(error).toBeInstanceOf(FrameworkError);
+    expect(error.message.includes('Error extracting function parameters from function')).toEqual(
+      true,
+    );
+  });
+
   test('getMethodParamName should return name of param', () => {
     const res0 = getMethodParamName(Storage.prototype, 'getItem', 0);
     const res1 = getMethodParamName(Storage.prototype, 'getItem', 1);

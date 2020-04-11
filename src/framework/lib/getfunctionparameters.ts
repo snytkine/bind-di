@@ -24,17 +24,32 @@ const TAG = 'GET_FUNCTION_PARAMS';
  */
 const getFunctionParameters = (func: Function): string[] => {
   const t = typeof func;
+  let ret;
+  let funcString: string;
 
   if (t !== 'function') {
     throw new FrameworkError(`Input to getFunctionParameters must be a function. Was ${t}`);
   }
 
-  return new RegExp(`(?:${func.name}\\s*|^)\\s*\\((.*?)\\)`)
-    .exec(func.toString().replace(/\n/g, ''))[1]
-    .replace(/\/\*.*?\*\//g, '')
-    .replace(/ /g, '')
-    .split(',')
-    .map(val => val.split('=')[0]);
+  try {
+    funcString = func.toString();
+    ret = new RegExp(`(?:${func.name}\\s*|^)\\s*\\((.*?)\\)`)
+      .exec(funcString.replace(/\n/g, ''))[1]
+      .replace(/\/\*.*?\*\//g, '')
+      .replace(/ /g, '')
+      .split(',')
+      .map(val => val.split('=')[0]);
+  } catch (e) {
+    debug('%s Exception in getFunctionParameters. Error="%s"', TAG, e.message);
+
+    throw new FrameworkError(
+      `Error extracting function parameters from function 
+    Error="${e.message}"`,
+      e,
+    );
+  }
+
+  return ret;
 };
 
 /**
@@ -69,7 +84,7 @@ const getMethodParamName = (
 
   const aParams = getFunctionParameters(targetMethod);
 
-  if (!aParams && !Array.isArray(aParams)) {
+  if (!aParams || !Array.isArray(aParams)) {
     throw new FrameworkError(`getMethodParamName failed to extract method params from
     method="${methodName}" on target=${target?.constructor?.name}`);
   }
