@@ -23,7 +23,12 @@ describe('Test of envFilter function', () => {
   });
 
   test('should return false when compClass has prototype but no constructor', () => {
-    expect(envFilter('')(MyClass.prototype)).toEqual(false);
+    const obj1 = { a: 1 };
+    const obj2 = { c: 3 };
+
+    Reflect.set(obj1, 'prototype', obj2);
+
+    expect(envFilter('')(obj1)).toEqual(false);
   });
 
   test('should return false when @Environment decorator does not match env var', () => {

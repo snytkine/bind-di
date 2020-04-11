@@ -1,4 +1,4 @@
-import { IfComponentPropDependency, IfConstructorDependency, StringOrSymbol } from '../definitions';
+import { Constructor, IfComponentPropDependency, IfConstructorDependency, StringOrSymbol } from '../definitions';
 import {
   DESIGN_TYPE,
   UNNAMED_COMPONENT,
@@ -62,7 +62,7 @@ export const addConstructorDependency = (
    * Typescript compiler will allow to use only co-variant types in child constructor
    */
   const existingDependencyIndex: number = deps.findIndex(
-    dep => dep.parameterIndex === parameterIndex,
+    dep => dep.parameterIndex===parameterIndex,
   );
 
   if (existingDependencyIndex > -1) {
@@ -93,24 +93,24 @@ const getInjectionType = (
   const targetStereoType: TargetStereoType = getTargetStereotype(target);
 
   if (
-    TargetStereoType.PROTOTYPE === targetStereoType &&
+    TargetStereoType.PROTOTYPE===targetStereoType &&
     propertyKey &&
-    typeof propertyKey === 'string' &&
-    parameterIndex === undefined
+    typeof propertyKey==='string' &&
+    parameterIndex===undefined
   ) {
     ret = DependencyType.PROPERTY;
   } else if (
-    TargetStereoType.CONSTRUCTOR === targetStereoType &&
-    propertyKey === undefined &&
-    typeof parameterIndex === 'number'
+    TargetStereoType.CONSTRUCTOR===targetStereoType &&
+    propertyKey===undefined &&
+    typeof parameterIndex==='number'
   ) {
     ret = DependencyType.CONSTRUCTOR_PARAMETER;
   } else if (
-    TargetStereoType.PROTOTYPE === targetStereoType &&
-    typeof propertyKey === 'string' &&
-    typeof parameterIndex === 'object' &&
+    TargetStereoType.PROTOTYPE===targetStereoType &&
+    typeof propertyKey==='string' &&
+    typeof parameterIndex==='object' &&
     parameterIndex.set &&
-    typeof parameterIndex.set === 'function'
+    typeof parameterIndex.set==='function'
   ) {
     ret = DependencyType.SETTER;
   }
@@ -148,7 +148,7 @@ const applyInjectToProperty = (
    *
    * 2. UNNAMED dependencies MUST have valid DESIGN_TYPE
    */
-  if (dependencyName !== UNNAMED_COMPONENT) {
+  if (dependencyName!==UNNAMED_COMPONENT) {
     injectName = dependencyName;
     /**
      * This injection is named component
@@ -163,9 +163,9 @@ const applyInjectToProperty = (
     injectIdentity = Identity(injectName, rt); // this is wrong target is the component, not injected class
   } else {
     if (!rt) {
-      throw new FrameworkError(`Cannot determine 
-            the dependency type for component "${name}" propertyKey="${propertyKey}". 
-            Possibly caused by circular imports or not adding 
+      throw new FrameworkError(`
+      Cannot determine the dependency type for component "${name}" propertyKey="${propertyKey}". 
+            Possibly caused by circular imports or not adding
             TypeScript's type to indicate type of dependency class.
             Possible solutions are:
             - Use user-defined class as dependency component. 
@@ -230,6 +230,20 @@ const applyInjectToProperty = (
    * The actual target object may not have this property defined
    * because typescript compiler will not
    * add a property if it does not have a value.
+   * Even if it has a value the TS Compiled does not really add property,
+   * instead it adds it to body of constructor function
+   * Like this: here the 'id' is not added as property but
+   * instead is initialized in constructor
+   *
+   * let Logger = class Logger {
+    constructor(teller) {
+        this.teller = teller;
+        this.id = "abc";
+    }
+    log(message) {
+        console.log(message);
+    }
+    }
    *
    * // target.hasOwnProperty(propertyKey)
    */
@@ -258,7 +272,7 @@ const applyInjectToConstructorParam = (
   target: Target,
   paramIndex: NumberOrPropertyDescriptor,
 ): void => {
-  if (typeof paramIndex !== 'number') {
+  if (typeof paramIndex!=='number') {
     throw new FrameworkError(`parameterIndex passed to applyInjectToConstructorParam 
     must be a number. dependencyName=${String(dependencyName)}`);
   }
@@ -292,7 +306,7 @@ const applyInjectToConstructorParam = (
         on class ${getClassName(target)}`);
   }
 
-  if (dependencyName === UNNAMED_COMPONENT) {
+  if (dependencyName===UNNAMED_COMPONENT) {
     /**
      * For unnamed @Inject get identity from ptypes[paramIndex]
      * make sure class type is not reserved type.
@@ -428,7 +442,7 @@ export const getConstructorDependencies = (target: Target): Array<ComponentIdent
      * Need to turn it into  array of ordered dependency components
      */
     for (let i = 0; i < ret.length; i += 1) {
-      sorted.push(ret.find(it => it.parameterIndex === i));
+      sorted.push(ret.find(it => it.parameterIndex===i));
       if (!sorted[i]) {
         throw new FrameworkError(`Constructor is missing @Inject decorator 
                 for parameter ${i} for component ${target.name}`);
@@ -462,12 +476,15 @@ export const getClassSetters = (target: Target): Array<string> => {
    * Right now only works with constructor.
    */
   if (!target || !target.prototype) {
+    debug('%s parameter passed to getClassSetters is not a constructor. Returning empty array');
+
     return ret;
   }
+
   const descriptors = Object.getOwnPropertyDescriptors(target.prototype);
 
   for (const k in descriptors) {
-    if (descriptors[k] && descriptors[k].set && typeof descriptors[k].set === 'function') {
+    if (descriptors[k] && descriptors[k].set && typeof descriptors[k].set==='function') {
       ret.push(k);
     }
   }
@@ -485,8 +502,11 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    */
   const dependencies = [];
   let keys = [];
+  let classProps = [];
   if (target && target.prototype) {
     keys = Object.keys(target.prototype);
+    classProps = Object.getOwnPropertyNames(target.prototype);
+    debug('%s %s classProps=%o', TAG, cName, classProps);
   }
   /**
    * Now look for setters properties. These do not show up in Object.keys
@@ -495,7 +515,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    * @important this method only finds setters of own class, never of parent class
    */
   const getters = getClassSetters(target);
-  keys = keys.concat(getters);
+  keys = keys.concat(getters).filter(key => (key !== 'constructor' && key !== 'length'));
 
   /**
    * Child class may have dependency-injected property defined parent class

@@ -1,6 +1,6 @@
 import { FrameworkError } from '../../exceptions';
 import getTargetStereotype from './gettargetstereotype';
-import { Target } from '../../definitions/target';
+import { ClassPrototype } from '../../definitions/types';
 
 const debug = require('debug')('bind:decorators');
 
@@ -48,7 +48,11 @@ const getFunctionParameters = (func: Function): string[] => {
  * or if there is no param for the paramIndex or if Regex fails to extract
  * named parameters from function.
  */
-const getMethodParamName = (target: Target, methodName: string, parameterIndex: number): string => {
+const getMethodParamName = (
+  target: ClassPrototype,
+  methodName: string,
+  parameterIndex: number,
+): string => {
   const targetStereoType = getTargetStereotype(target);
   debug('%s targetStereoType="%s"', TAG, targetStereoType);
   /**
@@ -57,8 +61,8 @@ const getMethodParamName = (target: Target, methodName: string, parameterIndex: 
    * In case of constructor Function use the .prototype of constructor
    */
 
-  const targetMethod = target[methodName];
-  if (!targetMethod && typeof targetMethod !== 'function') {
+  const targetMethod = target?.[methodName];
+  if (!targetMethod || typeof targetMethod !== 'function') {
     throw new FrameworkError(`getMethodParamName failed to get method ${methodName} 
     from target ${target?.constructor?.name}`);
   }
