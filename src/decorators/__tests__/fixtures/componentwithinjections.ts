@@ -4,6 +4,7 @@ import Component2 from './component2';
 
 export default class API {
   private conn: string;
+
   private requestLogger;
 
   constructor(@Inject('conn-string') connection: string) {
@@ -19,7 +20,7 @@ export default class API {
   public test2: Component2;
 
   @Inject('logger')
-  set logger(loggerObj){
+  set logger(loggerObj) {
     this.requestLogger = loggerObj;
   }
 }
