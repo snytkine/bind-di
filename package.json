@@ -1,5 +1,5 @@
 {
-  "name": "bind",
+  "name": "bind-di",
   "version": "1.0.0",
   "description": "Dependency Injection Framework for TypeScript",
   "license": "MIT",
