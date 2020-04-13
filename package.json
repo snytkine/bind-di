@@ -1,7 +1,8 @@
 {
   "name": "bind",
   "version": "1.0.0",
-  "description": "Dependency Injection Framework for JavaScript",
+  "description": "Dependency Injection Framework for TypeScript",
+  "license": "MIT",
   "scripts": {
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
@@ -18,6 +19,11 @@
     "format": "eslint src --ext .ts --fix",
     "lint": "eslint src --ext .ts"
   },
+  "pre-commit": [
+    "lint",
+    "build",
+    "test"
+  ],
   "engines": {
     "node": ">=8.11.0"
   },

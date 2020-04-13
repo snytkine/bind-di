@@ -114,7 +114,6 @@ describe('Test of @Inject decorator', () => {
     expect(error.message.includes('not allowed as dependency component')).toEqual(true);
   });
 
-
   test(`Inject should throw FrameworkError if trying to apply unnamed @Inject
   to constructor and type of injected dependency is among reserved types (String)`, () => {
     let error;
