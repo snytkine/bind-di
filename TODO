@@ -6,3 +6,5 @@ I think that may be a mistake, but maybe not a mistake.
 
 TODO also try to setup parent class with ctor injection and child class with ctor injection
 See how it works when ctor deps override ctor deps from parent.
+- Allow @Inject as method param. In this case scope limitations will not apply.
+
