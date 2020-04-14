@@ -1,7 +1,9 @@
-#Bind
+![Node.js CI](https://github.com/snytkine/bind/workflows/Node.js%20CI/badge.svg)
+
+# Bind
 Dependency Injection Container Framework
 
-##FEATURES
+## FEATURES
 - 100% TypeScript
 - 100% Decorator based configuration
 - File system scan. Components are loaded from file system, based on @Component decorators.
