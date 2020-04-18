@@ -27,9 +27,6 @@ export default function EnvOverride<T extends { new (...args: any[]): {} }>(targ
 
           return obj[property];
         },
-        ownKeys(obj) {
-          return Object.getOwnPropertyNames(obj);
-        },
       });
     }
   };

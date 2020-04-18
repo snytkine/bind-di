@@ -8,3 +8,13 @@ TODO also try to setup parent class with ctor injection and child class with cto
 See how it works when ctor deps override ctor deps from parent.
 - Allow @Inject as method param. In this case scope limitations will not apply.
 
+
+TODO Fix EnvOverride implementation
+it does not work with @Component decorator
+if it's added above @Component then the actual component is not found in container
+and dependencies on that component are failing, even for named component
+If it's added below @Component then component is found but component's own prop dependency
+is not set when component is created. Probably because the class being returned by @EnvOverride is different
+and getComponentDependencies checks dependencies on sub-class and its failing.
+
+
