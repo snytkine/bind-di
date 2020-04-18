@@ -8,15 +8,22 @@ const defineMetadata = (
   target: Object,
   propertyKey?: StringOrSymbol,
 ) => (isUnique: boolean = false) => {
+  const className = getClassName(target);
   if (isUnique && Reflect.hasMetadata(metadataKey, target, propertyKey)) {
-    const className = getClassName(target);
     const err = `Target ${className} already has metadata with metadataKey="${metadataKey.toString()}" for propertyKey="${String(
       propertyKey,
     )}"`;
     throw new FrameworkError(err);
   }
 
-  Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
+  try {
+    Reflect.defineMetadata(metadataKey, metadataValue, target, propertyKey);
+  } catch (e) {
+    throw new FrameworkError(
+      `Exception in defineMetadata for ${className}.${String(propertyKey)} error=${e.message}`,
+      e,
+    );
+  }
 
   // Need for decorating instances on classes?
   // Why were these prototype and constructor things here?

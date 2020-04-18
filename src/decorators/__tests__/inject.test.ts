@@ -22,17 +22,17 @@ describe('Test of @Inject decorator', () => {
         },
       },
       {
-        propertyName: 'test2',
-        dependency: {
-          name: UNNAMED_COMPONENT,
-          targetClass: Component2,
-        },
-      },
-      {
         propertyName: 'logger',
         dependency: {
           name: 'logger',
           targetClass: Object,
+        },
+      },
+      {
+        propertyName: 'test2',
+        dependency: {
+          name: UNNAMED_COMPONENT,
+          targetClass: Component2,
         },
       },
     ];

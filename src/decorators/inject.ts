@@ -122,6 +122,7 @@ const applyInjectToProperty = (
   dependencyName: StringOrSymbol,
   target: Target,
   propertyKey: string,
+  propertyDescriptor?: NumberOrPropertyDescriptor,
 ): void => {
   const name = String(getComponentName(target));
 
@@ -259,6 +260,28 @@ const applyInjectToProperty = (
     debug('%s added property "%s" to prototype of "%s"', TAG, propertyKey, name);
   }
 
+  if (propertyDescriptor && typeof propertyDescriptor === 'object') {
+    debug('%s propertyKey %s has propertyDescriptor %o', TAG, propertyKey, propertyDescriptor);
+    /**
+     * Set enumerable to true so that this setter will be found as a property
+     * of object in for-in loop when looking for prop dependencies with getPropDependencies()
+     */
+
+    /**
+     * @todo consider consequences of making a setter an enumerable property
+     * the consumer of this framework may rely on some type of for-in loop
+     * or on getKeys() to get object properties and it may be an unexpected surprise
+     * to find setter in the array of enumerable properties.
+     *
+     * A more complex work around would be to define a new hidden property
+     * on the target under some symbol and make it a Set of names of setters.
+     * Then in getPropDependencies also check for that property in the target prototype
+     *
+     * Or just define extra metadata on target like SETTER_NAMES and add a set of setter names
+     */
+    Reflect.set(propertyDescriptor, 'enumerable', true);
+  }
+
   defineMetadata(PROP_DEPENDENCY, injectIdentity, target, propertyKey)();
 };
 
@@ -362,7 +385,7 @@ const applyInject = (depName: StringOrSymbol) => (
       break;
 
     case DependencyType.SETTER:
-      applyInjectToProperty(depName, target, propertyKey);
+      applyInjectToProperty(depName, target, propertyKey, paramIndex);
       break;
 
     case DependencyType.PROPERTY:
@@ -469,6 +492,13 @@ export const getConstructorDependencies = (target: Target): Array<ComponentIdent
   return [];
 };
 
+/**
+ * @todo deprecate this because now PropertyDescriptor of class setter
+ * decorated with @Inject are set to enumerable and are found in the
+ * getPropDependencies  method just like normal property.
+ *
+ * @param target
+ */
 export const getClassSetters = (target: Target): Array<string> => {
   const ret = [];
   /**
@@ -480,7 +510,10 @@ export const getClassSetters = (target: Target): Array<string> => {
 
     return ret;
   }
-
+  // use target.__proto__.prototype to get all prop descriptors from parent class
+  // if this is a normal component and not a sub-class it will have __proto__
+  // but not __proto__.prototype
+  // this is useful in case of Proxy class where target is Proxy class that extends actual component
   const descriptors = Object.getOwnPropertyDescriptors(target.prototype);
 
   for (const k in descriptors) {
@@ -501,21 +534,21 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    * If class extends other class May not get props of parent class
    */
   const dependencies = [];
-  let keys = [];
-  let classProps = [];
+
+  const myProtoKeys = [];
   if (target && target.prototype) {
-    keys = Object.keys(target.prototype);
-    classProps = Object.getOwnPropertyNames(target.prototype);
-    debug('%s %s classProps=%o', TAG, cName, classProps);
+    /**
+     * Here using for-in loop because we need to include
+     * properties from parent classes as well as this class
+     * This is required for EnvOverride decorator to work properly
+     * because it creates a sub-class of actual component
+     * Object.keys will not work because it returns only own properties
+     */
+    // eslint-disable-next-line guard-for-in
+    for (const k in target.prototype) {
+      myProtoKeys.push(k);
+    }
   }
-  /**
-   * Now look for setters properties. These do not show up in Object.keys
-   * but @Inject can be applied to setters so we must look for setter props separately.
-   *
-   * @important this method only finds setters of own class, never of parent class
-   */
-  const getters = getClassSetters(target);
-  keys = keys.concat(getters).filter(key => key !== 'constructor' && key !== 'length');
 
   /**
    * Child class may have dependency-injected property defined parent class
@@ -527,7 +560,7 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    * if child class redefined the property with no @Inject then the property should not
    * be considered a dependency
    */
-  for (const p of keys) {
+  for (const p of myProtoKeys) {
     debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
 
     /**
@@ -551,6 +584,20 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
   }
 
   debug('%s returning prop dependencies for class "%s" dependencies=%o', TAG, cName, dependencies);
+
+  /**
+   * Sort array by property names so that order of elements
+   * is consistent, will be useful for unit testing.
+   */
+  dependencies.sort((a, b) => {
+    if (a.propertyName === b.propertyName) {
+      return 0;
+    }
+    if (a.propertyName > b.propertyName) {
+      return 1;
+    }
+    return -1;
+  });
 
   return dependencies;
 }

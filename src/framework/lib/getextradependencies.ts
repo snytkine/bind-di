@@ -13,8 +13,14 @@ export default function getExtraDependencies(target: Target): Array<ComponentIde
 
   let dependencies: Array<ComponentIdentity> =
     Reflect.getMetadata(EXTRA_DEPENDENCIES, target) || [];
+
   let keys = [];
   if (target && target.prototype) {
+    /**
+     * @todo this will not work well for child classes because
+     * getOwnPropertyNames does not return properties from prototype chain.
+     * Should probably replace this with for-in.
+     */
     keys = Object.getOwnPropertyNames(target.prototype).filter(prop => prop !== 'constructor');
   }
 

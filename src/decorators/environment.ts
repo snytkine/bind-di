@@ -11,7 +11,9 @@ export default function Environment(...names: string[]): ComponentClassDecorator
     debug('Entered %s decorator with class %s', TAG, target.name);
     /**
      * @todo use getTargetStereotype
-     * from bind instead of manually determining type
+     * to determine is target is contructor or prototype
+     * and allow adding @Environment to factory provided components
+     * in which case the target will be prototype and there will be property key
      */
     const envs = Reflect.getMetadata(COMPONENT_ENV, target);
     if (envs) {
