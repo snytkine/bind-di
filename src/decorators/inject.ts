@@ -564,9 +564,10 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
         const dep = Reflect.getMetadata(PROP_DEPENDENCY, target.prototype, p);
         debug('%s Prop "%s.%s" has dependency %o', TAG, cName, p, dep);
         /**
+         * @todo
          * dependency may already exist for the same property key if it was
          * defined on the parent class.
-         *
+         * so before pushing to dependencies make sure same identity does not already exist
          */
         dependencies.push({
           propertyName: p,

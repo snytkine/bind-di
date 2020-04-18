@@ -14,48 +14,48 @@ export default function getExtraDependencies(target: Target): Array<ComponentIde
   let dependencies: Array<ComponentIdentity> =
     Reflect.getMetadata(EXTRA_DEPENDENCIES, target) || [];
 
-  let keys = [];
-  if (target && target.prototype) {
-    /**
-     * @todo this will not work well for child classes because
-     * getOwnPropertyNames does not return properties from prototype chain.
-     * Should probably replace this with for-in.
-     */
-    keys = Object.getOwnPropertyNames(target.prototype).filter(prop => prop !== 'constructor');
-  }
-
   /**
    * Individual method may have own dependencies
    */
-  for (const p of keys) {
-    debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
-
+  if (target && target.prototype) {
     /**
-     * First check if class has own property p
+     * Here using for-in loop because we need to include
+     * properties from parent classes as well as this class
+     * This is required for EnvOverride decorator to work properly
+     * because it creates a sub-class of actual component
+     * Object.keys will not work because it returns only own properties
      */
-    if (Reflect.hasMetadata(EXTRA_DEPENDENCIES, target.prototype, p)) {
-      const deps: Array<ComponentIdentity> = Reflect.getMetadata(
-        EXTRA_DEPENDENCIES,
-        target.prototype,
-        p,
-      );
-      debug('%s Prop "%s.%s" has extra dependencies', TAG, cName, p);
+    // eslint-disable-next-line guard-for-in
+    for (const p in target.prototype) {
+      debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
 
-      /**
-       * dependency may already exist for the same property key if it was
-       * defined on the parent class.
-       *
-       */
-      if (deps) {
-        dependencies = dependencies.concat(deps);
+      if (Reflect.hasMetadata(EXTRA_DEPENDENCIES, target.prototype, p)) {
+        const deps: Array<ComponentIdentity> = Reflect.getMetadata(
+          EXTRA_DEPENDENCIES,
+          target.prototype,
+          p,
+        );
+        debug('%s Prop "%s.%s" has extra dependencies', TAG, cName, p);
+
+        /**
+         * dependency may already exist for the same property key if it was
+         * defined on the parent class.
+         *
+         */
+        if (deps) {
+          dependencies = dependencies.concat(deps);
+        } else {
+          debug('%s Prop "%s.%s" has NO extra dependencies', TAG, cName, p);
+        }
       } else {
-        debug('%s Prop "%s.%s" has NO extra dependencies', TAG, cName, p);
+        debug('%s Prop "%s.%s" has NO dependency', TAG, cName, p);
       }
-    } else {
-      debug('%s Prop "%s.%s" has NO dependency', TAG, cName, p);
     }
   }
 
+  /**
+   * @todo remove duplicates from dependencies array using isSameIdentity
+   */
   debug('%s returning prop dependencies for class "%s" dependencies=%o', TAG, cName, dependencies);
 
   return dependencies;
