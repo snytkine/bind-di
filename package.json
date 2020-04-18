@@ -1,6 +1,6 @@
 {
   "name": "bind-di",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Dependency Injection Framework for TypeScript",
   "license": "MIT",
   "scripts": {
