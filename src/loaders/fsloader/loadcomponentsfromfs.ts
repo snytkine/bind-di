@@ -22,9 +22,20 @@ export type ObjectEntry = [string, any];
  * @returns boolean true if Object in ObjectEntry has COMPONENT_IDENTITY
  */
 export const isComponentEntry = (entry: ObjectEntry): boolean => {
-  const id = Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
-  debug('%s Component id="%s"', TAG, id);
-
+  let id;
+  /**
+   * Must be wrapped in try/catch because Reflect.getMetadata will throw TypeError
+   * if entry is not an object.
+   * Since the module can export just about anything - string, number, etc.
+   * This function may pass a non-object to Reflect.getMetadata and
+   * therefore we need to be ready for exception here.
+   */
+  try {
+    id = Reflect.getMetadata(COMPONENT_IDENTITY, entry[1]);
+    debug('%s Component id="%s"', TAG, id);
+  } catch {
+    debug('%s Exception from Reflect.getMetadata on entry %o', TAG, entry[1]);
+  }
   return !!id;
 };
 
