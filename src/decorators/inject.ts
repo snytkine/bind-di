@@ -535,21 +535,6 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    */
   const dependencies = [];
 
-  const myProtoKeys = [];
-  if (target && target.prototype) {
-    /**
-     * Here using for-in loop because we need to include
-     * properties from parent classes as well as this class
-     * This is required for EnvOverride decorator to work properly
-     * because it creates a sub-class of actual component
-     * Object.keys will not work because it returns only own properties
-     */
-    // eslint-disable-next-line guard-for-in
-    for (const k in target.prototype) {
-      myProtoKeys.push(k);
-    }
-  }
-
   /**
    * Child class may have dependency-injected property defined parent class
    * but redefined in child class
@@ -560,26 +545,36 @@ export function getPropDependencies(target: Target): Array<IfComponentPropDepend
    * if child class redefined the property with no @Inject then the property should not
    * be considered a dependency
    */
-  for (const p of myProtoKeys) {
-    debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
-
+  if (target && target.prototype) {
     /**
-     * First check if class has own property p
+     * Here using for-in loop because we need to include
+     * properties from parent classes as well as this class
+     * This is required for EnvOverride decorator to work properly
+     * because it creates a sub-class of actual component
+     * Object.keys will not work because it returns only own properties
      */
-    if (Reflect.hasMetadata(PROP_DEPENDENCY, target.prototype, p)) {
-      const dep = Reflect.getMetadata(PROP_DEPENDENCY, target.prototype, p);
-      debug('%s Prop "%s.%s" has dependency %o', TAG, cName, p, dep);
+    // eslint-disable-next-line guard-for-in
+    for (const p in target.prototype) {
+      debug('%s Checking for prop dependency. prop "%s.%s"', TAG, cName, p);
+
       /**
-       * dependency may already exist for the same property key if it was
-       * defined on the parent class.
-       *
+       * First check if class has own property p
        */
-      dependencies.push({
-        propertyName: p,
-        dependency: dep,
-      });
-    } else {
-      debug('%s Prop "%s.%s" has NO dependency', TAG, cName, p);
+      if (Reflect.hasMetadata(PROP_DEPENDENCY, target.prototype, p)) {
+        const dep = Reflect.getMetadata(PROP_DEPENDENCY, target.prototype, p);
+        debug('%s Prop "%s.%s" has dependency %o', TAG, cName, p, dep);
+        /**
+         * dependency may already exist for the same property key if it was
+         * defined on the parent class.
+         *
+         */
+        dependencies.push({
+          propertyName: p,
+          dependency: dep,
+        });
+      } else {
+        debug('%s Prop "%s.%s" has NO dependency', TAG, cName, p);
+      }
     }
   }
 
