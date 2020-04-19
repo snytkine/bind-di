@@ -39,7 +39,7 @@ export const addConstructorDependency = (
   dependency: ComponentIdentity,
   parameterIndex: number,
 ): void => {
-  const deps =
+  let deps =
     <Array<IfConstructorDependency>>Reflect.getMetadata(CONSTRUCTOR_DEPENDENCIES, target) || [];
   const name = String(getComponentName(target));
   debug(
@@ -67,13 +67,24 @@ export const addConstructorDependency = (
 
   if (existingDependencyIndex > -1) {
     debug(
-      '% class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
+      '%s class "%s" already has constructor dependency for paramIndex %d. Will reassign it',
       TAG,
-      getClassName(target),
+      name,
       parameterIndex,
     );
 
-    delete deps[existingDependencyIndex];
+    /**
+     * Need to remove element from array at that index.
+     * Best way to delete it is to create new deps by filtering out element
+     */
+    deps = deps.filter(dep => dep.parameterIndex !== parameterIndex);
+    debug(
+      '%s filtered out existing ctor dependency at ctor index=%d comp="%s" %o',
+      TAG,
+      parameterIndex,
+      name,
+      deps,
+    );
   }
 
   deps.push({
