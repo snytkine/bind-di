@@ -23,12 +23,12 @@ export default class Container implements IfIocContainer {
   private componentsStore: Array<IfIocComponent> = [];
 
   /**
-   * @todo this will be configurable by passing options to constructor
    * @type {ComponentScope}
    */
-  public readonly defaultScope: ComponentScope = ComponentScope.SINGLETON;
+  private defaultComponentScope;
 
-  constructor() {
+  constructor(defaultComponentScope: ComponentScope = ComponentScope.SINGLETON) {
+    this.defaultComponentScope = defaultComponentScope;
     /**
      * Polyfill Symbol.asyncIterator
      * @type {any | symbol}
@@ -41,6 +41,14 @@ export default class Container implements IfIocContainer {
     if (!Symbol.asyncIterator) {
       Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
     }
+  }
+
+  get defaultScope(): ComponentScope {
+    return this.defaultComponentScope;
+  }
+
+  set defaultScope(scope: ComponentScope) {
+    this.defaultComponentScope = scope;
   }
 
   get components(): Array<IfIocComponent> {
