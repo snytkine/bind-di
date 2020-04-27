@@ -145,7 +145,7 @@ export type ComponentGetterFactory = (container: IfIocContainer) => IocComponent
  * of asynchronous operations like connecting to database
  * These methods don't take any arguments must return a Promise<Boolean>
  */
-export type LifecycleCallback = () => Promise<Boolean>;
+export type LifecycleCallback = () => Promise<boolean>;
 
 export interface IfComponentFactoryMethod {
   methodName: string;
