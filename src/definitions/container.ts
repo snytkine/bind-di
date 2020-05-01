@@ -13,9 +13,10 @@ import { ComponentIdentity } from '../utils/componentidentity';
  * In case of generic class the name of type T is not used, only the className
  * is used for value of className
  */
-
 export interface IContainerConfig {
-  envFilterName: string;
+  envFilterName?: string;
+  defaultScope?: ComponentScope;
+  componentDirs?: string[];
 }
 
 export interface IfComponentDetails {

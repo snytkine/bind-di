@@ -1,8 +1,8 @@
 import {
+  IContainerConfig,
   IfIocComponent,
   IfIocContainer,
   IScopedComponentStorage,
-  isDefined,
 } from '../../definitions';
 import { ComponentScope } from '../../enums';
 import { initIterator } from './initializer';
@@ -14,6 +14,7 @@ import { getSortedComponents } from './sortcomponents';
 import { ComponentIdentity } from '../../utils/componentidentity';
 import { CONTAINER_COMPONENT } from '../../consts';
 import { Identity } from '../identity';
+import { load } from '../../loaders/fsloader';
 
 const debug = require('debug')('bind:container');
 
@@ -27,8 +28,8 @@ export default class Container implements IfIocContainer {
    */
   private defaultComponentScope;
 
-  constructor(defaultComponentScope: ComponentScope = ComponentScope.SINGLETON) {
-    this.defaultComponentScope = defaultComponentScope;
+  constructor(config: IContainerConfig = {}) {
+    this.defaultComponentScope = config.defaultScope || ComponentScope.SINGLETON;
     /**
      * Polyfill Symbol.asyncIterator
      * @type {any | symbol}
@@ -40,6 +41,10 @@ export default class Container implements IfIocContainer {
     }
     if (!Symbol.asyncIterator) {
       Reflect.set(Symbol, 'asyncIterator', Symbol.for('Symbol.asyncIterator'));
+    }
+
+    if (config.componentDirs) {
+      load(this, config.componentDirs, config.envFilterName);
     }
   }
 
@@ -115,49 +120,9 @@ export default class Container implements IfIocContainer {
       !!scopedStorages,
     );
 
-    let ret: any;
-    let details;
-    try {
-      details = this.getComponentDetails(id);
-    } catch (e) {
-      debug('%s getComponents() did not find details. Error=%o', TAG, e);
-    }
-    /**
-     * @todo this does not make sense
-     * What is going on here is we are allowing for a
-     * component to not be known to container but will still
-     * look for it in scoped storages. This is dangerous because
-     * the container init() function must check dependency graph and
-     * at that point all components must be known to container otherwise
-     * the initialization will throw error.
-     *
-     * So really this should be removed and reduces to just
-     * ret = details.get(scopedStorages);
-     * also no need to wrap details = this.getComponentDetails(id);
-     * in try/catch, just let the exception to be thrown.
-     */
-    if (isDefined(details)) {
-      ret = details.get(scopedStorages);
-    } else if (scopedStorages) {
-      /**
-       * Component details not found in container
-       * If scopedStorages are passed then look
-       * for component in scoped storages.
-       */
-      ret = scopedStorages.reduce((acc: any, next) => {
-        if (acc) {
-          return acc;
-        }
+    const details = this.getComponentDetails(id);
 
-        return next.getComponent(id);
-      }, undefined);
-    }
-
-    if (!ret) {
-      throw new FrameworkError(`Failed find component by Identity="${id.toString()}"`);
-    }
-
-    return ret;
+    return details.get(scopedStorages);
   }
 
   /**
@@ -199,6 +164,10 @@ export default class Container implements IfIocContainer {
         ComponentScope[this.defaultScope],
       );
 
+      /**
+       * @todo this just sets the regular object property 'scope', probably not what
+       * we intended. We probably want to set metadata instead.
+       */
       Reflect.set(component, 'scope', this.defaultScope);
     }
 

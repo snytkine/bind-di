@@ -120,8 +120,8 @@ export const getComponentFromScopedStorages = (
     /**
      * Create new instance
      */
-    const constructorArgs = meta.constructorDependencies.map(dependincyIdentity =>
-      container.getComponent(dependincyIdentity, arrStorages),
+    const constructorArgs = meta.constructorDependencies.map(depIdentity =>
+      container.getComponent(depIdentity, arrStorages),
     );
     const instance = Reflect.construct(<ObjectConstructor>meta.identity.clazz, constructorArgs);
 

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { IContainerConfig, IfIocContainer, StringOrSymbol, StringToAny } from '../../definitions';
+import { IfIocContainer, StringOrSymbol, StringToAny } from '../../definitions';
 import { addComponent } from '../../framework/container/containerutils';
 import FrameworkError from '../../exceptions/frameworkerror';
 import getFilenamesRecursive from './getFilenamesRecursive';
@@ -189,7 +189,7 @@ export const getExportsFromFile = (file: string): Array<ObjectEntry> => {
 export const load = (
   container: IfIocContainer,
   dirs: string[],
-  options: IContainerConfig = { envFilterName: 'NODE_ENV' },
+  envFilterName: string = 'NODE_ENV',
 ): void => {
   const files = getFilenamesRecursive(dirs)
     .filter(isFileNameLoadable)
@@ -218,7 +218,7 @@ export const load = (
        * a decorated component
        */
       targetEntries = fileExports.filter(isComponentEntry);
-      components = targetEntries.map(entry => entry[1]).filter(envFilter(options.envFilterName));
+      components = targetEntries.map(entry => entry[1]).filter(envFilter(envFilterName));
 
       components.forEach(component => {
         debug(
