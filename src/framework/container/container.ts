@@ -150,12 +150,6 @@ export default class Container implements IfIocContainer {
       }
     }
 
-    /**
-     * Update default scope
-     * Unannotated component will not have any scope set, not even DEFAULT_SCOPE
-     * because it Component function was never applied to that component class, so
-     * it does not have any metadata at all.
-     */
     if (!component.scope) {
       debug(
         '%s Component "%s" Does not have defined scope. Setting default scope="%s"',
@@ -165,8 +159,8 @@ export default class Container implements IfIocContainer {
       );
 
       /**
-       * @todo this just sets the regular object property 'scope', probably not what
-       * we intended. We probably want to set metadata instead.
+       * Here we set .scope property not on actual component class
+       * but on IfIocComponent (component meta)
        */
       Reflect.set(component, 'scope', this.defaultScope);
     }

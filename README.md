@@ -1,7 +1,10 @@
 ![Node.js CI](https://github.com/snytkine/bind/workflows/Node.js%20CI/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # Bind
-Dependency Injection Container Framework
+Modern JavaScript Dependency Injection Framework written in TypeScript
+
+
+#### Check out the [Documentation website](https://snytkine.github.io/) for full documentation
 
 ## FEATURES
 - 100% TypeScript
@@ -16,5 +19,4 @@ No need for any configuration files.
 - Async methods postConstruct and preDestroy can be used to establish database connections or any 
 other async operation needed for initialization.
 - debugging messages with debug library.
-- Support for Component Lifecycle - Singleton, NewInstance, Request, Session and custom Lifecycle scopes
-
+- Support for Component Lifecycle Scoped - Singleton, NewInstance, Request, Session and custom Lifecycle scopes

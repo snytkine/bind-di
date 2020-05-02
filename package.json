@@ -53,7 +53,7 @@
   "bugs": {
     "url": "https://github.com/snytkine/bind/issues"
   },
-  "homepage": "https://github.com/snytkine/bind#readme",
+  "homepage": "https://snytkine.github.io/",
   "dependencies": {
     "build": "^0.1.4",
     "debug": "^4.1.1",
