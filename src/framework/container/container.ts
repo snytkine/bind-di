@@ -171,6 +171,50 @@ export default class Container implements IfIocContainer {
   }
 
   /**
+   * Similar to addComponent but this one allows replacing existing component
+   *
+   * @param component
+   */
+  setComponent(component: IfIocComponent): boolean {
+    debug('%s Entered Container.setComponent with component="%s"', TAG, component.identity);
+    /**
+     * First find out if store already has component with same identity
+     */
+    const idx = this.componentsStore.findIndex(comp =>
+      isSameIdentity(component.identity, comp.identity),
+    );
+
+    if (!component.scope) {
+      debug(
+        '%s Component "%s" Does not have defined scope. Setting default scope="%s"',
+        TAG,
+        component.identity,
+        ComponentScope[this.defaultScope],
+      );
+
+      /**
+       * Here we set .scope property not on actual component class
+       * but on IfIocComponent (component meta)
+       */
+      Reflect.set(component, 'scope', this.defaultScope);
+    }
+
+    if (idx < 0) {
+      this.componentsStore.push(component);
+    } else {
+      debug(
+        '% container already has component with identity=%s. Will replace it',
+        TAG,
+        component.identity,
+      );
+      const replaced = this.componentsStore.splice(idx, 1, component);
+      debug('%s setComponent replaced component %o', TAG, replaced);
+    }
+
+    return true;
+  }
+
+  /**
    * Initialize container with array of components.
    * @param aComponents
    * @return Promise of Array of previous components (may be empty array)

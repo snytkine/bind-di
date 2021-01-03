@@ -2,6 +2,26 @@ export type StringOrSymbol = string | symbol;
 export type StringToString = { [key: string]: string };
 export type StringToAny = { [key: string]: any };
 
+/**
+ * @todo add | void | never to possible types
+ * T | void | never | undefined
+ *
+ * But then a bunch of functions will have to be rewritten
+ * for example getComponentDetails, getComponent, isSameIdentity etc...
+ *
+ * Adding void to possible types will allow using type maybe as returnType of
+ * functions that return some value or nothing.
+ * for example
+ * (val) => {
+ *   if(val){
+ *     return 'something'
+ *   }
+ * }
+ *
+ * This function returns string or undefined but as far as typescript is concerned
+ * it returns string | void
+ *
+ */
 export type Maybe<T> = T | undefined;
 
 export function isDefined<T>(x: Maybe<T>): x is T {
